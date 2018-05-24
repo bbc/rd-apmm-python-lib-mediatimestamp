@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This library provides a class TimeOffset which stores a signed time difference value with nanosecond precision.
+
+It also provides a class TimeStamp which is a descendent of TimeOffset which represents a positive time offset since
+the epoch (ie. 1970-01-01T00:00:00.000000000Z)
+
+These data types are of use in a number of situations, but particularly for code that will handle PTP timestamps, which
+are normally stored in this fashion.
+"""
+
 from __future__ import print_function
 
 from six import integer_types
@@ -74,7 +83,7 @@ UTC_LEAP = [
 
 
 class TsValueError(Exception):
-    """ Raised when the time offset or timestamp input valid is invalid """
+    """ Raised when the time offset or timestamp input is invalid """
     def __init__(self, msg):
         super(TsValueError, self).__init__(msg)
         self.msg = msg
@@ -116,6 +125,7 @@ def _parse_iso8601(iso8601):
 
 
 class TimeOffset(object):
+    """A nanosecond precision time difference object."""
     ROUND_DOWN = 0
     ROUND_NEAREST = 1
     ROUND_UP = 2
@@ -483,6 +493,7 @@ class TimeOffset(object):
 
 
 class Timestamp(TimeOffset):
+    """A nanosecond precision timestamp."""
     def __init__(self, sec=0, ns=0, sign=1):
         super(Timestamp, self).__init__(sec, ns, sign)
 
