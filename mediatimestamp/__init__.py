@@ -47,29 +47,29 @@ UTC_LEAP = [
   (1341100800, 1341100834),    # 1 Jul 2012, 35 leap seconds
   (1230768000, 1230768033),    # 1 Jan 2009, 34 leap seconds
   (1136073600, 1136073632),    # 1 Jan 2006, 33 leap seconds
-  ( 915148800,  915148831),    # 1 Jan 1999, 32 leap seconds
-  ( 867715200,  867715230),    # 1 Jul 1997, 31 leap seconds
-  ( 820454400,  820454429),    # 1 Jan 1996, 30 leap seconds
-  ( 773020800,  773020828),    # 1 Jul 1994, 29 leap seconds
-  ( 741484800,  741484827),    # 1 Jul 1993, 28 leap seconds
-  ( 709948800,  709948826),    # 1 Jul 1992, 27 leap seconds
-  ( 662688000,  662688025),    # 1 Jan 1991, 26 leap seconds
-  ( 631152000,  631152024),    # 1 Jan 1990, 25 leap seconds
-  ( 567993600,  567993623),    # 1 Jan 1988, 24 leap seconds
-  ( 489024000,  489024022),    # 1 Jul 1985, 23 leap seconds
-  ( 425865600,  425865621),    # 1 Jul 1983, 22 leap seconds
-  ( 394329600,  394329620),    # 1 Jul 1982, 21 leap seconds
-  ( 362793600,  362793619),    # 1 Jul 1981, 20 leap seconds
-  ( 315532800,  315532818),    # 1 Jan 1980, 19 leap seconds
-  ( 283996800,  283996817),    # 1 Jan 1979, 18 leap seconds
-  ( 252460800,  252460816),    # 1 Jan 1978, 17 leap seconds
-  ( 220924800,  220924815),    # 1 Jan 1977, 16 leap seconds
-  ( 189302400,  189302414),    # 1 Jan 1976, 15 leap seconds
-  ( 157766400,  157766413),    # 1 Jan 1975, 14 leap seconds
-  ( 126230400,  126230412),    # 1 Jan 1974, 13 leap seconds
-  (  94694400,   94694411),    # 1 Jan 1973, 12 leap seconds
-  (  78796800,   78796810),    # 1 Jul 1972, 11 leap seconds
-  (  63072000,   63072009),    # 1 Jan 1972, 10 leap seconds
+  (915148800,  915148831),     # 1 Jan 1999, 32 leap seconds
+  (867715200,  867715230),     # 1 Jul 1997, 31 leap seconds
+  (820454400,  820454429),     # 1 Jan 1996, 30 leap seconds
+  (773020800,  773020828),     # 1 Jul 1994, 29 leap seconds
+  (741484800,  741484827),     # 1 Jul 1993, 28 leap seconds
+  (709948800,  709948826),     # 1 Jul 1992, 27 leap seconds
+  (662688000,  662688025),     # 1 Jan 1991, 26 leap seconds
+  (631152000,  631152024),     # 1 Jan 1990, 25 leap seconds
+  (567993600,  567993623),     # 1 Jan 1988, 24 leap seconds
+  (489024000,  489024022),     # 1 Jul 1985, 23 leap seconds
+  (425865600,  425865621),     # 1 Jul 1983, 22 leap seconds
+  (394329600,  394329620),     # 1 Jul 1982, 21 leap seconds
+  (362793600,  362793619),     # 1 Jul 1981, 20 leap seconds
+  (315532800,  315532818),     # 1 Jan 1980, 19 leap seconds
+  (283996800,  283996817),     # 1 Jan 1979, 18 leap seconds
+  (252460800,  252460816),     # 1 Jan 1978, 17 leap seconds
+  (220924800,  220924815),     # 1 Jan 1977, 16 leap seconds
+  (189302400,  189302414),     # 1 Jan 1976, 15 leap seconds
+  (157766400,  157766413),     # 1 Jan 1975, 14 leap seconds
+  (126230400,  126230412),     # 1 Jan 1974, 13 leap seconds
+  (94694400,   94694411),      # 1 Jan 1973, 12 leap seconds
+  (78796800,   78796810),      # 1 Jul 1972, 11 leap seconds
+  (63072000,   63072009),      # 1 Jan 1972, 10 leap seconds
 ]
 
 
@@ -220,7 +220,6 @@ class TimeOffset(object):
         if nanosec < 0:
             sign = -1
         return cls(sec=sec, ns=ns, sign=sign)
-
 
     def is_null(self):
         return self.sec == 0 and self.ns == 0
@@ -498,7 +497,6 @@ class Timestamp(TimeOffset):
             utc_time = time.time()
             return cls.from_utc(int(utc_time), int(utc_time*MAX_NANOSEC) - int(utc_time)*MAX_NANOSEC)
 
-
     @classmethod
     def from_tai_sec_frac(cls, ts_str):
         return cls.from_sec_frac(ts_str)
@@ -544,7 +542,10 @@ class Timestamp(TimeOffset):
         tai_sign = 1
         if groups[12] == '-':
             tai_sign = -1
-        tai_seconds = local_tm_sec + leap_sec - utc_sign*(int(groups[10])*60*60 + int(groups[11])*60) - tai_sign*int(groups[13])
+        tai_seconds = (local_tm_sec +
+                       leap_sec -
+                       utc_sign*(int(groups[10])*60*60 + int(groups[11])*60) -
+                       tai_sign*int(groups[13]))
         count = Timestamp(tai_seconds, 0).to_count(rate_num, rate_den, cls.ROUND_UP)
         count += int(groups[6])
         return cls.from_count(count, rate_num, rate_den)
@@ -620,7 +621,13 @@ class Timestamp(TimeOffset):
         utc_bd = time.gmtime(utc_s)
         frac_sec = self._get_fractional_seconds(fixed_size=True)
         leap_sec = int(is_leap)
-        return '%04d-%02d-%02dT%02d:%02d:%02d.%sZ' % (utc_bd.tm_year, utc_bd.tm_mon, utc_bd.tm_mday, utc_bd.tm_hour, utc_bd.tm_min, utc_bd.tm_sec + leap_sec, frac_sec)
+        return '%04d-%02d-%02dT%02d:%02d:%02d.%sZ' % (utc_bd.tm_year,
+                                                      utc_bd.tm_mon,
+                                                      utc_bd.tm_mday,
+                                                      utc_bd.tm_hour,
+                                                      utc_bd.tm_min,
+                                                      utc_bd.tm_sec + leap_sec,
+                                                      frac_sec)
 
     def to_smpte_timelabel(self, rate_num, rate_den=1, utc_offset=None):
         if rate_num <= 0 or rate_den <= 0:
@@ -675,7 +682,7 @@ class Timestamp(TimeOffset):
             self.ns = MAX_NANOSEC - 1
 
 
-if __name__ == '__main__': # pragma: no cover
+if __name__ == '__main__':  # pragma: no cover
     import sys
 
     arg = sys.argv[1]
