@@ -11,8 +11,9 @@ PROJECT=$(shell python $(topdir)/setup.py --name)
 VERSION=$(shell python $(topdir)/setup.py --version)
 MODNAME=$(PROJECT)
 DEBNAME=$(shell echo $(MODNAME) | tr '[:upper:]_' '[:lower:]-')
+DEBVERSION=$(shell echo $(VERSION) | sed 's/\.dev/~dev/')
 
-DEBIANDIR=$(topbuilddir)/deb_dist/$(DEBNAME)-$(VERSION)/debian
+DEBIANDIR=$(topbuilddir)/deb_dist/$(DEBNAME)-$(DEBVERSION)/debian
 DEBIANOVERRIDES=$(patsubst $(topdir)/debian/%,$(DEBIANDIR)/%,$(wildcard $(topdir)/debian/*))
 
 RPMDIRS=BUILD BUILDROOT RPMS SOURCES SPECS SRPMS
@@ -60,11 +61,11 @@ $(DEBIANDIR)/%: $(topdir)/debian/% deb_dist
 	cp $< $@
 
 dsc: deb_dist $(DEBIANOVERRIDES)
-	cp $(topbuilddir)/deb_dist/$(DEBNAME)_$(VERSION)-1.dsc $(topbuilddir)/dist
+	cp $(topbuilddir)/deb_dist/$(DEBNAME)_$(DEBVERSION)-1.dsc $(topbuilddir)/dist
 
 deb: source deb_dist $(DEBIANOVERRIDES)
 	cd $(DEBIANDIR)/..;debuild -uc -us
-	cp $(topbuilddir)/deb_dist/python*$(DEBNAME)_$(VERSION)-1*.deb $(topbuilddir)/dist
+	cp $(topbuilddir)/deb_dist/python*$(DEBNAME)_$(DEBVERSION)-1*.deb $(topbuilddir)/dist
 
 # START OF RPM SPEC RULES
 # If you have your own rpm spec file to use you'll need to disable these rules
