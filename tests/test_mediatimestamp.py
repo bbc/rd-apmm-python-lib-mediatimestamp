@@ -20,7 +20,7 @@ import mock
 from datetime import datetime
 from dateutil import tz
 
-from nmoscommon.timestamp import Timestamp, TimeOffset, TsValueError
+from mediatimestamp import Timestamp, TimeOffset, TsValueError
 
 if PY2:
     BUILTINS = "__builtin__"

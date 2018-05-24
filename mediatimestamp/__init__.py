@@ -41,7 +41,7 @@ MAX_SECONDS = 281474976710656
 # the NTP epoch at 1 Jan 1900 and the Unix epoch at 1 Jan 1970 is 2208988800 seconds
 
 UTC_LEAP = [
-# || UTC SEC  |  TAI SEC - 1 ||
+  # || UTC SEC  |  TAI SEC - 1 ||
   (1483228800, 1483228836),    # 1 Jan 2017, 37 leap seconds
   (1435708800, 1435708835),    # 1 Jul 2015, 36 leap seconds
   (1341100800, 1341100834),    # 1 Jul 2012, 35 leap seconds
@@ -92,6 +92,7 @@ def _parse_seconds_fraction(frac):
         mult = mult / 10
         ns += mult * int(c)
     return ns
+
 
 def _parse_iso8601(iso8601):
     """ Limited ISO 8601 timestamp parse; expands YYYY-MM-DDThh:mm:ss.s

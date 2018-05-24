@@ -12,12 +12,12 @@ import os
 
 # Basic metadata
 name = 'mediatimestamp'
-version = '1.0.0'
+version = '1.0.0-dev1'
 description = 'A timestamp library for high precision nanosecond timestamps'
 url = 'https://github.com/bbc/rd-apmm-python-lib-mediatimestamp'
 author = 'James P. Weaver'
 author_email = 'james.barrett@bbc.co.uk'
-license = ''
+license = 'Apache 2'
 long_description = description
 
 
@@ -48,7 +48,8 @@ package_names = packages.keys()
 
 # This is where you list packages which are required
 packages_required = [
-    "six"
+    "python-dateutil>=2.4.2",
+    "six>=1.10.0",
 ]
 
 # This is where you list locations for packages not
