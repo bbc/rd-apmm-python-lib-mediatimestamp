@@ -26,9 +26,11 @@ all:
 	@echo "make clean   - Get rid of scratch and byte files"
 	@echo "make test    - Test using tox and nose2"
 	@echo "make deb     - Create deb package"
+	@echo "make dsc     - Create debian source package"
 	@echo "make rpm     - Create rpm package"
 	@echo "make wheel   - Create whl package"
 	@echo "make egg     - Create egg package"
+	@echo "make rpm_dirs - Create directories for rpm building"
 
 $(topbuilddir)/dist:
 	mkdir -p $@
@@ -84,6 +86,8 @@ $(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec: $(topdir)/rpm/$(MODNAME).spec $(
 $(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz $(topbuilddir)/build/rpm/SOURCES
 	cp $< $@
 
+rpm_dirs: $(RPMBUILDDIRS) $(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec $(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz
+
 rpm: $(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec $(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz $(RPMBUILDDIRS)
 	rpmbuild -ba --define '_topdir $(topbuilddir)/build/rpm' --clean $<
 	cp $(topbuilddir)/build/rpm/RPMS/*/*.rpm $(topbuilddir)/dist
@@ -96,4 +100,4 @@ egg:
 	$(PYTHON2) $(topdir)/setup.py bdist_egg
 	$(PYTHON3) $(topdir)/setup.py bdist_egg
 
-.PHONY: test test2 test3 clean install source deb dsc rpm wheel egg all
+.PHONY: test test2 test3 clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec rpm_build_prereqs
