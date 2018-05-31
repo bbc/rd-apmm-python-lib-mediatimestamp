@@ -81,10 +81,10 @@ $(RPMBUILDDIRS):
 	mkdir -p $@
 
 $(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec: $(topdir)/rpm/$(MODNAME).spec $(topbuilddir)/build/rpm/SPECS
-	cp $< $@
+	ln -sf $< $@
 
 $(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz $(topbuilddir)/build/rpm/SOURCES
-	cp $< $@
+	ln -sf $< $@
 
 rpm_dirs: $(RPMBUILDDIRS) $(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec $(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz
 
