@@ -10,8 +10,8 @@ pipeline {
                         label "16.04&&ipstudio-deps"
                     }
                     steps {
-                        githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py27", description: 'Python2.7 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'PENDING'
-                        git branch: '${sha1}', credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', url: 'git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git'
+                        githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py27", description: 'Python2.7 Tests', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'PENDING'
+                        checkout([$class: 'GitSCM', branches: [[name: '${sha1}']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
                         withEnv(['HTTP_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
                                  'HTTPS_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
                                  'no_proxy=mirror.rd.bbc.co.uk,.rd.bbc.co.uk,localhost,127.0.0.1,jenkins.rd.bbc.co.uk', 
@@ -22,10 +22,10 @@ pipeline {
                     }
                     post {
                         success {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py27", description: 'Python2.7 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
+                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py27", description: 'Python2.7 Tests', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
                         }
                         failure {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py27", description: 'Python2.7 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
+                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py27", description: 'Python2.7 Tests', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
                         }
                     }
                 }
@@ -34,8 +34,8 @@ pipeline {
                         label "16.04&&ipstudio-deps"
                     }
                     steps {
-                        githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py3", description: 'Python3 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'PENDING'
-                        git branch: '${sha1}', credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', url: 'git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git'
+                        githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py3", description: 'Python3 Tests', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'PENDING'
+                        checkout([$class: 'GitSCM', branches: [[name: '${sha1}']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
                         withEnv(['HTTP_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
                                 'HTTPS_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
                                 'no_proxy=mirror.rd.bbc.co.uk,.rd.bbc.co.uk,localhost,127.0.0.1,jenkins.rd.bbc.co.uk', 
@@ -46,10 +46,10 @@ pipeline {
                     }
                     post {
                         success {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py3", description: 'Python3 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
+                            githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py3", description: 'Python3 Tests', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
                         }
                         failure {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py3", description: 'Python3 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
+                            githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py3", description: 'Python3 Tests', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
                         }
                     }
                 }
@@ -58,8 +58,8 @@ pipeline {
                         label "16.04&&ipstudio-deps"
                     }
                     steps {
-                        githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/deb", description: 'Package Deb', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'PENDING'
-                        git branch: '${sha1}', credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', url: 'git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git'
+                        githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/deb", description: 'Package Deb', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'PENDING'
+                        checkout([$class: 'GitSCM', branches: [[name: '${sha1}']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
                         sh 'python ./setup.py sdist'
                         sh 'make dsc'
                         sh '''
@@ -109,10 +109,10 @@ export PYBUILD_DISABLE=test' debian/rules
 #    ssh repomgr@jenkins.rd.bbc.co.uk "/var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DIST} ${ARCH} ${BUILD_TAG} || /var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DIST} ${ARCH} FIX"
 #fi
 '''
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/deb", description: 'Package Deb', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
+                            githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/deb", description: 'Package Deb', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
                         }
                         failure {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/deb", description: 'Package Deb', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
+                            githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/deb", description: 'Package Deb', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
                         }
                     }
                 }
@@ -121,8 +121,8 @@ export PYBUILD_DISABLE=test' debian/rules
                         label "mock-centos7-amd64"
                     }
                     steps {
-                        githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/rpm", description: 'Package RPM', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'PENDING'
-                        git branch: '${sha1}', credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', url: 'git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git'
+                        githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/rpm", description: 'Package RPM', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'PENDING'
+                        checkout([$class: 'GitSCM', branches: [[name: '${sha1}']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', refspec: '+refs/pull/*:refs/remotes/origin/pr/*', url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
                         sh 'python ./setup.py sdist'
                         sh 'rm -rf build/rpm/SOURCES'
                         sh 'rm -rf build/rpm/SPECS'
@@ -212,10 +212,10 @@ export LD_PRELOAD=/usr/lib/libeatmydata/libeatmydata.so
                             '''
                         }
                         success {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/rpm", description: 'Package RPM', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
+                            githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/rpm", description: 'Package RPM', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
                         }
                         failure {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/rpm", description: 'Package RPM', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
+                            githubNotify account: "${GITHUBUSER}", credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "package/rpm", description: 'Package RPM', repo: "${GITREPO}", sha: "${ghprbActualCommit}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
                         }
                     }
                 }
