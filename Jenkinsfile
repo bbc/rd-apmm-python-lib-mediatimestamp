@@ -10,7 +10,6 @@ pipeline {
                         label "16.04&&ipstudio-deps"
                     }
                     steps {
-                        githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py27", description: 'Python2.7 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'PENDING'
                         git branch: '${sha1}', credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', url: 'git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git'
                         withEnv(['HTTP_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
                                  'HTTPS_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
@@ -20,21 +19,12 @@ pipeline {
                             sh 'tox -e py27'
                         }
                     }
-                    post {
-                        success {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py27", description: 'Python2.7 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
-                        }
-                        failure {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py27", description: 'Python2.7 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
-                        }
-                    }
                 }
                 stage ("python3 unit tests") {
                     agent {
                         label "16.04&&ipstudio-deps"
                     }
                     steps {
-                        githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py3", description: 'Python3 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'PENDING'
                         git branch: '${sha1}', credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284', url: 'git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git'
                         withEnv(['HTTP_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
                                 'HTTPS_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
@@ -42,14 +32,6 @@ pipeline {
                                 'PIP_EXTRA_INDEX_URL=https://artifactory.virt.ch.bbc.co.uk/artifactory/api/pypi/ap-python/simple', 
                                 'PIP_CLIENT_CERT=/etc/pki/tls/private/client_crt_key.pem']) {
                             sh 'tox -e py3'
-                        }
-                    }
-                    post {
-                        success {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py3", description: 'Python3 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'SUCCESS'
-                        }
-                        failure {
-                            githubNotify account: 'bbc', credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9', context: "tests/py3", description: 'Python3 Tests', repo: 'rd-apmm-python-lib-mediatimestamp', sha: "${sha1}", targetUrl: "${BUILD_URL}", status: 'FAILURE'
                         }
                     }
                 }
@@ -220,7 +202,6 @@ export LD_PRELOAD=/usr/lib/libeatmydata/libeatmydata.so
                     }
                 }
             }
-            failFast true
         }
     }
 }
