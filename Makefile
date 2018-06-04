@@ -19,6 +19,8 @@ DEBIANOVERRIDES=$(patsubst $(topdir)/debian/%,$(DEBIANDIR)/%,$(wildcard $(topdir
 RPMDIRS=BUILD BUILDROOT RPMS SOURCES SPECS SRPMS
 RPMBUILDDIRS=$(patsubst %, $(topdir)/build/rpm/%, $(RPMDIRS))
 
+RPM_PARAMS?=
+
 all:
 	@echo "$(PROJECT)-$(VERSION)"
 	@echo "make source  - Create source package"
