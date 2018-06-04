@@ -74,7 +74,7 @@ deb: source deb_dist $(DEBIANOVERRIDES)
 $(topdir)/rpm/$(MODNAME).spec: rpm_spec
 
 rpm_spec: $(topdir)/setup.py
-	$(PYTHON3) $(topdir)/setup.py bdist_rpm --spec-only --dist-dir=$(topdir)/rpm
+	$(PYTHON3) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(topdir)/rpm
 # END OF RPM SPEC RULES
 
 $(RPMBUILDDIRS):
