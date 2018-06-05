@@ -16,10 +16,11 @@ DEBVERSION=$(shell echo $(VERSION) | sed 's/\.dev/~dev/')
 DEBIANDIR=$(topbuilddir)/deb_dist/$(DEBNAME)-$(DEBVERSION)/debian
 DEBIANOVERRIDES=$(patsubst $(topdir)/debian/%,$(DEBIANDIR)/%,$(wildcard $(topdir)/debian/*))
 
-RPMDIRS=BUILD BUILDROOT RPMS SOURCES SPECS SRPMS
-RPMBUILDDIRS=$(patsubst %, $(topdir)/build/rpm/%, $(RPMDIRS))
-
 RPM_PARAMS?=
+RPM_PREFIX?=$(topdir)/build/rpm
+
+RPMDIRS=BUILD BUILDROOT RPMS SOURCES SPECS SRPMS
+RPMBUILDDIRS=$(patsubst %, $(RPM_PREFIX)/%, $(RPMDIRS))
 
 all:
 	@echo "$(PROJECT)-$(VERSION)"
@@ -73,28 +74,28 @@ deb: source deb_dist $(DEBIANOVERRIDES)
 
 # START OF RPM SPEC RULES
 # If you have your own rpm spec file to use you'll need to disable these rules
-$(topdir)/rpm/$(MODNAME).spec: rpm_spec
+$(RPM_PREFIX)/$(MODNAME).spec: rpm_spec
 
 rpm_spec: $(topdir)/setup.py
-	$(PYTHON3) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(topdir)/rpm
+	$(PYTHON3) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX)
 # END OF RPM SPEC RULES
 
 $(RPMBUILDDIRS):
 	mkdir -p $@
 
-$(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec: $(topdir)/rpm/$(MODNAME).spec $(topbuilddir)/build/rpm/SPECS
+$(RPM_PREFIX)/SPECS/$(MODNAME).spec: $(RPM_PREFIX)/$(MODNAME).spec $(RPM_PREFIX)/SPECS
 	rm -rf $@
 	cp -f $< $@
 
-$(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz $(topbuilddir)/build/rpm/SOURCES
+$(RPM_PREFIX)/SOURCES/$(MODNAME)-$(VERSION).tar.gz: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz $(RPM_PREFIX)/SOURCES
 	rm -rf $@
 	cp -f $< $@
 
-rpm_dirs: $(RPMBUILDDIRS) $(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec $(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz
+rpm_dirs: $(RPMBUILDDIRS) $(RPM_PREFIX)/SPECS/$(MODNAME).spec $(RPM_PREFIX)/SOURCES/$(MODNAME)-$(VERSION).tar.gz
 
-rpm: $(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec $(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz $(RPMBUILDDIRS)
-	rpmbuild -ba --define '_topdir $(topbuilddir)/build/rpm' --clean $<
-	cp $(topbuilddir)/build/rpm/RPMS/*/*.rpm $(topbuilddir)/dist
+rpm: $(RPM_PREFIX)/SPECS/$(MODNAME).spec $(RPM_PREFIX)/SOURCES/$(MODNAME)-$(VERSION).tar.gz $(RPMBUILDDIRS)
+	rpmbuild -ba --define '_topdir $(RPM_PREFIX)' --clean $<
+	cp $(RPM_PREFIX)/RPMS/*/*.rpm $(topbuilddir)/dist
 
 wheel:
 	$(PYTHON2) $(topdir)/setup.py bdist_wheel
