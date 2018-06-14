@@ -1,3 +1,5 @@
+@Library("rd-apmm-groovy-ci-library@master") _
+
 /*
  Pipeline for python libraries.
 
@@ -46,15 +48,7 @@ pipeline {
                     }
                     steps {
                         dir ("lint") {
-                            githubNotify (
-                                account: "${GITHUBUSER}",
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "lint/flake8",
-                                description: 'Flake8 linting',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'PENDING')
+                            bbcGithubNotify(context: "lint/flake8", status: "PENDING")
                             checkout([$class: 'GitSCM', branches: [[name: '${sha1}']],
                                       doGenerateSubmoduleConfigurations: false,
                                       extensions: [],
@@ -67,26 +61,10 @@ pipeline {
                     }
                     post {
                         success {
-                            githubNotify (
-                                account: 'bbc',
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "lint/flake8",
-                                description: 'Flake8 linting',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'SUCCESS')
+                            bbcGithubNotify(context: "lint/flake8", status: "SUCCESS")
                         }
                         failure {
-                            githubNotify (
-                                account: 'bbc',
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "lint/flake8",
-                                description: 'Flake8 linting',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'FAILURE')
+                            bbcGithubNotify(context: "lint/flake8", status: "FAILURE")
                         }
                     }
                 }
@@ -98,15 +76,7 @@ pipeline {
                     }
                     steps {
                         dir ("py2.7") {
-                            githubNotify (
-                                account: "${GITHUBUSER}",
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "tests/py27",
-                                description: 'Python2.7 Tests',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'PENDING')
+                            bbcGithubNotify(context: "tests/py27", status: "PENDING")
                             checkout([$class: 'GitSCM',
                                       branches: [[name: '${sha1}']],
                                       doGenerateSubmoduleConfigurations: false,
@@ -126,26 +96,10 @@ pipeline {
                     }
                     post {
                         success {
-                            githubNotify (
-                                account: 'bbc',
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "tests/py27",
-                                description: 'Python2.7 Tests',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'SUCCESS')
+                            bbcGithubNotify(context: "tests/py27", status: "SUCCESS")
                         }
                         failure {
-                            githubNotify (
-                                account: 'bbc',
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "tests/py27",
-                                description: 'Python2.7 Tests',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'FAILURE')
+                            bbcGithubNotify(context: "tests/py27", status: "FAILURE")
                         }
                     }
                 }
@@ -155,15 +109,7 @@ pipeline {
                     }
                     steps {
                         dir ("py3") {
-                            githubNotify (
-                                account: "${GITHUBUSER}",
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "tests/py3",
-                                description: 'Python3 Tests',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'PENDING')
+                            bbcGithubNotify(context: "tests/py3", status: "PENDING")
                             checkout([$class: 'GitSCM',
                                       branches: [[name: '${sha1}']],
                                       doGenerateSubmoduleConfigurations: false,
@@ -183,26 +129,10 @@ pipeline {
                     }
                     post {
                         success {
-                            githubNotify (
-                                account: "${GITHUBUSER}",
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "tests/py3",
-                                description: 'Python3 Tests',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'SUCCESS')
+                            bbcGithubNotify(context: "tests/py3", status: "SUCCESS")
                         }
                         failure {
-                            githubNotify (
-                                account: "${GITHUBUSER}",
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "tests/py3",
-                                description: 'Python3 Tests',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'FAILURE')
+                            bbcGithubNotify(context: "tests/py3", status: "FAILURE")
                         }
                     }
                 }
@@ -214,15 +144,7 @@ pipeline {
                     }
                     steps {
                         dir ("deb") {
-                            githubNotify (
-                                account: "${GITHUBUSER}",
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "package/deb",
-                                description: 'Package Deb',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'PENDING')
+                            bbcGithubNotify(context: "package/deb", status: "PENDING")
                             checkout([$class: 'GitSCM',
                                       branches: [[name: '${sha1}']],
                                       doGenerateSubmoduleConfigurations: false,
@@ -245,26 +167,10 @@ pipeline {
                             stash (
                                 includes: 'deb/_result/*',
                                 name: 'deb')
-                            githubNotify (
-                                account: "${GITHUBUSER}",
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "package/deb",
-                                description: 'Package Deb',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'SUCCESS')
+                            bbcGithubNotify(context: "package/deb", status: "SUCCESS")
                         }
                         failure {
-                            githubNotify (
-                                account: "${GITHUBUSER}",
-                                credentialsId: '543485aa-75b4-49ab-a497-12de62b452f9',
-                                context: "package/deb",
-                                description: 'Package Deb',
-                                repo: "${GITREPO}",
-                                sha: "${ghprbActualCommit}",
-                                targetUrl: "${BUILD_URL}",
-                                status: 'FAILURE')
+                            bbcGithubNotify(context: "package/deb", status: "FAILURE")
                         }
                     }
                 }
