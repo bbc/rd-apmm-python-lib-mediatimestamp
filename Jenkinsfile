@@ -44,17 +44,8 @@ pipeline {
             parallel {
                 stage ("Linting Check") {
                     steps {
-                        dir ("lint") {
-                            bbcGithubNotify(context: "lint/flake8", status: "PENDING")
-                            checkout([$class: 'GitSCM', branches: [[name: '${sha1}']],
-                                      doGenerateSubmoduleConfigurations: false,
-                                      extensions: [],
-                                      submoduleCfg: [],
-                                      userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284',
-                                                           refspec: '+refs/pull/*:refs/remotes/origin/pr/*',
-                                                           url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
-                            sh 'flake8'
-                        }
+                        bbcGithubNotify(context: "lint/flake8", status: "PENDING")
+                        sh 'flake8'
                     }
                     post {
                         success {
@@ -67,19 +58,9 @@ pipeline {
                 }
                 stage ("python2.7 unit tests") {
                     steps {
-                        dir ("py2.7") {
-                            bbcGithubNotify(context: "tests/py27", status: "PENDING")
-                            checkout([$class: 'GitSCM',
-                                      branches: [[name: '${sha1}']],
-                                      doGenerateSubmoduleConfigurations: false,
-                                      extensions: [],
-                                      submoduleCfg: [],
-                                      userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284',
-                                                           refspec: '+refs/pull/*:refs/remotes/origin/pr/*',
-                                                           url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
-                            withBBCRDPythonArtifactory {
-                                sh 'tox -e py27'
-                            }
+                        bbcGithubNotify(context: "tests/py27", status: "PENDING")
+                        withBBCRDPythonArtifactory {
+                            sh 'tox -e py27'
                         }
                     }
                     post {
@@ -93,19 +74,9 @@ pipeline {
                 }
                 stage ("python3 unit tests") {
                     steps {
-                        dir ("py3") {
-                            bbcGithubNotify(context: "tests/py3", status: "PENDING")
-                            checkout([$class: 'GitSCM',
-                                      branches: [[name: '${sha1}']],
-                                      doGenerateSubmoduleConfigurations: false,
-                                      extensions: [],
-                                      submoduleCfg: [],
-                                      userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284',
-                                                           refspec: '+refs/pull/*:refs/remotes/origin/pr/*',
-                                                           url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
-                            withBBCRDPythonArtifactory {
-                                sh 'tox -e py3'
-                            }
+                        bbcGithubNotify(context: "tests/py3", status: "PENDING")
+                        withBBCRDPythonArtifactory {
+                            sh 'tox -e py3'
                         }
                     }
                     post {
@@ -119,22 +90,27 @@ pipeline {
                 }
                 stage ("debian packaging") {
                     steps {
-                        dir ("deb") {
-                            bbcGithubNotify(context: "package/deb", status: "PENDING")
-                            checkout([$class: 'GitSCM',
-                                      branches: [[name: '${sha1}']],
-                                      doGenerateSubmoduleConfigurations: false,
-                                      extensions: [],
-                                      submoduleCfg: [],
-                                      userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284',
-                                                           refspec: '+refs/pull/*:refs/remotes/origin/pr/*',
-                                                           url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
-                            sh 'rm -rf deb_dist'
-                            sh 'python ./setup.py sdist'
-                            sh 'make dsc'
-                            dir ('deb_dist') {
-                                sh '${WORKSPACE}/scripts/pbuild.sh'
-                            }
+                        bbcGithubNotify(context: "package/deb", status: "PENDING")
+
+                        sh 'rm -rf deb_dist'
+                        sh 'python ./setup.py sdist'
+                        sh 'make dsc'
+                        dir ('deb_dist') {
+                            sh '''
+                                cd $(ls|egrep -v "(tar.gz|dsc|orig)"| head -n1)
+
+                                # Update changelog to insert Jenkins build details
+                                dch -ljenkins "Jenkins Nightly Build"
+                                GITREV=$(git rev-parse --short origin/master)
+                                sed -i "s/jenkins1/jenkins${BUILD_NUMBER}~${ENVIRONMENT}~${GITREV}/" debian/changelog
+
+                                # Turn off testing in pybuild
+                                sed -i '/%:/i export PYBUILD_DISABLE=test' debian/rules
+
+                                # Rebuild .dsc with changes
+                                debuild -uc -us -S
+                            '''
+                            sh '${WORKSPACE}/scripts/pbuild.sh'
                         }
                     }
                     post {
