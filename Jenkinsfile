@@ -127,7 +127,6 @@ pipeline {
                     }
                 }
             }
-            failFast true
         }
         stage ("upload to artifactory") {
             when {
