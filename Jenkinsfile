@@ -43,9 +43,6 @@ pipeline {
         stage ("parallel jobs") {
             parallel {
                 stage ("Linting Check") {
-                    when {
-                        environment name: "LINT", value: "true"
-                    }
                     steps {
                         dir ("lint") {
                             bbcGithubNotify(context: "lint/flake8", status: "PENDING")
@@ -69,11 +66,6 @@ pipeline {
                     }
                 }
                 stage ("python2.7 unit tests") {
-                    when {
-                        environment (
-                            name: "TEST_PY27",
-                            value: "true")
-                    }
                     steps {
                         dir ("py2.7") {
                             bbcGithubNotify(context: "tests/py27", status: "PENDING")
@@ -100,9 +92,6 @@ pipeline {
                     }
                 }
                 stage ("python3 unit tests") {
-                    when {
-                        environment name: "TEST_PY3", value: "true"
-                    }
                     steps {
                         dir ("py3") {
                             bbcGithubNotify(context: "tests/py3", status: "PENDING")
@@ -129,11 +118,6 @@ pipeline {
                     }
                 }
                 stage ("debian packaging") {
-                    when {
-                        environment (
-                            name: "BUILD_DEB",
-                            value: "true")
-                    }
                     steps {
                         dir ("deb") {
                             bbcGithubNotify(context: "package/deb", status: "PENDING")
