@@ -85,11 +85,7 @@ pipeline {
                                       userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284',
                                                            refspec: '+refs/pull/*:refs/remotes/origin/pr/*',
                                                            url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
-                            withEnv(['HTTP_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
-                                     'HTTPS_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
-                                     'no_proxy=mirror.rd.bbc.co.uk,.rd.bbc.co.uk,localhost,127.0.0.1,jenkins.rd.bbc.co.uk', 
-                                     'PIP_EXTRA_INDEX_URL=https://artifactory.virt.ch.bbc.co.uk/artifactory/api/pypi/ap-python/simple', 
-                                     'PIP_CLIENT_CERT=/etc/pki/tls/private/client_crt_key.pem']) {
+                            withBBCRDPythonArtifactory {
                                 sh 'tox -e py27'
                             }
                         }
@@ -118,11 +114,7 @@ pipeline {
                                       userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284',
                                                            refspec: '+refs/pull/*:refs/remotes/origin/pr/*',
                                                            url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
-                            withEnv(['HTTP_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
-                                     'HTTPS_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
-                                     'no_proxy=mirror.rd.bbc.co.uk,.rd.bbc.co.uk,localhost,127.0.0.1,jenkins.rd.bbc.co.uk', 
-                                     'PIP_EXTRA_INDEX_URL=https://artifactory.virt.ch.bbc.co.uk/artifactory/api/pypi/ap-python/simple', 
-                                     'PIP_CLIENT_CERT=/etc/pki/tls/private/client_crt_key.pem']) {
+                            withBBCRDPythonArtifactory {
                                 sh 'tox -e py3'
                             }
                         }
@@ -195,11 +187,7 @@ pipeline {
                                                    refspec: '+refs/pull/*:refs/remotes/origin/pr/*',
                                                    url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
                     sh 'rm -rf dist/*'
-                    withEnv(['HTTP_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
-                             'HTTPS_PROXY=http://www-cache.rd.bbc.co.uk:8080', 
-                             'no_proxy=mirror.rd.bbc.co.uk,.rd.bbc.co.uk,localhost,127.0.0.1,jenkins.rd.bbc.co.uk', 
-                             'PIP_EXTRA_INDEX_URL=https://artifactory.virt.ch.bbc.co.uk/artifactory/api/pypi/ap-python/simple', 
-                             'PIP_CLIENT_CERT=/etc/pki/tls/private/client_crt_key.pem']) {
+                    withBBCRDPythonArtifactory {
                         sh '${WORKSPACE}/scripts/create_wheel.sh py27'
                         sh '${WORKSPACE}/scripts/create_wheel.sh py3'
                         withCredentials([usernamePassword(credentialsId: '171bbdf4-7ac0-4323-9d5c-a9fdc5317f45',
