@@ -142,25 +142,11 @@ pipeline {
                 }
             }
             steps {
-                dir ("pydist") {
-                    checkout([$class: 'GitSCM',
-                              branches: [[name: '${sha1}']],
-                              doGenerateSubmoduleConfigurations: false,
-                              extensions: [],
-                              submoduleCfg: [],
-                              userRemoteConfigs: [[credentialsId: '7aa7cd3c-8f60-4e88-bbff-c75516908284',
-                                                   refspec: '+refs/pull/*:refs/remotes/origin/pr/*',
-                                                   url: 'git@github.com:${GITHUBUSER}/${GITREPO}.git']]])
-                    sh 'rm -rf dist/*'
-                    withBBCRDPythonArtifactory {
-                        sh '${WORKSPACE}/scripts/create_wheel.sh py27'
-                        sh '${WORKSPACE}/scripts/create_wheel.sh py3'
-                        withCredentials([usernamePassword(credentialsId: '171bbdf4-7ac0-4323-9d5c-a9fdc5317f45',
-                                                          passwordVariable: 'ARTIFACTORY_PASSWORD',
-                                                          usernameVariable: 'ARTIFACTORY_USERNAME')]) {
-                            sh '${WORKSPACE}/scripts/twine_upload.sh py3'
-                        }
-                    }
+                sh 'rm -rf dist/*'
+                withBBCRDPythonArtifactory {
+                    bbcMakeWheel "py27"
+                    bbcMakeWheel "py3"
+                    bbcTwineUpload env: "py3"
                 }
             }
         }
