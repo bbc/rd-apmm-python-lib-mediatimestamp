@@ -1,4 +1,4 @@
-@Library("rd-apmm-groovy-ci-library@master") _
+@Library("rd-apmm-groovy-ci-library@jamesba-pbuild") _
 
 /*
  Pipeline for python libraries.
@@ -113,23 +113,7 @@ pipeline {
                         sh 'rm -rf deb_dist'
                         sh 'python ./setup.py sdist'
                         sh 'make dsc'
-                        dir ('deb_dist') {
-                            sh '''
-                                cd $(ls|egrep -v "(tar.gz|dsc|orig)"| head -n1)
-
-                                # Update changelog to insert Jenkins build details
-                                dch -ljenkins "Jenkins Nightly Build"
-                                GITREV=$(git rev-parse --short origin/master)
-                                sed -i "s/jenkins1/jenkins${BUILD_NUMBER}~${ENVIRONMENT}~${GITREV}/" debian/changelog
-
-                                # Turn off testing in pybuild
-                                sed -i '/%:/i export PYBUILD_DISABLE=test' debian/rules
-
-                                # Rebuild .dsc with changes
-                                debuild -uc -us -S
-                            '''
-                            sh '${WORKSPACE}/scripts/pbuild.sh'
-                        }
+                        bbcPbuild()
                         script {
                             env.deb_result = "SUCCESS" // This will only run if the commands above succeeded
                         }
