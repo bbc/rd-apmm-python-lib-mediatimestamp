@@ -70,7 +70,8 @@ pipeline {
                         }
                         bbcGithubNotify(context: "tests/py27", status: "PENDING")
                         withBBCRDPythonArtifactory {
-                            sh 'tox -e py27'
+                            // Use a workdirectory in /tmp to avoid shebang length limitation
+                            sh 'tox -e py27 --workdir /tmp/$(basename ${WORKSPACE})/tox-py27'
                         }
                         script {
                             env.py27_result = "SUCCESS" // This will only run if the sh above succeeded
@@ -89,7 +90,8 @@ pipeline {
                         }
                         bbcGithubNotify(context: "tests/py3", status: "PENDING")
                         withBBCRDPythonArtifactory {
-                            sh 'tox -e py3'
+                            // Use a workdirectory in /tmp to avoid shebang length limitation
+                            sh 'tox -e py3 --workdir /tmp/$(basename ${WORKSPACE})/tox-py3'
                         }
                         script {
                             env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
