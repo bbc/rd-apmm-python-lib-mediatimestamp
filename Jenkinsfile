@@ -48,52 +48,64 @@ pipeline {
             parallel {
                 stage ("Linting Check") {
                     steps {
+                        script {
+                            env.lint_result = "FAILURE"
+                        }
                         bbcGithubNotify(context: "lint/flake8", status: "PENDING")
                         sh 'flake8'
+                        script {
+                            env.lint_result = "SUCCESS" // This will only run if the sh above succeeded
+                        }
                     }
                     post {
-                        success {
-                            bbcGithubNotify(context: "lint/flake8", status: "SUCCESS")
-                        }
-                        failure {
-                            bbcGithubNotify(context: "lint/flake8", status: "FAILURE")
+                        always {
+                            bbcGithubNotify(context: "lint/flake8", status: env.lint_result)
                         }
                     }
                 }
                 stage ("python2.7 unit tests") {
                     steps {
+                        script {
+                            env.py27_result = "FAILURE"
+                        }
                         bbcGithubNotify(context: "tests/py27", status: "PENDING")
                         withBBCRDPythonArtifactory {
                             sh 'tox -e py27'
                         }
+                        script {
+                            env.py27_result = "SUCCESS" // This will only run if the sh above succeeded
+                        }
                     }
                     post {
-                        success {
-                            bbcGithubNotify(context: "tests/py27", status: "SUCCESS")
-                        }
-                        failure {
-                            bbcGithubNotify(context: "tests/py27", status: "FAILURE")
+                        always {
+                            bbcGithubNotify(context: "tests/py27", status: env.py27_result)
                         }
                     }
                 }
                 stage ("python3 unit tests") {
                     steps {
+                        script {
+                            env.py3_result = "FAILURE"
+                        }
                         bbcGithubNotify(context: "tests/py3", status: "PENDING")
                         withBBCRDPythonArtifactory {
                             sh 'tox -e py3'
                         }
+                        script {
+                            env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
+                        }
                     }
                     post {
-                        success {
-                            bbcGithubNotify(context: "tests/py3", status: "SUCCESS")
-                        }
-                        failure {
-                            bbcGithubNotify(context: "tests/py3", status: "FAILURE")
+                        always {
+                            bbcGithubNotify(context: "tests/py3", status: env.py3_result)
                         }
                     }
                 }
                 stage ("debian packaging") {
                     steps {
+                        script {
+                            env.deb_result = "FAILURE"
+                        }
                         bbcGithubNotify(context: "package/deb", status: "PENDING")
 
                         sh 'rm -rf deb_dist'
@@ -116,6 +128,9 @@ pipeline {
                             '''
                             sh '${WORKSPACE}/scripts/pbuild.sh'
                         }
+                        script {
+                            env.deb_result = "SUCCESS" // This will only run if the commands above succeeded
+                        }
                     }
                     post {
                         success {
@@ -123,10 +138,9 @@ pipeline {
                             stash (
                                 includes: 'deb/_result/*',
                                 name: 'deb')
-                            bbcGithubNotify(context: "package/deb", status: "SUCCESS")
                         }
-                        failure {
-                            bbcGithubNotify(context: "package/deb", status: "FAILURE")
+                        always {
+                            bbcGithubNotify(context: "package/deb", status: env.deb_result)
                         }
                     }
                 }
