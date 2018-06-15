@@ -120,10 +120,7 @@ pipeline {
                     }
                     post {
                         success {
-                            archiveArtifacts 'deb/_result/*'
-                            stash (
-                                includes: 'deb/_result/*',
-                                name: 'deb')
+                            archiveArtifacts '_result/*'
                         }
                         always {
                             bbcGithubNotify(context: "package/deb", status: env.deb_result)
