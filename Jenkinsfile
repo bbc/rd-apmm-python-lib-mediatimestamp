@@ -177,9 +177,15 @@ pipeline {
                 }
             }
             steps {
+                script {
+                    env.APT_REPO = env.APT_REPO ?: "ap/python"
+                    env.ENVIRONMENT = env.ENVIRONMENT ?: "master"
+                    env.DEB_DIST = env.DEB_DIST ?: "xenial"
+                    env.ARCH = env.ARCH ?: "amd64"
+                }
                 sshPublisher(publishers: [sshPublisherDesc(configName: 'Jenkins Master - repomgr',
                                                            transfers: [sshTransfer(excludes: '',
-                                                                                   execCommand: '/var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DEB_DIST} ${ARCH} ${BUILD_TAG} || /var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DEB_DIST} ${ARCH} FIX',
+                                                                                   execCommand: "/var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DEB_DIST} ${ARCH} ${BUILD_TAG} || /var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DEB_DIST} ${ARCH} FIX",
                                                                                    execTimeout: 300000,
                                                                                    flatten: false,
                                                                                    makeEmptyDirs: false,
