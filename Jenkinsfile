@@ -39,6 +39,10 @@ pipeline {
     agent {
         label "16.04&&ipstudio-deps"
     }
+    environment {
+        http_proxy = "http://www-cache.rd.bbc.co.uk:8080"
+        https_proxy = "http://www-cache.rd.bbc.co.uk:8080"
+    }
     stages {
         stage ("parallel jobs") {
             parallel {
