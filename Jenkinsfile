@@ -177,25 +177,21 @@ pipeline {
                 }
             }
             steps {
-                dir("deb") {
-                    sh 'rm -rf _result/*'
-                    unstash 'deb'
-                    sshPublisher(publishers: [sshPublisherDesc(configName: 'Jenkins Master - repomgr',
-                                                               transfers: [sshTransfer(excludes: '',
-                                                                                       execCommand: '/var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DEB_DIST} ${ARCH} ${BUILD_TAG} || /var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DEB_DIST} ${ARCH} FIX',
-                                                                                       execTimeout: 300000,
-                                                                                       flatten: false,
-                                                                                       makeEmptyDirs: false,
-                                                                                       noDefaultExcludes: false,
-                                                                                       patternSeparator: '[, ]+',
-                                                                                       remoteDirectory: '${BUILD_TAG}',
-                                                                                       remoteDirectorySDF: false,
-                                                                                       removePrefix: '_result/',
-                                                                                       sourceFiles: '_result/*')],
-                                                               usePromotionTimestamp: false,
-                                                               useWorkspaceInPromotion: false,
-                                                               verbose: false)])
-                }
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'Jenkins Master - repomgr',
+                                                           transfers: [sshTransfer(excludes: '',
+                                                                                   execCommand: '/var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DEB_DIST} ${ARCH} ${BUILD_TAG} || /var/lib/jenkins/repomgr/repo-update ${APT_REPO}/${ENVIRONMENT} ${DEB_DIST} ${ARCH} FIX',
+                                                                                   execTimeout: 300000,
+                                                                                   flatten: false,
+                                                                                   makeEmptyDirs: false,
+                                                                                   noDefaultExcludes: false,
+                                                                                   patternSeparator: '[, ]+',
+                                                                                   remoteDirectory: '${BUILD_TAG}',
+                                                                                   remoteDirectorySDF: false,
+                                                                                   removePrefix: '_result/',
+                                                                                   sourceFiles: '_result/*')],
+                                                           usePromotionTimestamp: false,
+                                                           useWorkspaceInPromotion: false,
+                                                           verbose: false)])
             }
         }
     }
