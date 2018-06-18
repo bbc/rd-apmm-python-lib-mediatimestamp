@@ -132,8 +132,13 @@ pipeline {
         stage ("upload to artifactory") {
             when {
                 allOf {
-                    environment name: "sha1", value: "master"
-                    environment name: "UPLOAD_TO_ARTIFACTORY", value: "true"
+                    not {
+                        environment name: "PYUPLOAD", value: "false"
+                    }
+                    anyOf {
+                        environment name: "PYUPLOAD", value: "true"
+                        branch 'master'
+                    }
                 }
             }
             steps {
@@ -162,9 +167,13 @@ pipeline {
         stage ("upload deb") {
             when {
                 allOf {
-                    environment name: "sha1", value: "master"
-                    environment name: "BUILD_DEB", value: "true"
-                    environment name: "UPLOAD_DEB", value: "true"
+                    not {
+                        environment name: "DEBUPLOAD", value: "false"
+                    }
+                    anyOf {
+                        environment name: "DEBUPLOAD", value: "true"
+                        branch 'master'
+                    }
                 }
             }
             steps {
