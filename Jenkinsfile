@@ -1,38 +1,17 @@
 @Library("rd-apmm-groovy-ci-library@jamesba-pbuild") _
 
 /*
- Pipeline for python libraries.
+ Runs the following steps in parallel and reports results to GitHub:
+ - Lint using flake8
+ - Run Python 2.7 unit tests in tox
+ - Run Pythin 3 unit tests in tox
+ - Build a Debian package using pbuilder
 
- Can perform the following steps:
+ If these steps succeed and the master branch is being built, wheels and debs are uploaded to Artifactory and the
+ R&D Debian mirrors.
 
- LINT:
-   * Uses flake8 to lint the python code
-   * Runs only if variable "LINT" is set to "true"
-
- TEST_PY27:
-   * Uses tox to test in python 2.7
-   * Runs only if variable "TEST_PY27" is set to "true"
-
- TEST_PY3:
-   * Uses tox to test in python 3
-   * Runs only if variable "TEST_PY3" is set to "true"
-
- BUILD_DEB:
-   * Uses py2dsc and pbuilder to build a debian package
-   * Runs only if variable "BUILD_DEB" is set to "true"
-   * Requires "ENVIRONMENT" variable set to "master", "stable" or similar
-   * Requires "APT_REPO" variable set to address of apt repo to retrieve prereqs from
-   * Requires "DEB_DIST" variable set to a debian/ubuntu dist name
-  
- UPLOAD_TO_ARTIFACTORY:
-   * Uses twine to upload a source tarball and two wheels to artifactory
-   * Runs only if "UPLOAD_TO_ARTIFACTORY" is "true", "sha1" is "master", and all build and test steps succeeded
-   * Requires "ARTIFACTORY_REPO" be set to the address of the artifactory repo
-
-  UPLOAD_DEB:
-    * Uses ssh to publish the deb package to our apt repo
-    * Runs only if "UPLOAD_DEB" is "true", "BUILD_DEB" is "true", "sha1" is "master", and all build and test steps succeeded
-    * Requires the same variables as BUILD_DEB and also "ARCH" which is usually set to amd64 or armhf
+ Optionally you can set $PYUPLOAD="true" to force upload to Artifactory, and $DEBUPLOAD="true" to force Debian package
+ upload on non-master branches.
 */
 
 pipeline {
@@ -44,7 +23,7 @@ pipeline {
         https_proxy = "http://www-cache.rd.bbc.co.uk:8080"
     }
     stages {
-        stage ("parallel jobs") {
+        stage ("Parallel Jobs") {
             parallel {
                 stage ("Linting Check") {
                     steps {
@@ -63,7 +42,7 @@ pipeline {
                         }
                     }
                 }
-                stage ("python2.7 unit tests") {
+                stage ("Python 2.7 Unit Tests") {
                     steps {
                         script {
                             env.py27_result = "FAILURE"
@@ -83,7 +62,7 @@ pipeline {
                         }
                     }
                 }
-                stage ("python3 unit tests") {
+                stage ("Python 3 Unit Tests") {
                     steps {
                         script {
                             env.py3_result = "FAILURE"
@@ -103,7 +82,7 @@ pipeline {
                         }
                     }
                 }
-                stage ("debian packaging") {
+                stage ("Debian Packaging") {
                     steps {
                         script {
                             env.deb_result = "FAILURE"
@@ -129,7 +108,7 @@ pipeline {
                 }
             }
         }
-        stage ("upload to artifactory") {
+        stage ("Upload to Artifactory") {
             when {
                 allOf {
                     not {
