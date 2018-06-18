@@ -144,9 +144,9 @@ pipeline {
             steps {
                 sh 'rm -rf dist/*'
                 withBBCRDPythonArtifactory {
-                    bbcMakeWheel "py27"
-                    bbcMakeWheel "py3"
-                    bbcTwineUpload env: "py3"
+                    bbcMakeWheel("py27")
+                    bbcMakeWheel("py3")
+                    bbcTwineUpload(toxenv: "py3")
                 }
             }
         }
@@ -163,7 +163,7 @@ pipeline {
                 }
             }
             steps {
-                bbcDebUpload sourceFiles: '_result/*', removePrefix: '_result/'
+                bbcDebUpload(sourceFiles: '_result/*', removePrefix: '_result/')
             }
         }
     }
