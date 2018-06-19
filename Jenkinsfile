@@ -82,7 +82,7 @@ pipeline {
                         }
                     }
                 }
-                stage ("Debian Packaging") {
+                stage ("Debian Source Build") {
                     steps {
                         script {
                             env.deb_result = "FAILURE"
@@ -92,21 +92,24 @@ pipeline {
                         sh 'rm -rf deb_dist'
                         sh 'python ./setup.py sdist'
                         sh 'make dsc'
-                        bbcMakeDsc()
-                        stash(name: "deb_dist", includes: "deb_dist/**")
-
-                        script {
-                            env.deb_result = "SUCCESS" // This will only run if the commands above succeeded
-                        }
+                        bbcPrepareDsc()
+                        stash(name: "deb_dist", includes: "deb_dist/*")
                     }
-                    post {
-                        success {
-                            archiveArtifacts '_result/*'
-                        }
-                        always {
-                            bbcGithubNotify(context: "package/deb", status: env.deb_result)
-                        }
-                    }
+                }
+            }
+        }
+        stage ("Build with pbuilder") {
+            steps {
+                // Build for all supported platforms and extract results into workspace
+                bbcParallelPbuild(stashname: "deb_dist", dists: bbcGetSupportedUbuntuVersions())
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: "_result/**"
+                }
+                always {
+                    // currentResult is governed by the outcome of the pbuilder steps at this point, so we can use it
+                    bbcGithubNotify(context: "package/deb", status: currentBuild.currentResult)
                 }
             }
         }
@@ -132,7 +135,12 @@ pipeline {
                 }
             }
             steps {
-                bbcDebUpload(sourceFiles: '_result/*', removePrefix: '_result/')
+                script {
+                    for (def dist in bbcGetSupportedUbuntuVersions()) {
+                        bbcDebUpload(sourceFiles: "_result/${dist}/*", removePrefix: "_result/${dist}", dist: "${dist}",
+                                     apt_repo: "ap/python")
+                    }
+                }
             }
         }
     }
