@@ -10,13 +10,17 @@
  If these steps succeed and the master branch is being built, wheels and debs are uploaded to Artifactory and the
  R&D Debian mirrors.
 
- Optionally you can set $PYUPLOAD="true" to force upload to Artifactory, and $DEBUPLOAD="true" to force Debian package
+ Optionally you can set FORCE_PYUPLOAD to force upload to Artifactory, and FORCE_DEBUPLOAD to force Debian package
  upload on non-master branches.
 */
 
 pipeline {
     agent {
         label "16.04&&ipstudio-deps"
+    }
+    parameters {
+        booleanParam(name: "FORCE_PYUPLOAD", defaultValue: false, description: "Force Python artifact upload")
+        booleanParam(name: "FORCE_DEBUPLOAD", defaultValue: false, description: "Force Debian package upload")
     }
     environment {
         http_proxy = "http://www-cache.rd.bbc.co.uk:8080"
@@ -106,14 +110,9 @@ pipeline {
         }
         stage ("Upload to Artifactory") {
             when {
-                allOf {
-                    not {
-                        environment name: "PYUPLOAD", value: "false"
-                    }
-                    anyOf {
-                        environment name: "PYUPLOAD", value: "true"
-                        branch 'master'
-                    }
+                anyOf {
+                    expression { return params.FORCE_PYUPLOAD }
+                    branch "master"
                 }
             }
             steps {
@@ -125,14 +124,9 @@ pipeline {
         }
         stage ("upload deb") {
             when {
-                allOf {
-                    not {
-                        environment name: "DEBUPLOAD", value: "false"
-                    }
-                    anyOf {
-                        environment name: "DEBUPLOAD", value: "true"
-                        branch 'master'
-                    }
+                anyOf {
+                    expression { return params.FORCE_DEBUPLOAD }
+                    branch "master"
                 }
             }
             steps {
