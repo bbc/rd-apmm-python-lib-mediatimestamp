@@ -48,10 +48,8 @@ pipeline {
                             env.py27_result = "FAILURE"
                         }
                         bbcGithubNotify(context: "tests/py27", status: "PENDING")
-                        withBBCRDPythonArtifactory {
-                            // Use a workdirectory in /tmp to avoid shebang length limitation
-                            sh 'tox -e py27 --workdir /tmp/$(basename ${WORKSPACE})/tox-py27'
-                        }
+                        // Use a workdirectory in /tmp to avoid shebang length limitation
+                        sh 'tox -e py27 --workdir /tmp/$(basename ${WORKSPACE})/tox-py27'
                         script {
                             env.py27_result = "SUCCESS" // This will only run if the sh above succeeded
                         }
@@ -68,10 +66,8 @@ pipeline {
                             env.py3_result = "FAILURE"
                         }
                         bbcGithubNotify(context: "tests/py3", status: "PENDING")
-                        withBBCRDPythonArtifactory {
-                            // Use a workdirectory in /tmp to avoid shebang length limitation
-                            sh 'tox -e py3 --workdir /tmp/$(basename ${WORKSPACE})/tox-py3'
-                        }
+                        // Use a workdirectory in /tmp to avoid shebang length limitation
+                        sh 'tox -e py3 --workdir /tmp/$(basename ${WORKSPACE})/tox-py3'
                         script {
                             env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
                         }
@@ -122,11 +118,9 @@ pipeline {
             }
             steps {
                 sh 'rm -rf dist/*'
-                withBBCRDPythonArtifactory {
-                    bbcMakeWheel("py27")
-                    bbcMakeWheel("py3")
-                    bbcTwineUpload(toxenv: "py3")
-                }
+                bbcMakeWheel("py27")
+                bbcMakeWheel("py3")
+                bbcTwineUpload(toxenv: "py3")
             }
         }
         stage ("upload deb") {
