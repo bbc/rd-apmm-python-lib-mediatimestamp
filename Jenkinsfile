@@ -92,7 +92,9 @@ pipeline {
                         sh 'rm -rf deb_dist'
                         sh 'python ./setup.py sdist'
                         sh 'make dsc'
-                        bbcPbuild(resultdir: "${WORKSPACE}/_result")
+                        bbcMakeDsc()
+                        stash(name: "deb_dist", includes: "deb_dist/**")
+
                         script {
                             env.deb_result = "SUCCESS" // This will only run if the commands above succeeded
                         }
