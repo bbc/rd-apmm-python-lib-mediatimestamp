@@ -101,7 +101,7 @@ pipeline {
         stage ("Build with pbuilder") {
             steps {
                 // Build for all supported platforms and extract results into workspace
-                bbcParallelPbuild(stashname: "deb_dist", dists: bbcGetSupportedUbuntuVersions())
+                bbcParallelPbuild(stashname: "deb_dist", dists: bbcGetSupportedUbuntuVersions(), arch: "amd64")
             }
             post {
                 success {
@@ -137,7 +137,9 @@ pipeline {
             steps {
                 script {
                     for (def dist in bbcGetSupportedUbuntuVersions()) {
-                        bbcDebUpload(sourceFiles: "_result/${dist}/*", removePrefix: "_result/${dist}", dist: "${dist}",
+                        bbcDebUpload(sourceFiles: "_result/${dist}-amd64/*",
+                                     removePrefix: "_result/${dist}-amd64",
+                                     dist: "${dist}",
                                      apt_repo: "ap/python")
                     }
                 }
