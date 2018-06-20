@@ -1,4 +1,4 @@
-@Library("rd-apmm-groovy-ci-library@samn-slacksend") _
+@Library("rd-apmm-groovy-ci-library@samn-changedetector") _
 
 /*
  Runs the following steps in parallel and reports results to GitHub:
