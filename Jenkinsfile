@@ -5,7 +5,7 @@
  - Lint using flake8
  - Run Python 2.7 unit tests in tox
  - Run Pythin 3 unit tests in tox
- - Build a Debian package using pbuilder
+ - Build Debian packages for supported Ubuntu versions
 
  If these steps succeed and the master branch is being built, wheels and debs are uploaded to Artifactory and the
  R&D Debian mirrors.
