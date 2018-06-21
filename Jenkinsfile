@@ -18,6 +18,10 @@ pipeline {
     agent {
         label "16.04&&ipstudio-deps"
     }
+    options {
+        ansiColor('xterm') // Add support for coloured output
+        buildDiscarder(logRotator(numToKeepStr: '10')) // Discard old builds
+    }
     parameters {
         booleanParam(name: "FORCE_PYUPLOAD", defaultValue: false, description: "Force Python artifact upload")
         booleanParam(name: "FORCE_DEBUPLOAD", defaultValue: false, description: "Force Debian package upload")
