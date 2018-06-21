@@ -1,4 +1,4 @@
-@Library("rd-apmm-groovy-ci-library@jamesba-pbuild") _
+@Library("rd-apmm-groovy-ci-library@samn-slacksend") _
 
 /*
  Runs the following steps in parallel and reports results to GitHub:
@@ -132,6 +132,11 @@ pipeline {
             steps {
                 bbcDebUpload(sourceFiles: '_result/*', removePrefix: '_result/')
             }
+        }
+    }
+    post {
+        always {
+            bbcSlackNotify()
         }
     }
 }
