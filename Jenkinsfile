@@ -1,11 +1,11 @@
-@Library("rd-apmm-groovy-ci-library@samn-slacksend") _
+@Library("rd-apmm-groovy-ci-library@v1.x") _
 
 /*
  Runs the following steps in parallel and reports results to GitHub:
  - Lint using flake8
  - Run Python 2.7 unit tests in tox
  - Run Pythin 3 unit tests in tox
- - Build a Debian package using pbuilder
+ - Build Debian packages for supported Ubuntu versions
 
  If these steps succeed and the master branch is being built, wheels and debs are uploaded to Artifactory and the
  R&D Debian mirrors.
@@ -17,6 +17,10 @@
 pipeline {
     agent {
         label "16.04&&ipstudio-deps"
+    }
+    options {
+        ansiColor('xterm') // Add support for coloured output
+        buildDiscarder(logRotator(numToKeepStr: '10')) // Discard old builds
     }
     parameters {
         booleanParam(name: "FORCE_PYUPLOAD", defaultValue: false, description: "Force Python artifact upload")
@@ -82,7 +86,7 @@ pipeline {
                         }
                     }
                 }
-                stage ("Debian Packaging") {
+                stage ("Debian Source Build") {
                     steps {
                         script {
                             env.deb_result = "FAILURE"
@@ -92,19 +96,24 @@ pipeline {
                         sh 'rm -rf deb_dist'
                         sh 'python ./setup.py sdist'
                         sh 'make dsc'
-                        bbcPbuild(resultdir: "${WORKSPACE}/_result")
-                        script {
-                            env.deb_result = "SUCCESS" // This will only run if the commands above succeeded
-                        }
+                        bbcPrepareDsc()
+                        stash(name: "deb_dist", includes: "deb_dist/*")
                     }
-                    post {
-                        success {
-                            archiveArtifacts '_result/*'
-                        }
-                        always {
-                            bbcGithubNotify(context: "package/deb", status: env.deb_result)
-                        }
-                    }
+                }
+            }
+        }
+        stage ("Build with pbuilder") {
+            steps {
+                // Build for all supported platforms and extract results into workspace
+                bbcParallelPbuild(stashname: "deb_dist", dists: bbcGetSupportedUbuntuVersions(), arch: "amd64")
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: "_result/**"
+                }
+                always {
+                    // currentResult is governed by the outcome of the pbuilder steps at this point, so we can use it
+                    bbcGithubNotify(context: "package/deb", status: currentBuild.currentResult)
                 }
             }
         }
@@ -130,7 +139,14 @@ pipeline {
                 }
             }
             steps {
-                bbcDebUpload(sourceFiles: '_result/*', removePrefix: '_result/')
+                script {
+                    for (def dist in bbcGetSupportedUbuntuVersions()) {
+                        bbcDebUpload(sourceFiles: "_result/${dist}-amd64/*",
+                                     removePrefix: "_result/${dist}-amd64",
+                                     dist: "${dist}",
+                                     apt_repo: "ap/python")
+                    }
+                }
             }
         }
     }
