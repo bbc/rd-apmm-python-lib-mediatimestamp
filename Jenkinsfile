@@ -1,4 +1,4 @@
-@Library("rd-apmm-groovy-ci-library@samn-multiple-ubuntus") _
+@Library("rd-apmm-groovy-ci-library@v1.x") _
 
 /*
  Runs the following steps in parallel and reports results to GitHub:
