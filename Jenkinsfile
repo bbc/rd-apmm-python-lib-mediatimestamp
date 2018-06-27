@@ -121,7 +121,9 @@ pipeline {
             when {
                 anyOf {
                     expression { return params.FORCE_PYUPLOAD }
-                    branch "master"
+                    expression {
+                        bbcShouldUploadArtifacts(branches: ["master"])
+                    }
                 }
             }
             steps {
@@ -135,7 +137,9 @@ pipeline {
             when {
                 anyOf {
                     expression { return params.FORCE_DEBUPLOAD }
-                    branch "master"
+                    expression {
+                        bbcShouldUploadArtifacts(branches: ["master"])
+                    }
                 }
             }
             steps {
