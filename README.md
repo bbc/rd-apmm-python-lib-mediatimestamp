@@ -78,7 +78,7 @@ library for use on our own Jenkins instances. As such it will not be immediately
 of a BBC environment, but may still serve as inspiration and an example of how to implement CI
 for this package.
 
-# Versioning
+## Versioning
 
 We use [Semantic Versioning](https://semver.org/) for this repository
 
