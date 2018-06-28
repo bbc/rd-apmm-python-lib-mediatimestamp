@@ -1,5 +1,8 @@
 recursive-include tests *.py
 include README.md
+include CHANGELOG.md
+include CONTRIBUTING.md
+include LICENSE.md
 include tox.ini
 include CONTRIBUTING.md
 include ICLA.md
