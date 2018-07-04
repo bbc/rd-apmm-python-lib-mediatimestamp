@@ -20,7 +20,7 @@ import mock
 from datetime import datetime
 from dateutil import tz
 
-from mediatimestamp import Timestamp, TimeOffset, TsValueError
+from mediatimestamp import Timestamp, TimeOffset, TsValueError, TimeRange
 
 if PY2:
     BUILTINS = "__builtin__"
@@ -749,3 +749,141 @@ class TestTimestamp(unittest.TestCase):
 
         for t in tests:
             self.assertEqual(t[0].get_leap_seconds(), t[1])
+
+
+class TestTimeRange (unittest.TestCase):
+    def test_eternity(self):
+        alltime = TimeRange.eternity()
+
+        self.assertIn(Timestamp(-2208988800, 0), alltime)
+        self.assertIn(Timestamp(), alltime)
+        self.assertIn(Timestamp(417799799, 999999999), alltime)
+        self.assertIn(Timestamp(417799800, 0), alltime)
+        self.assertIn(Timestamp(1530711653, 0), alltime)
+        self.assertIn(Timestamp(1530711653, 999999998), alltime)
+        self.assertIn(Timestamp(1530711653, 999999999), alltime)
+        self.assertIn(Timestamp(49391596800, 999999), alltime)
+
+        self.assertEqual(alltime.to_sec_nsec_range(), "_")
+
+    def test_bounded_on_right_inclusive(self):
+        rng = TimeRange.from_end(Timestamp(1530711653, 999999999))
+
+        self.assertIn(Timestamp(-2208988800, 0), rng)
+        self.assertIn(Timestamp(), rng)
+        self.assertIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "_1530711653:999999999")
+
+    def test_bounded_on_right_exclusive(self):
+        rng = TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)
+
+        self.assertIn(Timestamp(-2208988800, 0), rng)
+        self.assertIn(Timestamp(), rng)
+        self.assertIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "_1530711653:999999999")
+
+    def test_bounded_on_left_inclusive(self):
+        rng = TimeRange.from_start(Timestamp(417799799, 999999999))
+
+        self.assertNotIn(Timestamp(-2208988800, 0), rng)
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertIn(Timestamp(1530711654, 0), rng)
+        self.assertIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "417799799:999999999_")
+
+    def test_bounded_on_left_exclusive(self):
+        rng = TimeRange.from_start(Timestamp(417799799, 999999999), TimeRange.EXCLUSIVE)
+
+        self.assertNotIn(Timestamp(-2208988800, 0), rng)
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertNotIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertIn(Timestamp(1530711654, 0), rng)
+        self.assertIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "417799799:999999999_")
+
+    def test_bounded_inclusive(self):
+        rng = TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999))
+
+        self.assertNotIn(Timestamp(-2208988800, 0), rng)
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "417799799:999999999_1530711653:999999999")
+
+    def test_bounded_exclusive(self):
+        rng = TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)
+
+        self.assertNotIn(Timestamp(-2208988800, 0), rng)
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertNotIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "417799799:999999999_1530711653:999999999")
+
+    def test_single_ts(self):
+        rng = TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999))
+
+        self.assertNotIn(Timestamp(-2208988800, 0), rng)
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertNotIn(Timestamp(417799799, 999999999), rng)
+        self.assertNotIn(Timestamp(417799800, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "1530711653:999999999")
+
+    def test_from_sec_nsec_range(self):
+        tests = [
+            TimeRange.eternity(),
+            TimeRange.from_end(Timestamp(1530711653, 999999999)),
+            TimeRange.from_start(Timestamp(417799799, 999999999)),
+            TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999)),
+            TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999)),
+        ]
+
+        for tr in tests:
+            self.assertEqual(tr, TimeRange.from_sec_nsec_range(tr.to_sec_nsec_range()))

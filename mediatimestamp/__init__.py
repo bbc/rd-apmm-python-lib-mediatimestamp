@@ -36,7 +36,7 @@ try:
 except ImportError:
     IPP_UTILS = False
 
-__all__ = ["TsValueError", "TimeOffset", "Timestamp"]
+__all__ = ["TsValueError", "TimeOffset", "Timestamp", "TimeRange"]
 
 
 MAX_NANOSEC = 1000000000
@@ -691,6 +691,144 @@ class Timestamp(TimeOffset):
         elif self.sec >= MAX_SECONDS:
             self.sec = MAX_SECONDS - 1
             self.ns = MAX_NANOSEC - 1
+
+
+class TimeRange (object):
+    """A nanosecond precision time range object"""
+
+    EXCLUSIVE = 0x0
+    INCLUDE_START = 0x1
+    INCLUDE_END = 0x2
+    INCLUSIVE = 0x3
+
+    def __init__(self, start, end, inclusivity=INCLUDE_START | INCLUDE_END):
+        """Construct a time range starting at start and ending at end
+
+        :param start: A TimeStamp or None
+        :param end: A TimeStamp or None
+        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
+        self.start = start
+        self.end = end
+        self.inclusivity = inclusivity
+
+    @classmethod
+    def from_start(cls, start, inclusivity=INCLUDE_START | INCLUDE_END):
+        """Construct a time range starting at start with no end
+
+        :param start: A TimeStamp
+        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
+        return cls(start, None, inclusivity)
+
+    @classmethod
+    def from_end(cls, end, inclusivity=INCLUDE_START | INCLUDE_END):
+        """Construct a time range ending at end with no start
+
+        :param end: A TimeStamp
+        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
+        return cls(None, end, inclusivity)
+
+    @classmethod
+    def from_start_length(cls, start, length, inclusivity=INCLUDE_START | INCLUDE_END):
+        """Construct a time range starting at start of length length
+
+        :param start: A TimeStamp or None
+        :param length: A TimeStamp or None
+        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
+        return cls(start, start + length, inclusivity)
+
+    @classmethod
+    def eternity(cls):
+        """Return an unbounded time range covering all time"""
+        return cls(None, None)
+
+    @classmethod
+    def since_epoch(cls, end, inclusivity=INCLUDE_START | INCLUDE_END):
+        return cls(Timestamp(), end, inclusivity)
+
+    @classmethod
+    def from_single_timestamp(cls, ts):
+        """Construct a time range containing only a single timestamp
+
+        :param ts: A TimeStamp"""
+        return cls(ts, ts, TimeRange.INCLUSIVE)
+
+    @classmethod
+    def from_sec_nsec_range(cls, s, inclusivity=INCLUDE_START | INCLUDE_END):
+        if s == "_":
+            return cls(None, None)
+        elif "_" not in s:
+            return cls.from_single_timestamp(Timestamp.from_sec_nsec(s))
+        elif s[0] == "_":
+            return cls.from_end(Timestamp.from_sec_nsec(s[1:]), inclusivity)
+        elif s[-1] == "_":
+            return cls.from_start(Timestamp.from_sec_nsec(s[:-1]), inclusivity)
+        else:
+            (start, end) = s.split("_")
+            return cls(Timestamp.from_sec_nsec(start), Timestamp.from_sec_nsec(end), inclusivity)
+
+    @property
+    def length(self):
+        if self.end is None or self.start is None:
+            return float("inf")
+        return self.end - self.start
+
+    @length.setter
+    def length(self, new_length):
+        if self.start is None:
+            if self.end is None:
+                raise ValueError("Cannot set length on a time range with no start or end")
+            self.start = self.end - new_length
+        else:
+            self.end = self.start + new_length
+
+    def __contains__(self, ts):
+        """Returns true if the timestamp is within this range."""
+        return ((self.start is None or ts >= self.start) and
+                (self.end is None or ts <= self.end) and
+                (not ((self.start is not None) and
+                      (ts == self.start) and
+                      (self.inclusivity & TimeRange.INCLUDE_START == 0))) and
+                (not ((self.end is not None) and
+                      (ts == self.end) and
+                      (self.inclusivity & TimeRange.INCLUDE_END == 0))))
+
+    def __eq__(self, other):
+        return (((self.start is None and other.start is None) or
+                 (self.start == other.start and
+                  (self.inclusivity & TimeRange.INCLUDE_START) == (other.inclusivity & TimeRange.INCLUDE_START))) and
+                ((self.end is None and other.end is None) or
+                 (self.end == other.end and
+                  (self.inclusivity & TimeRange.INCLUDE_END) == (other.inclusivity & TimeRange.INCLUDE_END))))
+
+    def contains_subrange(self, tr):
+        """Returns True if the timerange supplied lies entirely inside this timerange"""
+        return ((self.start is None or (tr.start is not None and self.start <= tr.start)) and
+                (self.end is None or (tr.end is not None and self.end >= tr.end)) and
+                (not ((self.start is not None) and
+                      (tr.start is not None) and
+                      (self.start == tr.start) and
+                      (self.inclusivity & TimeRange.INCLUDE_START == 0) and
+                      (tr.inclusivity & TimeRange.INCLUDE_START != 0))) and
+                (not ((self.end is not None) and
+                      (tr.end is not None) and
+                      (self.end == tr.end) and
+                      (self.inclusivity & TimeRange.INCLUDE_END == 0) and
+                      (tr.inclusivity & TimeRange.INCLUDE_END != 0))))
+
+    def to_sec_nsec_range(self):
+        """Convert to <seconds>:<nanoseconds>_<seconds>:<nanoseconds>"""
+        if self.start is None:
+            if self.end is None:
+                return "_"
+            else:
+                return "_" + self.end.to_tai_sec_nsec()
+        else:
+            if self.end is None:
+                return self.start.to_tai_sec_nsec() + "_"
+            elif self.start == self.end:
+                return self.start.to_tai_sec_nsec()
+            else:
+                return self.start.to_tai_sec_nsec() + "_" + self.end.to_tai_sec_nsec()
 
 
 if __name__ == '__main__':  # pragma: no cover
