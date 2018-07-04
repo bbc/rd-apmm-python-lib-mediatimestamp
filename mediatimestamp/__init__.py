@@ -742,6 +742,11 @@ class TimeRange (object):
         return cls(None, None)
 
     @classmethod
+    def never(cls):
+        """Return a time range covering no time"""
+        return cls(Timestamp(), Timestamp(), TimeRange.EXCLUSIVE)
+
+    @classmethod
     def since_epoch(cls, end, inclusivity=INCLUDE_START | INCLUDE_END):
         return cls(Timestamp(), end, inclusivity)
 
@@ -793,27 +798,30 @@ class TimeRange (object):
                       (self.inclusivity & TimeRange.INCLUDE_END == 0))))
 
     def __eq__(self, other):
-        return (((self.start is None and other.start is None) or
-                 (self.start == other.start and
-                  (self.inclusivity & TimeRange.INCLUDE_START) == (other.inclusivity & TimeRange.INCLUDE_START))) and
-                ((self.end is None and other.end is None) or
-                 (self.end == other.end and
-                  (self.inclusivity & TimeRange.INCLUDE_END) == (other.inclusivity & TimeRange.INCLUDE_END))))
+        return ((self.is_empty() and other.is_empty()) or
+                (((self.start is None and other.start is None) or
+                  (self.start == other.start and
+                   (self.inclusivity & TimeRange.INCLUDE_START) == (other.inclusivity & TimeRange.INCLUDE_START))) and
+                 ((self.end is None and other.end is None) or
+                  (self.end == other.end and
+                   (self.inclusivity & TimeRange.INCLUDE_END) == (other.inclusivity & TimeRange.INCLUDE_END)))))
 
     def contains_subrange(self, tr):
         """Returns True if the timerange supplied lies entirely inside this timerange"""
-        return ((self.start is None or (tr.start is not None and self.start <= tr.start)) and
-                (self.end is None or (tr.end is not None and self.end >= tr.end)) and
-                (not ((self.start is not None) and
-                      (tr.start is not None) and
-                      (self.start == tr.start) and
-                      (self.inclusivity & TimeRange.INCLUDE_START == 0) and
-                      (tr.inclusivity & TimeRange.INCLUDE_START != 0))) and
-                (not ((self.end is not None) and
-                      (tr.end is not None) and
-                      (self.end == tr.end) and
-                      (self.inclusivity & TimeRange.INCLUDE_END == 0) and
-                      (tr.inclusivity & TimeRange.INCLUDE_END != 0))))
+        return ((not self.is_empty()) and
+                (tr.is_empty() or
+                 (self.start is None or (tr.start is not None and self.start <= tr.start)) and
+                 (self.end is None or (tr.end is not None and self.end >= tr.end)) and
+                 (not ((self.start is not None) and
+                       (tr.start is not None) and
+                       (self.start == tr.start) and
+                       (self.inclusivity & TimeRange.INCLUDE_START == 0) and
+                       (tr.inclusivity & TimeRange.INCLUDE_START != 0))) and
+                 (not ((self.end is not None) and
+                       (tr.end is not None) and
+                       (self.end == tr.end) and
+                       (self.inclusivity & TimeRange.INCLUDE_END == 0) and
+                       (tr.inclusivity & TimeRange.INCLUDE_END != 0)))))
 
     def to_sec_nsec_range(self):
         """Convert to <seconds>:<nanoseconds>_<seconds>:<nanoseconds>"""
@@ -829,6 +837,35 @@ class TimeRange (object):
                 return self.start.to_tai_sec_nsec()
             else:
                 return self.start.to_tai_sec_nsec() + "_" + self.end.to_tai_sec_nsec()
+
+    def intersect_with(self, tr):
+        """Return a range which represents the intersection of this range with another"""
+        if self.is_empty() or tr.is_empty():
+            return TimeRange.never()
+
+        start = self.start
+        if tr.start is not None and (self.start is None or self.start < tr.start):
+            start = tr.start
+        end = self.end
+        if tr.end is not None and (self.end is None or self.end > tr.end):
+            end = tr.end
+
+        inclusivity = TimeRange.EXCLUSIVE
+        if start is None or (start in self and start in tr):
+            inclusivity |= TimeRange.INCLUDE_START
+        if end is None or (end in self and end in tr):
+            inclusivity |= TimeRange.INCLUDE_END
+
+        if start is not None and end is not None and start > end:
+            return TimeRange.never()
+
+        return TimeRange(start, end, inclusivity)
+
+    def is_empty(self):
+        return (self.start is not None and
+                self.end is not None and
+                self.start == self.end and
+                self.inclusivity == TimeRange.EXCLUSIVE)
 
 
 if __name__ == '__main__':  # pragma: no cover

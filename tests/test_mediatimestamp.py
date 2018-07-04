@@ -752,6 +752,20 @@ class TestTimestamp(unittest.TestCase):
 
 
 class TestTimeRange (unittest.TestCase):
+    def test_never(self):
+        rng = TimeRange.never()
+
+        self.assertNotIn(Timestamp(-2208988800, 0), rng)
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(417799799, 999999999), rng)
+        self.assertNotIn(Timestamp(417799800, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999998), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertTrue(rng.is_empty())
+
     def test_eternity(self):
         alltime = TimeRange.eternity()
 
@@ -887,3 +901,83 @@ class TestTimeRange (unittest.TestCase):
 
         for tr in tests:
             self.assertEqual(tr, TimeRange.from_sec_nsec_range(tr.to_sec_nsec_range()))
+
+    def test_subrange(self):
+        a = Timestamp(-2208988800, 0)
+        b = Timestamp(417799799, 999999999)
+        c = Timestamp(1530711653, 999999999)
+        d = Timestamp(49391596800, 999999)
+
+        self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.INCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.INCLUSIVE)))
+        self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.EXCLUSIVE)))
+        self.assertTrue(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.EXCLUSIVE)))
+
+        self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.INCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.INCLUSIVE)))
+        self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.EXCLUSIVE)))
+        self.assertTrue(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.EXCLUSIVE)))
+
+        self.assertTrue(TimeRange(a, d, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.INCLUSIVE)))
+        self.assertTrue(TimeRange(a, d, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.INCLUSIVE)))
+        self.assertTrue(TimeRange(a, d, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.EXCLUSIVE)))
+        self.assertTrue(TimeRange(a, d, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.EXCLUSIVE)))
+
+        self.assertFalse(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.INCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.INCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.EXCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.EXCLUSIVE)))
+
+    def test_intersection(self):
+        a = Timestamp(-2208988800, 0)
+        b = Timestamp(417799799, 999999999)
+        c = Timestamp(1530711653, 999999999)
+        d = Timestamp(49391596800, 999999)
+
+        self.assertEqual(TimeRange(a, b, TimeRange.INCLUSIVE).intersect_with(TimeRange(c, d, TimeRange.INCLUSIVE)),
+                         TimeRange.never())
+
+        self.assertEqual(TimeRange(a, b, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.INCLUSIVE)),
+                         TimeRange.from_single_timestamp(b))
+
+        self.assertEqual(TimeRange(a, b, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.INCLUSIVE)),
+                         TimeRange.never())
+
+        self.assertEqual(TimeRange(a, c, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, d, TimeRange.INCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUSIVE))
+
+        self.assertEqual(TimeRange(a, c, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, d, TimeRange.INCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUDE_START))
+
+        self.assertEqual(TimeRange(a, c, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, d, TimeRange.EXCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUDE_END))
+
+        self.assertEqual(TimeRange(a, c, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, d, TimeRange.EXCLUSIVE)),
+                         TimeRange(b, c, TimeRange.EXCLUSIVE))
+
+        self.assertEqual(TimeRange(a, d, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.INCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUSIVE))
+
+        self.assertEqual(TimeRange(a, d, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.INCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUSIVE))
+
+        self.assertEqual(TimeRange(a, d, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.EXCLUSIVE)),
+                         TimeRange(b, c, TimeRange.EXCLUSIVE))
+
+        self.assertEqual(TimeRange(a, d, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.EXCLUSIVE)),
+                         TimeRange(b, c, TimeRange.EXCLUSIVE))
+
+        self.assertEqual(TimeRange.eternity().intersect_with(TimeRange(a, b, TimeRange.INCLUSIVE)),
+                         TimeRange(a, b, TimeRange.INCLUSIVE))
+
+        self.assertEqual(TimeRange.eternity().intersect_with(TimeRange(a, b, TimeRange.EXCLUSIVE)),
+                         TimeRange(a, b, TimeRange.EXCLUSIVE))
+
+        self.assertEqual(TimeRange.never().intersect_with(TimeRange(a, b, TimeRange.INCLUSIVE)),
+                         TimeRange.never())
+
+        self.assertEqual(TimeRange.never().intersect_with(TimeRange(a, b, TimeRange.EXCLUSIVE)),
+                         TimeRange.never())
+
+        self.assertEqual(TimeRange.never().intersect_with(TimeRange.eternity()),
+                         TimeRange.never())
