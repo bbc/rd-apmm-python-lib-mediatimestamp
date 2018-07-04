@@ -3,6 +3,8 @@ PYTHON2=`which python2`
 PYTHON3=`which python3`
 PY2DSC=`which py2dsc`
 
+PY2DSC_PARAMS?=--with-python2=true --with-python3=true
+
 topdir := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 topbuilddir := $(realpath .)
 
@@ -65,7 +67,7 @@ test:
 	tox
 
 deb_dist: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
-	$(PY2DSC) --with-python2=true --with-python3=true $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
+	$(PY2DSC) $(PY2DSC_PARAMS) $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
 
 $(DEBIANDIR)/%: $(topdir)/debian/% deb_dist
 	cp $< $@

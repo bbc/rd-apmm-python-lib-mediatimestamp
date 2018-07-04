@@ -12,6 +12,11 @@
 
  Optionally you can set FORCE_PYUPLOAD to force upload to Artifactory, and FORCE_DEBUPLOAD to force Debian package
  upload on non-master branches.
+
+
+ This file makes use of custom steps defined in a BBC internal library for use on our own Jenkins instances. As
+ such it will not be immediately useable outside of a BBC environment, but may still serve as inspiration and an
+ example of how to implement CI for this package.
 */
 
 pipeline {
