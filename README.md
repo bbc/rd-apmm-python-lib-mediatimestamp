@@ -1,48 +1,107 @@
 # mediatimestamp
 
+Nanosecond precision timestamps for python.
+
+## Introduction
+
 This library provides nanosecond precision timestamps in python. These
 timestamps are intended primarily for use in representing times in TAI
 distributed via the PTP protocol (IEEE 1588).
 
-## Testing
+## Installation
 
-The `make test` command invokes `tox`. You can invoke it directly like
-this:
+### Requirements
 
-```bash
-    tox
-```
+* A working Python 2.7 or Python 3.x installation
+* BBC R&D's internal artifactory pypi server set up as a source for pip (if installing via pip)
+* BBC R&D's internal deb repository set up as a source for apt (if installing via apt-get)
+* The tool [tox](https://tox.readthedocs.io/en/latest/) is needed to run the unittests, but not required to use the library.
 
-either way it makes use of the configuration in `tox.ini` to set up
-virtual environments to run tests in and then run all tests. The
-provided configuration runs the `nose2` test runner under `python2.7`
-and `python3`, but other configurations are possible.
-
-The default test command is:
+### Steps
 
 ```bash
-    nose2 --with-coverage --coverage-report=annotate \
-        --coverage-report=term --coverage=mediatimestamp
+# Install from pip
+$ pip install mediatimestamp
+
+# Install via apt-get
+$ apt-get install python-mediatimestamp python3-mediatimestamp
+
+# Install directly from source repo
+$ git clone git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git
+$ cd rd-apmm-python-lib-mediatimestamp
+$ pip install -e .
 ```
 
-which will discover all tests in the `tests` directory and run them
-recording coverage of files in the main package directory. The
-coverage report is printed to the terminal during running but is also
-used to create annotated `.py,cover` files which are copies of the
-`.py` source files with each line marked with a character to indicate
-whether it is covered (`>`), not covered (`!`), or specifically
-ignored for coverage purposes (`-`).
+## Usage
 
-## Debian and RPM Packaging
+```python
+import mediatimestamp
+
+# Print the current time in seconds:nanoseconds format
+print(mediatimestamp.Timestamp.get_time())
+```
+
+## Documentation
+
+The API is well documented in the docstrings of the module mediatimestamp, to view:
+
+```bash
+pydoc mediatimestamp
+```
+
+## Development
+### Testing
+
+To run the unittests for this package in a virtual environment follow these steps:
+
+```bash
+$ git clone git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git
+$ cd rd-apmm-python-lib-mediatimestamp
+$ make test
+```
+### Packaging
 
 Debian and RPM packages can be built using:
 
 ```bash
-make deb
+# Debian packaging
+$ make deb
+
+# RPM packageing
+$ make rpm
 ```
 
-and
+### Continuous Integration
 
-```bash
-make rpm
-```
+This repository includes a Jenkinsfile which makes use of custom steps defined in a BBC internal
+library for use on our own Jenkins instances. As such it will not be immediately useable outside
+of a BBC environment, but may still serve as inspiration and an example of how to implement CI
+for this package.
+
+## Versioning
+
+We use [Semantic Versioning](https://semver.org/) for this repository
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md)
+
+## Contributing
+
+The code in this repository was previously released as part of the
+nmos-common library (<https://github.com/bbc/nmos-common/>). For
+contributing wok please see the file [CONTRIBUTING.md](./CONTRIBUTING.md) in this repository.
+
+Please ensure you have run the test suite before submitting a Pull Request, and include a version bump in line with our [Versioning](#versioning) policy.
+
+## Authors
+
+* James Weaver (james.barrett@bbc.co.uk)
+* Philip deNier (philip.denier@bbc.co.uk)
+* Sam Nicholson (sam.nicholson@bbc.co.uk)
+* James Sandford (james.sandford@bbc.co.uk
+* Alex Rawcliffe (alex.rawcliffe@bbc.co.uk)
+
+## License
+
+See [LICENSE.md](LICENSE.md)

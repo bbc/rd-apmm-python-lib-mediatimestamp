@@ -3,6 +3,8 @@ PYTHON2=`which python2`
 PYTHON3=`which python3`
 PY2DSC=`which py2dsc`
 
+PY2DSC_PARAMS?=--with-python2=true --with-python3=true
+
 topdir := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 topbuilddir := $(realpath .)
 
@@ -10,14 +12,22 @@ DESTDIR=/
 PROJECT=$(shell python $(topdir)/setup.py --name)
 VERSION=$(shell python $(topdir)/setup.py --version)
 MODNAME=$(PROJECT)
+
+# The rules for names and versions in python, rpm, and deb are different
+# and not entirely compatible. As such py2dsc will automatically convert
+# your package name into a suitable deb name and version number, and this 
+# code replicates that.
 DEBNAME=$(shell echo $(MODNAME) | tr '[:upper:]_' '[:lower:]-')
 DEBVERSION=$(shell echo $(VERSION) | sed 's/\.dev/~dev/')
 
 DEBIANDIR=$(topbuilddir)/deb_dist/$(DEBNAME)-$(DEBVERSION)/debian
 DEBIANOVERRIDES=$(patsubst $(topdir)/debian/%,$(DEBIANDIR)/%,$(wildcard $(topdir)/debian/*))
 
+RPM_PARAMS?=
+RPM_PREFIX?=$(topdir)/build/rpm
+
 RPMDIRS=BUILD BUILDROOT RPMS SOURCES SPECS SRPMS
-RPMBUILDDIRS=$(patsubst %, $(topdir)/build/rpm/%, $(RPMDIRS))
+RPMBUILDDIRS=$(patsubst %, $(RPM_PREFIX)/%, $(RPMDIRS))
 
 all:
 	@echo "$(PROJECT)-$(VERSION)"
@@ -57,7 +67,7 @@ test:
 	tox
 
 deb_dist: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
-	$(PY2DSC) --with-python2=true --with-python3=true $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
+	$(PY2DSC) $(PY2DSC_PARAMS) $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
 
 $(DEBIANDIR)/%: $(topdir)/debian/% deb_dist
 	cp $< $@
@@ -71,28 +81,28 @@ deb: source deb_dist $(DEBIANOVERRIDES)
 
 # START OF RPM SPEC RULES
 # If you have your own rpm spec file to use you'll need to disable these rules
-$(topdir)/rpm/$(MODNAME).spec: rpm_spec
+$(RPM_PREFIX)/$(MODNAME).spec: rpm_spec
 
 rpm_spec: $(topdir)/setup.py
-	$(PYTHON3) $(topdir)/setup.py bdist_rpm --spec-only --dist-dir=$(topdir)/rpm
+	$(PYTHON3) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX)
 # END OF RPM SPEC RULES
 
 $(RPMBUILDDIRS):
 	mkdir -p $@
 
-$(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec: $(topdir)/rpm/$(MODNAME).spec $(topbuilddir)/build/rpm/SPECS
+$(RPM_PREFIX)/SPECS/$(MODNAME).spec: $(RPM_PREFIX)/$(MODNAME).spec $(RPM_PREFIX)/SPECS
 	rm -rf $@
 	cp -f $< $@
 
-$(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz $(topbuilddir)/build/rpm/SOURCES
+$(RPM_PREFIX)/SOURCES/$(MODNAME)-$(VERSION).tar.gz: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz $(RPM_PREFIX)/SOURCES
 	rm -rf $@
 	cp -f $< $@
 
-rpm_dirs: $(RPMBUILDDIRS) $(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec $(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz
+rpm_dirs: $(RPMBUILDDIRS) $(RPM_PREFIX)/SPECS/$(MODNAME).spec $(RPM_PREFIX)/SOURCES/$(MODNAME)-$(VERSION).tar.gz
 
-rpm: $(topbuilddir)/build/rpm/SPECS/$(MODNAME).spec $(topbuilddir)/build/rpm/SOURCES/$(MODNAME)-$(VERSION).tar.gz $(RPMBUILDDIRS)
-	rpmbuild -ba --define '_topdir $(topbuilddir)/build/rpm' --clean $<
-	cp $(topbuilddir)/build/rpm/RPMS/*/*.rpm $(topbuilddir)/dist
+rpm: $(RPM_PREFIX)/SPECS/$(MODNAME).spec $(RPM_PREFIX)/SOURCES/$(MODNAME)-$(VERSION).tar.gz $(RPMBUILDDIRS)
+	rpmbuild -ba --define '_topdir $(RPM_PREFIX)' --clean $<
+	cp $(RPM_PREFIX)/RPMS/*/*.rpm $(topbuilddir)/dist
 
 wheel:
 	$(PYTHON2) $(topdir)/setup.py bdist_wheel
@@ -102,4 +112,4 @@ egg:
 	$(PYTHON2) $(topdir)/setup.py bdist_egg
 	$(PYTHON3) $(topdir)/setup.py bdist_egg
 
-.PHONY: test test2 test3 clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec rpm_build_prereqs
+.PHONY: test test2 test3 clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec
