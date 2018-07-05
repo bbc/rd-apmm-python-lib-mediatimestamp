@@ -758,18 +758,30 @@ class TimeRange (object):
         return cls(ts, ts, TimeRange.INCLUSIVE)
 
     @classmethod
-    def from_sec_nsec_range(cls, s, inclusivity=INCLUSIVE):
+    def from_str(cls, s, inclusivity=INCLUSIVE):
+        """Convert a string to a time range.
+
+        Valid ranges are:
+        <ts>_<ts>
+        <ts>_
+        _<ts>
+        _
+
+        where <ts> is any valid string format for Timestamp.from_str()
+
+        :param s: The string to process
+        """
         if s == "_":
             return cls(None, None)
         elif "_" not in s:
-            return cls.from_single_timestamp(Timestamp.from_sec_nsec(s))
+            return cls.from_single_timestamp(Timestamp.from_str(s))
         elif s[0] == "_":
-            return cls.from_end(Timestamp.from_sec_nsec(s[1:]), inclusivity)
+            return cls.from_end(Timestamp.from_str(s[1:]), inclusivity)
         elif s[-1] == "_":
-            return cls.from_start(Timestamp.from_sec_nsec(s[:-1]), inclusivity)
+            return cls.from_start(Timestamp.from_str(s[:-1]), inclusivity)
         else:
             (start, end) = s.split("_")
-            return cls(Timestamp.from_sec_nsec(start), Timestamp.from_sec_nsec(end), inclusivity)
+            return cls(Timestamp.from_str(start), Timestamp.from_str(end), inclusivity)
 
     @property
     def length(self):
@@ -779,12 +791,26 @@ class TimeRange (object):
 
     @length.setter
     def length(self, new_length):
+        """Sets the length of the range. If the range already has a start time set then it is left
+        unchanged, if it has only an end time then that is left unchanged and a new start time is set,
+        and if neither is set then a TsValueError is raised.
+
+        When a length is set on a timerange the inclusivity is changed to exclude the newly added end of the
+        range, but otherwise not changed.
+
+        :param new_length: A TimeOffset, which must be positive
+        :raises: TsValueError is length is invalid or the original range was eternity()"""
+        if new_length < TimeOffset():
+            raise TsValueError("length must be positive")
+
         if self.start is None:
             if self.end is None:
-                raise ValueError("Cannot set length on a time range with no start or end")
+                raise TsValueError("Cannot set length on a time range with no start or end")
             self.start = self.end - new_length
+            self.inclusivity &= ~TimeRange.INCLUDE_START
         else:
             self.end = self.start + new_length
+            self.inclusivity &= ~TimeRange.INCLUDE_END
 
     def __contains__(self, ts):
         """Returns true if the timestamp is within this range."""
