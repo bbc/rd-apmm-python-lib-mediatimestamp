@@ -701,7 +701,7 @@ class TimeRange (object):
     INCLUDE_END = 0x2
     INCLUSIVE = 0x3
 
-    def __init__(self, start, end, inclusivity=INCLUDE_START | INCLUDE_END):
+    def __init__(self, start, end, inclusivity=INCLUSIVE):
         """Construct a time range starting at start and ending at end
 
         :param start: A Timestamp or None
@@ -712,7 +712,7 @@ class TimeRange (object):
         self.inclusivity = inclusivity
 
     @classmethod
-    def from_start(cls, start, inclusivity=INCLUDE_START | INCLUDE_END):
+    def from_start(cls, start, inclusivity=INCLUSIVE):
         """Construct a time range starting at start with no end
 
         :param start: A Timestamp
@@ -720,7 +720,7 @@ class TimeRange (object):
         return cls(start, None, inclusivity)
 
     @classmethod
-    def from_end(cls, end, inclusivity=INCLUDE_START | INCLUDE_END):
+    def from_end(cls, end, inclusivity=INCLUSIVE):
         """Construct a time range ending at end with no start
 
         :param end: A Timestamp
@@ -728,12 +728,16 @@ class TimeRange (object):
         return cls(None, end, inclusivity)
 
     @classmethod
-    def from_start_length(cls, start, length, inclusivity=INCLUDE_START | INCLUDE_END):
+    def from_start_length(cls, start, length, inclusivity=INCLUSIVE):
         """Construct a time range starting at start of length length
 
-        :param start: A Timestamp or None
-        :param length: A Timestamp or None
-        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
+        :param start: A Timestamp
+        :param length: A TimeOffset, which must be non-negative
+        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END
+
+        :raises: TsValueError if the length is negative"""
+        if length < TimeOffset():
+            raise TsValueError("Length must be non-negative")
         return cls(start, start + length, inclusivity)
 
     @classmethod
@@ -747,10 +751,6 @@ class TimeRange (object):
         return cls(Timestamp(), Timestamp(), TimeRange.EXCLUSIVE)
 
     @classmethod
-    def since_epoch(cls, end, inclusivity=INCLUDE_START | INCLUDE_END):
-        return cls(Timestamp(), end, inclusivity)
-
-    @classmethod
     def from_single_timestamp(cls, ts):
         """Construct a time range containing only a single timestamp
 
@@ -758,7 +758,7 @@ class TimeRange (object):
         return cls(ts, ts, TimeRange.INCLUSIVE)
 
     @classmethod
-    def from_sec_nsec_range(cls, s, inclusivity=INCLUDE_START | INCLUDE_END):
+    def from_sec_nsec_range(cls, s, inclusivity=INCLUSIVE):
         if s == "_":
             return cls(None, None)
         elif "_" not in s:
