@@ -877,22 +877,24 @@ class TimeRange (object):
                        (self.inclusivity & TimeRange.INCLUDE_END == 0) and
                        (tr.inclusivity & TimeRange.INCLUDE_END != 0)))))
 
-    def to_sec_nsec_range(self, with_parentheses=True):
-        """Convert to [<seconds>:<nanoseconds>_<seconds>:<nanoseconds>] format.
+    def to_sec_nsec_range(self, with_inclusivity_markers=True):
+        """Convert to [<seconds>:<nanoseconds>_<seconds>:<nanoseconds>] format,
+        usually the opening and closing delimiters are set to [ or ] for inclusive and ( or ) for exclusive ranges.
+        Unbounded ranges have no marker attached to them.
 
-        :param with_parentheses: if set to False do not include parentheses"""
+        :param with_inclusivity_markers: if set to False do not include parentheses/brackets"""
         if self.is_empty():
-            if with_parentheses:
+            if with_inclusivity_markers:
                 return "()"
             else:
                 return ""
         elif self.start is not None and self.end is not None and self.start == self.end:
-            if with_parentheses:
+            if with_inclusivity_markers:
                 return "[" + self.start.to_tai_sec_nsec() + "]"
             else:
                 return self.start.to_tai_sec_nsec()
 
-        if with_parentheses:
+        if with_inclusivity_markers:
             brackets = [("(", ")"), ("[", ")"), ("(", "]"), ("[", "]")][self.inclusivity]
         else:
             brackets = ["", ""]
