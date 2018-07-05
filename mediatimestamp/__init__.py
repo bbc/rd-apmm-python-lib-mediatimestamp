@@ -888,6 +888,7 @@ class TimeRange (object):
         return TimeRange(start, end, inclusivity)
 
     def is_empty(self):
+        """Returns true on any empty range."""
         return (self.start is not None and
                 self.end is not None and
                 self.start == self.end and

@@ -755,8 +755,8 @@ class TestTimeRange (unittest.TestCase):
     def test_never(self):
         rng = TimeRange.never()
 
-        self.assertNotIn(Timestamp(-2208988800, 0), rng)
         self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
         self.assertNotIn(Timestamp(417799799, 999999999), rng)
         self.assertNotIn(Timestamp(417799800, 0), rng)
         self.assertNotIn(Timestamp(1530711653, 0), rng)
@@ -769,8 +769,8 @@ class TestTimeRange (unittest.TestCase):
     def test_eternity(self):
         alltime = TimeRange.eternity()
 
-        self.assertIn(Timestamp(-2208988800, 0), alltime)
         self.assertIn(Timestamp(), alltime)
+        self.assertIn(Timestamp(326246400, 0), alltime)
         self.assertIn(Timestamp(417799799, 999999999), alltime)
         self.assertIn(Timestamp(417799800, 0), alltime)
         self.assertIn(Timestamp(1530711653, 0), alltime)
@@ -783,8 +783,8 @@ class TestTimeRange (unittest.TestCase):
     def test_bounded_on_right_inclusive(self):
         rng = TimeRange.from_end(Timestamp(1530711653, 999999999))
 
-        self.assertIn(Timestamp(-2208988800, 0), rng)
         self.assertIn(Timestamp(), rng)
+        self.assertIn(Timestamp(326246400, 0), rng)
         self.assertIn(Timestamp(417799799, 999999999), rng)
         self.assertIn(Timestamp(417799800, 0), rng)
         self.assertIn(Timestamp(1530711653, 0), rng)
@@ -798,8 +798,8 @@ class TestTimeRange (unittest.TestCase):
     def test_bounded_on_right_exclusive(self):
         rng = TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)
 
-        self.assertIn(Timestamp(-2208988800, 0), rng)
         self.assertIn(Timestamp(), rng)
+        self.assertIn(Timestamp(326246400, 0), rng)
         self.assertIn(Timestamp(417799799, 999999999), rng)
         self.assertIn(Timestamp(417799800, 0), rng)
         self.assertIn(Timestamp(1530711653, 0), rng)
@@ -813,8 +813,8 @@ class TestTimeRange (unittest.TestCase):
     def test_bounded_on_left_inclusive(self):
         rng = TimeRange.from_start(Timestamp(417799799, 999999999))
 
-        self.assertNotIn(Timestamp(-2208988800, 0), rng)
         self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
         self.assertNotIn(Timestamp(417799799, 999999998), rng)
         self.assertIn(Timestamp(417799799, 999999999), rng)
         self.assertIn(Timestamp(417799800, 0), rng)
@@ -829,8 +829,8 @@ class TestTimeRange (unittest.TestCase):
     def test_bounded_on_left_exclusive(self):
         rng = TimeRange.from_start(Timestamp(417799799, 999999999), TimeRange.EXCLUSIVE)
 
-        self.assertNotIn(Timestamp(-2208988800, 0), rng)
         self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
         self.assertNotIn(Timestamp(417799799, 999999998), rng)
         self.assertNotIn(Timestamp(417799799, 999999999), rng)
         self.assertIn(Timestamp(417799800, 0), rng)
@@ -845,8 +845,8 @@ class TestTimeRange (unittest.TestCase):
     def test_bounded_inclusive(self):
         rng = TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999))
 
-        self.assertNotIn(Timestamp(-2208988800, 0), rng)
         self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
         self.assertNotIn(Timestamp(417799799, 999999998), rng)
         self.assertIn(Timestamp(417799799, 999999999), rng)
         self.assertIn(Timestamp(417799800, 0), rng)
@@ -861,8 +861,8 @@ class TestTimeRange (unittest.TestCase):
     def test_bounded_exclusive(self):
         rng = TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)
 
-        self.assertNotIn(Timestamp(-2208988800, 0), rng)
         self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
         self.assertNotIn(Timestamp(417799799, 999999998), rng)
         self.assertNotIn(Timestamp(417799799, 999999999), rng)
         self.assertIn(Timestamp(417799800, 0), rng)
@@ -877,8 +877,8 @@ class TestTimeRange (unittest.TestCase):
     def test_single_ts(self):
         rng = TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999))
 
-        self.assertNotIn(Timestamp(-2208988800, 0), rng)
         self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
         self.assertNotIn(Timestamp(417799799, 999999998), rng)
         self.assertNotIn(Timestamp(417799799, 999999999), rng)
         self.assertNotIn(Timestamp(417799800, 0), rng)
@@ -890,7 +890,7 @@ class TestTimeRange (unittest.TestCase):
 
         self.assertEqual(rng.to_sec_nsec_range(), "1530711653:999999999")
 
-    def test_from_sec_nsec_range(self):
+    def test_from_str(self):
         tests = [
             TimeRange.eternity(),
             TimeRange.from_end(Timestamp(1530711653, 999999999)),
@@ -900,10 +900,10 @@ class TestTimeRange (unittest.TestCase):
         ]
 
         for tr in tests:
-            self.assertEqual(tr, TimeRange.from_sec_nsec_range(tr.to_sec_nsec_range()))
+            self.assertEqual(tr, TimeRange.from_str(tr.to_sec_nsec_range()))
 
     def test_subrange(self):
-        a = Timestamp(-2208988800, 0)
+        a = Timestamp(326246400, 0)
         b = Timestamp(417799799, 999999999)
         c = Timestamp(1530711653, 999999999)
         d = Timestamp(49391596800, 999999)
@@ -929,7 +929,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.EXCLUSIVE)))
 
     def test_intersection(self):
-        a = Timestamp(-2208988800, 0)
+        a = Timestamp(326246400, 0)
         b = Timestamp(417799799, 999999999)
         c = Timestamp(1530711653, 999999999)
         d = Timestamp(49391596800, 999999)
