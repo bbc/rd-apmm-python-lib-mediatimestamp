@@ -729,7 +729,7 @@ class TimeRange (object):
 
     @classmethod
     def from_start_length(cls, start, length, inclusivity=INCLUSIVE):
-        """Construct a time range starting at start of length length
+        """Construct a time range starting at start and ending at (start + length)
 
         :param start: A Timestamp
         :param length: A TimeOffset, which must be non-negative
@@ -891,7 +891,7 @@ class TimeRange (object):
         return (self.start is not None and
                 self.end is not None and
                 self.start == self.end and
-                self.inclusivity == TimeRange.EXCLUSIVE)
+                self.inclusivity != TimeRange.INCLUSIVE)
 
 
 if __name__ == '__main__':  # pragma: no cover
