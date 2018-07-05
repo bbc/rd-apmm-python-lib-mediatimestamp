@@ -765,6 +765,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertNotIn(Timestamp(49391596800, 999999), rng)
 
         self.assertTrue(rng.is_empty())
+        self.assertEqual(rng.to_sec_nsec_range(), "()")
 
     def test_eternity(self):
         alltime = TimeRange.eternity()
@@ -793,7 +794,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertNotIn(Timestamp(1530711654, 0), rng)
         self.assertNotIn(Timestamp(49391596800, 999999), rng)
 
-        self.assertEqual(rng.to_sec_nsec_range(), "_1530711653:999999999")
+        self.assertEqual(rng.to_sec_nsec_range(), "_1530711653:999999999]")
 
     def test_bounded_on_right_exclusive(self):
         rng = TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)
@@ -808,7 +809,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertNotIn(Timestamp(1530711654, 0), rng)
         self.assertNotIn(Timestamp(49391596800, 999999), rng)
 
-        self.assertEqual(rng.to_sec_nsec_range(), "_1530711653:999999999")
+        self.assertEqual(rng.to_sec_nsec_range(), "_1530711653:999999999)")
 
     def test_bounded_on_left_inclusive(self):
         rng = TimeRange.from_start(Timestamp(417799799, 999999999))
@@ -824,7 +825,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertIn(Timestamp(1530711654, 0), rng)
         self.assertIn(Timestamp(49391596800, 999999), rng)
 
-        self.assertEqual(rng.to_sec_nsec_range(), "417799799:999999999_")
+        self.assertEqual(rng.to_sec_nsec_range(), "[417799799:999999999_")
 
     def test_bounded_on_left_exclusive(self):
         rng = TimeRange.from_start(Timestamp(417799799, 999999999), TimeRange.EXCLUSIVE)
@@ -840,7 +841,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertIn(Timestamp(1530711654, 0), rng)
         self.assertIn(Timestamp(49391596800, 999999), rng)
 
-        self.assertEqual(rng.to_sec_nsec_range(), "417799799:999999999_")
+        self.assertEqual(rng.to_sec_nsec_range(), "(417799799:999999999_")
 
     def test_bounded_inclusive(self):
         rng = TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999))
@@ -856,7 +857,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertNotIn(Timestamp(1530711654, 0), rng)
         self.assertNotIn(Timestamp(49391596800, 999999), rng)
 
-        self.assertEqual(rng.to_sec_nsec_range(), "417799799:999999999_1530711653:999999999")
+        self.assertEqual(rng.to_sec_nsec_range(), "[417799799:999999999_1530711653:999999999]")
 
     def test_bounded_exclusive(self):
         rng = TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)
@@ -872,7 +873,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertNotIn(Timestamp(1530711654, 0), rng)
         self.assertNotIn(Timestamp(49391596800, 999999), rng)
 
-        self.assertEqual(rng.to_sec_nsec_range(), "417799799:999999999_1530711653:999999999")
+        self.assertEqual(rng.to_sec_nsec_range(), "(417799799:999999999_1530711653:999999999)")
 
     def test_single_ts(self):
         rng = TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999))
@@ -888,7 +889,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertNotIn(Timestamp(1530711654, 0), rng)
         self.assertNotIn(Timestamp(49391596800, 999999), rng)
 
-        self.assertEqual(rng.to_sec_nsec_range(), "1530711653:999999999")
+        self.assertEqual(rng.to_sec_nsec_range(), "[1530711653:999999999]")
 
     def test_from_str(self):
         tests = [

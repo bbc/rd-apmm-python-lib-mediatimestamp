@@ -877,20 +877,30 @@ class TimeRange (object):
                        (self.inclusivity & TimeRange.INCLUDE_END == 0) and
                        (tr.inclusivity & TimeRange.INCLUDE_END != 0)))))
 
-    def to_sec_nsec_range(self):
-        """Convert to <seconds>:<nanoseconds>_<seconds>:<nanoseconds>"""
-        if self.start is None:
-            if self.end is None:
-                return "_"
+    def to_sec_nsec_range(self, with_parentheses=True):
+        """Convert to [<seconds>:<nanoseconds>_<seconds>:<nanoseconds>] format.
+
+        :param with_parentheses: if set to False do not include parentheses"""
+        if self.is_empty():
+            if with_parentheses:
+                return "()"
             else:
-                return "_" + self.end.to_tai_sec_nsec()
-        else:
-            if self.end is None:
-                return self.start.to_tai_sec_nsec() + "_"
-            elif self.start == self.end:
+                return ""
+        elif self.start is not None and self.end is not None and self.start == self.end:
+            if with_parentheses:
+                return "[" + self.start.to_tai_sec_nsec() + "]"
+            else:
                 return self.start.to_tai_sec_nsec()
-            else:
-                return self.start.to_tai_sec_nsec() + "_" + self.end.to_tai_sec_nsec()
+
+        if with_parentheses:
+            brackets = [("(", ")"), ("[", ")"), ("(", "]"), ("[", "]")][self.inclusivity]
+        else:
+            brackets = ["", ""]
+
+        return '_'.join([
+            (brackets[0] + self.start.to_tai_sec_nsec()) if self.start is not None else '',
+            (self.end.to_tai_sec_nsec() + brackets[1]) if self.end is not None else ''
+            ])
 
     def intersect_with(self, tr):
         """Return a range which represents the intersection of this range with another"""
