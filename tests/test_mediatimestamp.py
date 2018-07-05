@@ -894,6 +894,8 @@ class TestTimeRange (unittest.TestCase):
     def test_from_str(self):
         tests = [
             ("()", TimeRange.never()),
+            ("[]", TimeRange.never()),
+            ("", TimeRange.never()),
             ("_", TimeRange.eternity()),
             ("_1530711653:999999999", TimeRange.from_end(Timestamp(1530711653, 999999999))),
             ("[_1530711653:999999999]", TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.INCLUSIVE)),

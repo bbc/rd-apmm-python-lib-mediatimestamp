@@ -766,6 +766,7 @@ class TimeRange (object):
         [<ts>_<ts>)
         (<ts>_<ts>]
         (<ts>_<ts>)
+        [<ts>]
         <ts>_<ts>
         <ts>
         ()
