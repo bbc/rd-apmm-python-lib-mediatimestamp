@@ -14,7 +14,7 @@
 
 """This library provides a class TimeOffset which stores a signed time difference value with nanosecond precision.
 
-It also provides a class TimeStamp which is a descendent of TimeOffset which represents a positive time offset since
+It also provides a class Timestamp which is a descendent of TimeOffset which represents a positive time offset since
 the epoch (ie. 1970-01-01T00:00:00.000000000Z)
 
 These data types are of use in a number of situations, but particularly for code that will handle PTP timestamps, which
@@ -704,8 +704,8 @@ class TimeRange (object):
     def __init__(self, start, end, inclusivity=INCLUDE_START | INCLUDE_END):
         """Construct a time range starting at start and ending at end
 
-        :param start: A TimeStamp or None
-        :param end: A TimeStamp or None
+        :param start: A Timestamp or None
+        :param end: A Timestamp or None
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
         self.start = start
         self.end = end
@@ -715,7 +715,7 @@ class TimeRange (object):
     def from_start(cls, start, inclusivity=INCLUDE_START | INCLUDE_END):
         """Construct a time range starting at start with no end
 
-        :param start: A TimeStamp
+        :param start: A Timestamp
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
         return cls(start, None, inclusivity)
 
@@ -723,7 +723,7 @@ class TimeRange (object):
     def from_end(cls, end, inclusivity=INCLUDE_START | INCLUDE_END):
         """Construct a time range ending at end with no start
 
-        :param end: A TimeStamp
+        :param end: A Timestamp
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
         return cls(None, end, inclusivity)
 
@@ -731,8 +731,8 @@ class TimeRange (object):
     def from_start_length(cls, start, length, inclusivity=INCLUDE_START | INCLUDE_END):
         """Construct a time range starting at start of length length
 
-        :param start: A TimeStamp or None
-        :param length: A TimeStamp or None
+        :param start: A Timestamp or None
+        :param length: A Timestamp or None
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
         return cls(start, start + length, inclusivity)
 
@@ -754,7 +754,7 @@ class TimeRange (object):
     def from_single_timestamp(cls, ts):
         """Construct a time range containing only a single timestamp
 
-        :param ts: A TimeStamp"""
+        :param ts: A Timestamp"""
         return cls(ts, ts, TimeRange.INCLUSIVE)
 
     @classmethod
