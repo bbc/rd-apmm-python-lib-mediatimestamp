@@ -892,15 +892,33 @@ class TestTimeRange (unittest.TestCase):
 
     def test_from_str(self):
         tests = [
-            TimeRange.eternity(),
-            TimeRange.from_end(Timestamp(1530711653, 999999999)),
-            TimeRange.from_start(Timestamp(417799799, 999999999)),
-            TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999)),
-            TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999)),
+            ("()", TimeRange.never()),
+            ("_", TimeRange.eternity()),
+            ("_1530711653:999999999", TimeRange.from_end(Timestamp(1530711653, 999999999))),
+            ("[_1530711653:999999999]", TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.INCLUSIVE)),
+            ("(_1530711653:999999999)", TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)),
+            ("417799799:999999999_", TimeRange.from_start(Timestamp(417799799, 999999999))),
+            ("[417799799:999999999_]", TimeRange.from_start(Timestamp(417799799, 999999999), TimeRange.INCLUSIVE)),
+            ("(417799799:999999999_)", TimeRange.from_start(Timestamp(417799799, 999999999), TimeRange.EXCLUSIVE)),
+            ("417799799:999999999_1530711653:999999999", TimeRange(Timestamp(417799799, 999999999),
+                                                                   Timestamp(1530711653, 999999999))),
+            ("[417799799:999999999_1530711653:999999999]", TimeRange(Timestamp(417799799, 999999999),
+                                                                     Timestamp(1530711653, 999999999),
+                                                                     TimeRange.INCLUSIVE)),
+            ("(417799799:999999999_1530711653:999999999)", TimeRange(Timestamp(417799799, 999999999),
+                                                                     Timestamp(1530711653, 999999999),
+                                                                     TimeRange.EXCLUSIVE)),
+            ("(417799799:999999999_1530711653:999999999]", TimeRange(Timestamp(417799799, 999999999),
+                                                                     Timestamp(1530711653, 999999999),
+                                                                     TimeRange.INCLUDE_END)),
+            ("[417799799:999999999_1530711653:999999999)", TimeRange(Timestamp(417799799, 999999999),
+                                                                     Timestamp(1530711653, 999999999),
+                                                                     TimeRange.INCLUDE_START)),
+            ("1530711653:999999999", TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999))),
         ]
 
-        for tr in tests:
-            self.assertEqual(tr, TimeRange.from_str(tr.to_sec_nsec_range()))
+        for (s, tr) in tests:
+            self.assertEqual(tr, TimeRange.from_str(s))
 
     def test_subrange(self):
         a = Timestamp(326246400, 0)

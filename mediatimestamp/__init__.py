@@ -762,26 +762,54 @@ class TimeRange (object):
         """Convert a string to a time range.
 
         Valid ranges are:
+        [<ts>_<ts>]
+        [<ts>_<ts>)
+        (<ts>_<ts>]
+        (<ts>_<ts>)
         <ts>_<ts>
-        <ts>_
-        _<ts>
-        _
+        <ts>
+        ()
 
-        where <ts> is any valid string format for Timestamp.from_str()
+        where <ts> is any valid string format for Timestamp.from_str() or an empty string.
+
+        The meaning of these is relatively simple: [ indicates including the start time,
+        ( indicates excluding it, ] indicates including the end time, and ) indicates excludint it.
+        If brackets are ommitted entirely then this is taken as an inclusive range at both ends.
+        Omitting a timestamp indicates that there is no bound on that end (ie. the range goes on forever),
+        including only a single timestamp by itself indicates a range containing exactly that one timestamp.
+        Finally the string "()" represents the empty range.
 
         :param s: The string to process
         """
-        if s == "_":
-            return cls(None, None)
-        elif "_" not in s:
-            return cls.from_single_timestamp(Timestamp.from_str(s))
-        elif s[0] == "_":
-            return cls.from_end(Timestamp.from_str(s[1:]), inclusivity)
-        elif s[-1] == "_":
-            return cls.from_start(Timestamp.from_str(s[:-1]), inclusivity)
+        m = re.match(r'(\[|\()?([^_\)\]]+)?(_([^_\)\]]+)?)?(\]|\))?', s)
+
+        inc = TimeRange.INCLUSIVE
+        if m.group(1) == "(":
+            inc &= ~TimeRange.INCLUDE_START
+        if m.group(5) == ")":
+            inc &= ~TimeRange.INCLUDE_END
+
+        start = m.group(2)
+        end = m.group(4)
+
+        if start is not None:
+            start = Timestamp.from_str(start)
+        if end is not None:
+            end = Timestamp.from_str(end)
+
+        if start is None and end is None:
+            # Ie. we have no first or second timestamp
+            if m.group(3) is not None:
+                # ie. we have a '_' character
+                return cls.eternity()
+            else:
+                # We have no '_' character, so the whole range is empty
+                return cls.never()
+        elif start is not None and end is None and m.group(3) is None:
+            # timestamp of form <ts>
+            return cls.from_single_timestamp(start)
         else:
-            (start, end) = s.split("_")
-            return cls(Timestamp.from_str(start), Timestamp.from_str(end), inclusivity)
+            return cls(start, end, inc)
 
     @property
     def length(self):
