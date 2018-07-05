@@ -14,7 +14,7 @@
 
 """This library provides a class TimeOffset which stores a signed time difference value with nanosecond precision.
 
-It also provides a class TimeStamp which is a descendent of TimeOffset which represents a positive time offset since
+It also provides a class Timestamp which is a descendent of TimeOffset which represents a positive time offset since
 the epoch (ie. 1970-01-01T00:00:00.000000000Z)
 
 These data types are of use in a number of situations, but particularly for code that will handle PTP timestamps, which
@@ -36,7 +36,7 @@ try:
 except ImportError:
     IPP_UTILS = False
 
-__all__ = ["TsValueError", "TimeOffset", "Timestamp"]
+__all__ = ["TsValueError", "TimeOffset", "Timestamp", "TimeRange"]
 
 
 MAX_NANOSEC = 1000000000
@@ -691,6 +691,249 @@ class Timestamp(TimeOffset):
         elif self.sec >= MAX_SECONDS:
             self.sec = MAX_SECONDS - 1
             self.ns = MAX_NANOSEC - 1
+
+
+class TimeRange (object):
+    """A nanosecond precision time range object"""
+
+    EXCLUSIVE = 0x0
+    INCLUDE_START = 0x1
+    INCLUDE_END = 0x2
+    INCLUSIVE = 0x3
+
+    def __init__(self, start, end, inclusivity=INCLUSIVE):
+        """Construct a time range starting at start and ending at end
+
+        :param start: A Timestamp or None
+        :param end: A Timestamp or None
+        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
+        self.start = start
+        self.end = end
+        self.inclusivity = inclusivity
+
+    @classmethod
+    def from_start(cls, start, inclusivity=INCLUSIVE):
+        """Construct a time range starting at start with no end
+
+        :param start: A Timestamp
+        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
+        return cls(start, None, inclusivity)
+
+    @classmethod
+    def from_end(cls, end, inclusivity=INCLUSIVE):
+        """Construct a time range ending at end with no start
+
+        :param end: A Timestamp
+        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
+        return cls(None, end, inclusivity)
+
+    @classmethod
+    def from_start_length(cls, start, length, inclusivity=INCLUSIVE):
+        """Construct a time range starting at start and ending at (start + length)
+
+        :param start: A Timestamp
+        :param length: A TimeOffset, which must be non-negative
+        :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END
+
+        :raises: TsValueError if the length is negative"""
+        if length < TimeOffset():
+            raise TsValueError("Length must be non-negative")
+        return cls(start, start + length, inclusivity)
+
+    @classmethod
+    def eternity(cls):
+        """Return an unbounded time range covering all time"""
+        return cls(None, None)
+
+    @classmethod
+    def never(cls):
+        """Return a time range covering no time"""
+        return cls(Timestamp(), Timestamp(), TimeRange.EXCLUSIVE)
+
+    @classmethod
+    def from_single_timestamp(cls, ts):
+        """Construct a time range containing only a single timestamp
+
+        :param ts: A Timestamp"""
+        return cls(ts, ts, TimeRange.INCLUSIVE)
+
+    @classmethod
+    def from_str(cls, s, inclusivity=INCLUSIVE):
+        """Convert a string to a time range.
+
+        Valid ranges are:
+        [<ts>_<ts>]
+        [<ts>_<ts>)
+        (<ts>_<ts>]
+        (<ts>_<ts>)
+        [<ts>]
+        <ts>_<ts>
+        <ts>
+        ()
+
+        where <ts> is any valid string format for Timestamp.from_str() or an empty string.
+
+        The meaning of these is relatively simple: [ indicates including the start time,
+        ( indicates excluding it, ] indicates including the end time, and ) indicates excludint it.
+        If brackets are ommitted entirely then this is taken as an inclusive range at both ends.
+        Omitting a timestamp indicates that there is no bound on that end (ie. the range goes on forever),
+        including only a single timestamp by itself indicates a range containing exactly that one timestamp.
+        Finally the string "()" represents the empty range.
+
+        :param s: The string to process
+        """
+        m = re.match(r'(\[|\()?([^_\)\]]+)?(_([^_\)\]]+)?)?(\]|\))?', s)
+
+        inc = TimeRange.INCLUSIVE
+        if m.group(1) == "(":
+            inc &= ~TimeRange.INCLUDE_START
+        if m.group(5) == ")":
+            inc &= ~TimeRange.INCLUDE_END
+
+        start = m.group(2)
+        end = m.group(4)
+
+        if start is not None:
+            start = Timestamp.from_str(start)
+        if end is not None:
+            end = Timestamp.from_str(end)
+
+        if start is None and end is None:
+            # Ie. we have no first or second timestamp
+            if m.group(3) is not None:
+                # ie. we have a '_' character
+                return cls.eternity()
+            else:
+                # We have no '_' character, so the whole range is empty
+                return cls.never()
+        elif start is not None and end is None and m.group(3) is None:
+            # timestamp of form <ts>
+            return cls.from_single_timestamp(start)
+        else:
+            return cls(start, end, inc)
+
+    @property
+    def length(self):
+        if self.end is None or self.start is None:
+            return float("inf")
+        return self.end - self.start
+
+    @length.setter
+    def length(self, new_length):
+        """Sets the length of the range. If the range already has a start time set then it is left
+        unchanged, if it has only an end time then that is left unchanged and a new start time is set,
+        and if neither is set then a TsValueError is raised.
+
+        When a length is set on a timerange the inclusivity is changed to exclude the newly added end of the
+        range, but otherwise not changed.
+
+        :param new_length: A TimeOffset, which must be positive
+        :raises: TsValueError is length is invalid or the original range was eternity()"""
+        if new_length < TimeOffset():
+            raise TsValueError("length must be positive")
+
+        if self.start is None:
+            if self.end is None:
+                raise TsValueError("Cannot set length on a time range with no start or end")
+            self.start = self.end - new_length
+            self.inclusivity &= ~TimeRange.INCLUDE_START
+        else:
+            self.end = self.start + new_length
+            self.inclusivity &= ~TimeRange.INCLUDE_END
+
+    def __contains__(self, ts):
+        """Returns true if the timestamp is within this range."""
+        return ((self.start is None or ts >= self.start) and
+                (self.end is None or ts <= self.end) and
+                (not ((self.start is not None) and
+                      (ts == self.start) and
+                      (self.inclusivity & TimeRange.INCLUDE_START == 0))) and
+                (not ((self.end is not None) and
+                      (ts == self.end) and
+                      (self.inclusivity & TimeRange.INCLUDE_END == 0))))
+
+    def __eq__(self, other):
+        return ((self.is_empty() and other.is_empty()) or
+                (((self.start is None and other.start is None) or
+                  (self.start == other.start and
+                   (self.inclusivity & TimeRange.INCLUDE_START) == (other.inclusivity & TimeRange.INCLUDE_START))) and
+                 ((self.end is None and other.end is None) or
+                  (self.end == other.end and
+                   (self.inclusivity & TimeRange.INCLUDE_END) == (other.inclusivity & TimeRange.INCLUDE_END)))))
+
+    def contains_subrange(self, tr):
+        """Returns True if the timerange supplied lies entirely inside this timerange"""
+        return ((not self.is_empty()) and
+                (tr.is_empty() or
+                 (self.start is None or (tr.start is not None and self.start <= tr.start)) and
+                 (self.end is None or (tr.end is not None and self.end >= tr.end)) and
+                 (not ((self.start is not None) and
+                       (tr.start is not None) and
+                       (self.start == tr.start) and
+                       (self.inclusivity & TimeRange.INCLUDE_START == 0) and
+                       (tr.inclusivity & TimeRange.INCLUDE_START != 0))) and
+                 (not ((self.end is not None) and
+                       (tr.end is not None) and
+                       (self.end == tr.end) and
+                       (self.inclusivity & TimeRange.INCLUDE_END == 0) and
+                       (tr.inclusivity & TimeRange.INCLUDE_END != 0)))))
+
+    def to_sec_nsec_range(self, with_inclusivity_markers=True):
+        """Convert to [<seconds>:<nanoseconds>_<seconds>:<nanoseconds>] format,
+        usually the opening and closing delimiters are set to [ or ] for inclusive and ( or ) for exclusive ranges.
+        Unbounded ranges have no marker attached to them.
+
+        :param with_inclusivity_markers: if set to False do not include parentheses/brackets"""
+        if self.is_empty():
+            if with_inclusivity_markers:
+                return "()"
+            else:
+                return ""
+        elif self.start is not None and self.end is not None and self.start == self.end:
+            if with_inclusivity_markers:
+                return "[" + self.start.to_tai_sec_nsec() + "]"
+            else:
+                return self.start.to_tai_sec_nsec()
+
+        if with_inclusivity_markers:
+            brackets = [("(", ")"), ("[", ")"), ("(", "]"), ("[", "]")][self.inclusivity]
+        else:
+            brackets = ["", ""]
+
+        return '_'.join([
+            (brackets[0] + self.start.to_tai_sec_nsec()) if self.start is not None else '',
+            (self.end.to_tai_sec_nsec() + brackets[1]) if self.end is not None else ''
+            ])
+
+    def intersect_with(self, tr):
+        """Return a range which represents the intersection of this range with another"""
+        if self.is_empty() or tr.is_empty():
+            return TimeRange.never()
+
+        start = self.start
+        if tr.start is not None and (self.start is None or self.start < tr.start):
+            start = tr.start
+        end = self.end
+        if tr.end is not None and (self.end is None or self.end > tr.end):
+            end = tr.end
+
+        inclusivity = TimeRange.EXCLUSIVE
+        if start is None or (start in self and start in tr):
+            inclusivity |= TimeRange.INCLUDE_START
+        if end is None or (end in self and end in tr):
+            inclusivity |= TimeRange.INCLUDE_END
+
+        if start is not None and end is not None and start > end:
+            return TimeRange.never()
+
+        return TimeRange(start, end, inclusivity)
+
+    def is_empty(self):
+        """Returns true on any empty range."""
+        return (self.start is not None and
+                self.end is not None and
+                self.start == self.end and
+                self.inclusivity != TimeRange.INCLUSIVE)
 
 
 if __name__ == '__main__':  # pragma: no cover

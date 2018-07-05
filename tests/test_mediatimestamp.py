@@ -20,7 +20,7 @@ import mock
 from datetime import datetime
 from dateutil import tz
 
-from mediatimestamp import Timestamp, TimeOffset, TsValueError
+from mediatimestamp import Timestamp, TimeOffset, TsValueError, TimeRange
 
 if PY2:
     BUILTINS = "__builtin__"
@@ -749,3 +749,305 @@ class TestTimestamp(unittest.TestCase):
 
         for t in tests:
             self.assertEqual(t[0].get_leap_seconds(), t[1])
+
+
+class TestTimeRange (unittest.TestCase):
+    def test_never(self):
+        rng = TimeRange.never()
+
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
+        self.assertNotIn(Timestamp(417799799, 999999999), rng)
+        self.assertNotIn(Timestamp(417799800, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999998), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertTrue(rng.is_empty())
+        self.assertEqual(rng.to_sec_nsec_range(), "()")
+
+    def test_eternity(self):
+        alltime = TimeRange.eternity()
+
+        self.assertIn(Timestamp(), alltime)
+        self.assertIn(Timestamp(326246400, 0), alltime)
+        self.assertIn(Timestamp(417799799, 999999999), alltime)
+        self.assertIn(Timestamp(417799800, 0), alltime)
+        self.assertIn(Timestamp(1530711653, 0), alltime)
+        self.assertIn(Timestamp(1530711653, 999999998), alltime)
+        self.assertIn(Timestamp(1530711653, 999999999), alltime)
+        self.assertIn(Timestamp(49391596800, 999999), alltime)
+
+        self.assertEqual(alltime.to_sec_nsec_range(), "_")
+
+    def test_bounded_on_right_inclusive(self):
+        rng = TimeRange.from_end(Timestamp(1530711653, 999999999))
+
+        self.assertIn(Timestamp(), rng)
+        self.assertIn(Timestamp(326246400, 0), rng)
+        self.assertIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "_1530711653:999999999]")
+
+    def test_bounded_on_right_exclusive(self):
+        rng = TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)
+
+        self.assertIn(Timestamp(), rng)
+        self.assertIn(Timestamp(326246400, 0), rng)
+        self.assertIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "_1530711653:999999999)")
+
+    def test_bounded_on_left_inclusive(self):
+        rng = TimeRange.from_start(Timestamp(417799799, 999999999))
+
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertIn(Timestamp(1530711654, 0), rng)
+        self.assertIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "[417799799:999999999_")
+
+    def test_bounded_on_left_exclusive(self):
+        rng = TimeRange.from_start(Timestamp(417799799, 999999999), TimeRange.EXCLUSIVE)
+
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertNotIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertIn(Timestamp(1530711654, 0), rng)
+        self.assertIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "(417799799:999999999_")
+
+    def test_bounded_inclusive(self):
+        rng = TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999))
+
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "[417799799:999999999_1530711653:999999999]")
+
+    def test_bounded_exclusive(self):
+        rng = TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)
+
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertNotIn(Timestamp(417799799, 999999999), rng)
+        self.assertIn(Timestamp(417799800, 0), rng)
+        self.assertIn(Timestamp(1530711653, 0), rng)
+        self.assertIn(Timestamp(1530711653, 999999998), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "(417799799:999999999_1530711653:999999999)")
+
+    def test_single_ts(self):
+        rng = TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999))
+
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
+        self.assertNotIn(Timestamp(417799799, 999999998), rng)
+        self.assertNotIn(Timestamp(417799799, 999999999), rng)
+        self.assertNotIn(Timestamp(417799800, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999998), rng)
+        self.assertIn(Timestamp(1530711653, 999999999), rng)
+        self.assertNotIn(Timestamp(1530711654, 0), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "[1530711653:999999999]")
+
+    def test_from_str(self):
+        tests = [
+            ("()", TimeRange.never()),
+            ("[]", TimeRange.never()),
+            ("", TimeRange.never()),
+            ("_", TimeRange.eternity()),
+            ("_1530711653:999999999", TimeRange.from_end(Timestamp(1530711653, 999999999))),
+            ("[_1530711653:999999999]", TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.INCLUSIVE)),
+            ("(_1530711653:999999999)", TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)),
+            ("417799799:999999999_", TimeRange.from_start(Timestamp(417799799, 999999999))),
+            ("[417799799:999999999_]", TimeRange.from_start(Timestamp(417799799, 999999999), TimeRange.INCLUSIVE)),
+            ("(417799799:999999999_)", TimeRange.from_start(Timestamp(417799799, 999999999), TimeRange.EXCLUSIVE)),
+            ("417799799:999999999_1530711653:999999999", TimeRange(Timestamp(417799799, 999999999),
+                                                                   Timestamp(1530711653, 999999999))),
+            ("[417799799:999999999_1530711653:999999999]", TimeRange(Timestamp(417799799, 999999999),
+                                                                     Timestamp(1530711653, 999999999),
+                                                                     TimeRange.INCLUSIVE)),
+            ("(417799799:999999999_1530711653:999999999)", TimeRange(Timestamp(417799799, 999999999),
+                                                                     Timestamp(1530711653, 999999999),
+                                                                     TimeRange.EXCLUSIVE)),
+            ("(417799799:999999999_1530711653:999999999]", TimeRange(Timestamp(417799799, 999999999),
+                                                                     Timestamp(1530711653, 999999999),
+                                                                     TimeRange.INCLUDE_END)),
+            ("[417799799:999999999_1530711653:999999999)", TimeRange(Timestamp(417799799, 999999999),
+                                                                     Timestamp(1530711653, 999999999),
+                                                                     TimeRange.INCLUDE_START)),
+            ("1530711653:999999999", TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999))),
+        ]
+
+        for (s, tr) in tests:
+            self.assertEqual(tr, TimeRange.from_str(s))
+
+    def test_subrange(self):
+        a = Timestamp(326246400, 0)
+        b = Timestamp(417799799, 999999999)
+        c = Timestamp(1530711653, 999999999)
+        d = Timestamp(49391596800, 999999)
+
+        self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.INCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.INCLUSIVE)))
+        self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.EXCLUSIVE)))
+        self.assertTrue(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.EXCLUSIVE)))
+
+        self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.INCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.INCLUSIVE)))
+        self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.EXCLUSIVE)))
+        self.assertTrue(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.EXCLUSIVE)))
+
+        self.assertTrue(TimeRange(a, d, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.INCLUSIVE)))
+        self.assertTrue(TimeRange(a, d, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.INCLUSIVE)))
+        self.assertTrue(TimeRange(a, d, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.EXCLUSIVE)))
+        self.assertTrue(TimeRange(a, d, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, c, TimeRange.EXCLUSIVE)))
+
+        self.assertFalse(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.INCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.INCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.EXCLUSIVE)))
+        self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.EXCLUSIVE)))
+
+    def test_intersection(self):
+        a = Timestamp(326246400, 0)
+        b = Timestamp(417799799, 999999999)
+        c = Timestamp(1530711653, 999999999)
+        d = Timestamp(49391596800, 999999)
+
+        self.assertEqual(TimeRange(a, b, TimeRange.INCLUSIVE).intersect_with(TimeRange(c, d, TimeRange.INCLUSIVE)),
+                         TimeRange.never())
+
+        self.assertEqual(TimeRange(a, b, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.INCLUSIVE)),
+                         TimeRange.from_single_timestamp(b))
+
+        self.assertEqual(TimeRange(a, b, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.INCLUSIVE)),
+                         TimeRange.never())
+
+        self.assertEqual(TimeRange(a, c, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, d, TimeRange.INCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUSIVE))
+
+        self.assertEqual(TimeRange(a, c, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, d, TimeRange.INCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUDE_START))
+
+        self.assertEqual(TimeRange(a, c, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, d, TimeRange.EXCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUDE_END))
+
+        self.assertEqual(TimeRange(a, c, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, d, TimeRange.EXCLUSIVE)),
+                         TimeRange(b, c, TimeRange.EXCLUSIVE))
+
+        self.assertEqual(TimeRange(a, d, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.INCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUSIVE))
+
+        self.assertEqual(TimeRange(a, d, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.INCLUSIVE)),
+                         TimeRange(b, c, TimeRange.INCLUSIVE))
+
+        self.assertEqual(TimeRange(a, d, TimeRange.INCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.EXCLUSIVE)),
+                         TimeRange(b, c, TimeRange.EXCLUSIVE))
+
+        self.assertEqual(TimeRange(a, d, TimeRange.EXCLUSIVE).intersect_with(TimeRange(b, c, TimeRange.EXCLUSIVE)),
+                         TimeRange(b, c, TimeRange.EXCLUSIVE))
+
+        self.assertEqual(TimeRange.eternity().intersect_with(TimeRange(a, b, TimeRange.INCLUSIVE)),
+                         TimeRange(a, b, TimeRange.INCLUSIVE))
+
+        self.assertEqual(TimeRange.eternity().intersect_with(TimeRange(a, b, TimeRange.EXCLUSIVE)),
+                         TimeRange(a, b, TimeRange.EXCLUSIVE))
+
+        self.assertEqual(TimeRange.never().intersect_with(TimeRange(a, b, TimeRange.INCLUSIVE)),
+                         TimeRange.never())
+
+        self.assertEqual(TimeRange.never().intersect_with(TimeRange(a, b, TimeRange.EXCLUSIVE)),
+                         TimeRange.never())
+
+        self.assertEqual(TimeRange.never().intersect_with(TimeRange.eternity()),
+                         TimeRange.never())
+
+    def test_length(self):
+        a = Timestamp(326246400, 0)
+        b = Timestamp(417799799, 999999999)
+        c = Timestamp(1530711653, 999999999)
+
+        rng = TimeRange(a, b, TimeRange.INCLUSIVE)
+        self.assertEqual(rng.length, b - a)
+
+        rng = TimeRange(None, b, TimeRange.INCLUSIVE)
+        self.assertEqual(rng.length, float("inf"))
+
+        rng = TimeRange(a, None, TimeRange.INCLUSIVE)
+        self.assertEqual(rng.length, float("inf"))
+
+        rng = TimeRange(None, None, TimeRange.INCLUSIVE)
+        self.assertEqual(rng.length, float("inf"))
+
+        rng = TimeRange(a, b, TimeRange.INCLUSIVE)
+        rng.length = (c - a)
+        self.assertEqual(rng, TimeRange(a, c, TimeRange.INCLUDE_START))
+
+        rng = TimeRange(a, b, TimeRange.EXCLUSIVE)
+        rng.length = (c - a)
+        self.assertEqual(rng, TimeRange(a, c, TimeRange.EXCLUSIVE))
+
+        rng = TimeRange(None, b, TimeRange.INCLUSIVE)
+        rng.length = (b - a)
+        self.assertEqual(rng, TimeRange(a, b, TimeRange.INCLUDE_END))
+
+        rng = TimeRange(None, b, TimeRange.EXCLUSIVE)
+        rng.length = (b - a)
+        self.assertEqual(rng, TimeRange(a, b, TimeRange.EXCLUSIVE))
+
+        rng = TimeRange(a, None, TimeRange.INCLUSIVE)
+        rng.length = (b - a)
+        self.assertEqual(rng, TimeRange(a, b, TimeRange.INCLUDE_START))
+
+        rng = TimeRange(a, None, TimeRange.EXCLUSIVE)
+        rng.length = (b - a)
+        self.assertEqual(rng, TimeRange(a, b, TimeRange.EXCLUSIVE))
+
+        rng = TimeRange(None, None, TimeRange.INCLUSIVE)
+        with self.assertRaises(TsValueError):
+            rng.length = (b - a)
+
+        rng = TimeRange(a, b, TimeRange.INCLUSIVE)
+        with self.assertRaises(TsValueError):
+            rng.length = (a - c)
