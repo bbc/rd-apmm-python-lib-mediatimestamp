@@ -981,3 +981,52 @@ class TestTimeRange (unittest.TestCase):
 
         self.assertEqual(TimeRange.never().intersect_with(TimeRange.eternity()),
                          TimeRange.never())
+
+    def test_length(self):
+        a = Timestamp(326246400, 0)
+        b = Timestamp(417799799, 999999999)
+        c = Timestamp(1530711653, 999999999)
+
+        rng = TimeRange(a, b, TimeRange.INCLUSIVE)
+        self.assertEqual(rng.length, b - a)
+
+        rng = TimeRange(None, b, TimeRange.INCLUSIVE)
+        self.assertEqual(rng.length, float("inf"))
+
+        rng = TimeRange(a, None, TimeRange.INCLUSIVE)
+        self.assertEqual(rng.length, float("inf"))
+
+        rng = TimeRange(None, None, TimeRange.INCLUSIVE)
+        self.assertEqual(rng.length, float("inf"))
+
+        rng = TimeRange(a, b, TimeRange.INCLUSIVE)
+        rng.length = (c - a)
+        self.assertEqual(rng, TimeRange(a, c, TimeRange.INCLUDE_START))
+
+        rng = TimeRange(a, b, TimeRange.EXCLUSIVE)
+        rng.length = (c - a)
+        self.assertEqual(rng, TimeRange(a, c, TimeRange.EXCLUSIVE))
+
+        rng = TimeRange(None, b, TimeRange.INCLUSIVE)
+        rng.length = (b - a)
+        self.assertEqual(rng, TimeRange(a, b, TimeRange.INCLUDE_END))
+
+        rng = TimeRange(None, b, TimeRange.EXCLUSIVE)
+        rng.length = (b - a)
+        self.assertEqual(rng, TimeRange(a, b, TimeRange.EXCLUSIVE))
+
+        rng = TimeRange(a, None, TimeRange.INCLUSIVE)
+        rng.length = (b - a)
+        self.assertEqual(rng, TimeRange(a, b, TimeRange.INCLUDE_START))
+
+        rng = TimeRange(a, None, TimeRange.EXCLUSIVE)
+        rng.length = (b - a)
+        self.assertEqual(rng, TimeRange(a, b, TimeRange.EXCLUSIVE))
+
+        rng = TimeRange(None, None, TimeRange.INCLUSIVE)
+        with self.assertRaises(TsValueError):
+            rng.length = (b - a)
+
+        rng = TimeRange(a, b, TimeRange.INCLUSIVE)
+        with self.assertRaises(TsValueError):
+            rng.length = (a - c)
