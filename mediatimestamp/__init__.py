@@ -346,10 +346,10 @@ class TimeOffset(object):
         return self.to_nanosec()
 
     def __eq__(self, other):
-        return self.compare(other) == 0
+        return isinstance(self._cast_arg(other), TimeOffset) and self.compare(other) == 0
 
     def __ne__(self, other):
-        return self.compare(other) != 0
+        return not (self == other)
 
     def __lt__(self, other):
         return self.compare(other) < 0
