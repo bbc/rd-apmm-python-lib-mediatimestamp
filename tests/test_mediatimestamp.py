@@ -311,14 +311,24 @@ class TestTimeOffset(unittest.TestCase):
             (TimeOffset(10, 1) - 1, TimeOffset(9, 1)),
             (TimeOffset(10, 1) + 1.5, TimeOffset(11, 500000001)),
             (TimeOffset(10, 1) - 1.5, TimeOffset(8, 500000001)),
-            (TimeOffset(8, 500000000) == 8.5, True),
-            (TimeOffset(8, 500000000) > 8, True),
-            (TimeOffset(8, 500000000) < 8.6, True),
-            (TimeOffset(8, 500000000) != 8.6, True),
+            (TimeOffset(8, 500000000), 8.5),
         ]
 
         for t in tests_ts:
-            self.assertEqual(t[0], t[1])
+            self.assertEqual(t[0], t[1], msg="{} != {}".format(t[0], t[1]))
+
+        self.assertGreater(TimeOffset(8, 500000000), 8)
+        self.assertLess(TimeOffset(8, 500000000), 8.6)
+        self.assertNotEqual(TimeOffset(8, 500000000), 8.6)
+
+    def test_eq(self):
+        """Test some equality operations"""
+        self.assertEqual(TimeOffset(10, 1), TimeOffset(10, 1))
+        self.assertNotEqual(TimeOffset(10, 1), TimeOffset(-10, 1))
+        self.assertNotEqual(TimeOffset(0, 1), TimeOffset(0, -1))
+        self.assertNotEqual(TimeOffset(0, 1), None)
+        self.assertEqual(TimeOffset(0, 500000000), 0.5)
+        self.assertNotEqual(TimeOffset(0, 1), "0:1")
 
     def test_repr(self):
         """This tests that the repr function turns time offsets into second:nanosecond pairs."""
@@ -419,24 +429,18 @@ class TestTimestamp(unittest.TestCase):
     def test_compare(self):
         """This tests comparison of timestamps."""
 
-        tests_ts = [
-            (Timestamp(1, 2) == Timestamp(1, 2), True),
-            (Timestamp(1, 2) != Timestamp(1, 3), True),
-            (Timestamp(1, 0) < Timestamp(1, 2), True),
-            (Timestamp(1, 2) <= Timestamp(1, 2), True),
-            (Timestamp(2, 0) > Timestamp(1, 0), True),
-            (Timestamp(2, 0) >= Timestamp(2, 0), True),
-            (Timestamp(2, 0) < Timestamp(1, 0), False),
-            (Timestamp(2, 0) == Timestamp(3, 0), False),
-            (Timestamp(2, 0) == 2, True),
-            (Timestamp(2, 0) > 1, True),
-            (Timestamp(2, 0) < 3, True),
-            (TimeOffset(2, 0) < 3, True),
-            (TimeOffset(1, 0, 1) < TimeOffset(1, 0, -1), False)
-        ]
-
-        for t in tests_ts:
-            self.assertEqual(t[0], t[1])
+        self.assertEqual(Timestamp(1, 2), Timestamp(1, 2))
+        self.assertNotEqual(Timestamp(1, 2), Timestamp(1, 3))
+        self.assertLess(Timestamp(1, 0), Timestamp(1, 2))
+        self.assertLessEqual(Timestamp(1, 2), Timestamp(1, 2))
+        self.assertGreater(Timestamp(2, 0), Timestamp(1, 0))
+        self.assertGreaterEqual(Timestamp(2, 0), Timestamp(2, 0))
+        self.assertNotEqual(Timestamp(2, 0), Timestamp(3, 0))
+        self.assertEqual(Timestamp(2, 0), 2)
+        self.assertGreater(Timestamp(2, 0), 1)
+        self.assertLess(Timestamp(2, 0), 3)
+        self.assertLess(TimeOffset(2, 0), 3)
+        self.assertGreaterEqual(TimeOffset(1, 0, 1), TimeOffset(1, 0, -1))
 
     def test_invalid_str(self):
         """This tests that invalid strings fed into from_str raise exceptions."""
