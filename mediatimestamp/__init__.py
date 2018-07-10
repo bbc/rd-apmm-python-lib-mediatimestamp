@@ -855,10 +855,14 @@ class TimeRange (object):
     def __eq__(self, other):
         return ((self.is_empty() and other.is_empty()) or
                 (((self.start is None and other.start is None) or
-                  (self.start == other.start and
+                  (self.start is not None and
+                   other.start is not None and
+                   self.start == other.start and
                    (self.inclusivity & TimeRange.INCLUDE_START) == (other.inclusivity & TimeRange.INCLUDE_START))) and
                  ((self.end is None and other.end is None) or
-                  (self.end == other.end and
+                  (self.end is not None and
+                   other.end is not None and
+                   self.end == other.end and
                    (self.inclusivity & TimeRange.INCLUDE_END) == (other.inclusivity & TimeRange.INCLUDE_END)))))
 
     def contains_subrange(self, tr):
