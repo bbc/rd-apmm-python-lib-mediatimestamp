@@ -1055,3 +1055,14 @@ class TestTimeRange (unittest.TestCase):
         rng = TimeRange(a, b, TimeRange.INCLUSIVE)
         with self.assertRaises(TsValueError):
             rng.length = (a - c)
+
+    def test_repr(self):
+        """This tests that the repr function turns time ranges into `eval`-able strings."""
+        test_trs = [
+            TimeRange.from_str("(10:1_10:2)"),
+            TimeRange.from_str("[1:0_10:0]"),
+            TimeRange.from_str("[10:0_")
+        ]
+
+        for t in test_trs:
+            self.assertEqual(t, eval(repr(t)))
