@@ -862,6 +862,9 @@ class TimeRange (object):
                   (self.end == other.end and
                    (self.inclusivity & TimeRange.INCLUDE_END) == (other.inclusivity & TimeRange.INCLUDE_END))))))
 
+    def __repr__(self):
+        return "TimeRange.from_str('{}')".format(self.to_sec_nsec_range())
+
     def contains_subrange(self, tr):
         """Returns True if the timerange supplied lies entirely inside this timerange"""
         return ((not self.is_empty()) and
