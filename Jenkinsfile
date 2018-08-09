@@ -147,63 +147,31 @@ pipeline {
                 }
             }
             parallel {
-                stage ("Python Upload") {
-                    stages {
-                        stage ("Upload to Artifactory") {
-                            when {
-                                anyOf {
-                                    expression { return params.FORCE_PYUPLOAD }
-                                    expression {
-                                        bbcShouldUploadArtifacts(branches: ["master"])
-                                    }
-                                }
-                            }
-                            steps {
-                                script {
-                                    env.artifactoryUpload_result = "FAILURE"
-                                }
-                                bbcGithubNotify(context: "artifactory/upload", status: "PENDING")
-                                sh 'rm -rf dist/*'
-                                bbcMakeWheel("py27")
-                                bbcMakeWheel("py3")
-                                bbcTwineUpload(toxenv: "py3")
-                                script {
-                                    env.artifactoryUpload_result = "SUCCESS" // This will only run if the steps above succeeded
-                                }
-                            }
-                            post {
-                                always {
-                                    bbcGithubNotify(context: "artifactory/upload", status: env.artifactoryUpload_result)
-                                }
+                stage ("Upload to PyPi") {
+                    when {
+                        anyOf {
+                            expression { return params.FORCE_PYUPLOAD }
+                            expression {
+                                bbcShouldUploadArtifacts(branches: ["master"])
                             }
                         }
-                        stage ("Upload to PyPi") {
-                            when {
-                                anyOf {
-                                    expression { return params.FORCE_PYUPLOAD }
-                                    expression {
-                                        bbcShouldUploadArtifacts(branches: ["master"])
-                                    }
-                                }
-                            }
-                            steps {
-                                script {
-                                    env.pypiUpload_result = "FAILURE"
-                                }
-                                bbcGithubNotify(context: "pypi/upload", status: "PENDING")
-                                sh 'rm -rf dist/*'
-                                bbcMakeGlobalWheel("py27")
-                                bbcMakeGlobalWheel("py3")
-                                bbcTwineUpload(toxenv: "py3", pypi: true)
-                                script {
-                                    env.pypiUpload_result = "SUCCESS" // This will only run if the steps above succeeded
-                                }
-                            }
-                            post {
-                                always {
-                                    bbcGithubNotify(context: "pypi/upload", status: env.pypiUpload_result)
-                                }
-                            }
+                    }
+                    steps {
+                        script {
+                            env.pypiUpload_result = "FAILURE"
+                        }
+                        bbcGithubNotify(context: "pypi/upload", status: "PENDING")
+                        sh 'rm -rf dist/*'
+                        bbcMakeGlobalWheel("py27")
+                        bbcMakeGlobalWheel("py3")
+                        bbcTwineUpload(toxenv: "py3", pypi: true)
+                        script {
+                            env.pypiUpload_result = "SUCCESS" // This will only run if the steps above succeeded
+                        }
+                    }
+                    post {
+                        always {
+                            bbcGithubNotify(context: "pypi/upload", status: env.pypiUpload_result)
                         }
                     }
                 }
