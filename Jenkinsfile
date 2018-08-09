@@ -147,7 +147,7 @@ pipeline {
                 }
             }
             parallel {
-                stage ("Upload to Artifactory") {
+                stage ("Upload to PyPi") {
                     when {
                         anyOf {
                             expression { return params.FORCE_PYUPLOAD }
@@ -158,20 +158,20 @@ pipeline {
                     }
                     steps {
                         script {
-                            env.artifactoryUpload_result = "FAILURE"
+                            env.pypiUpload_result = "FAILURE"
                         }
-                        bbcGithubNotify(context: "artifactory/upload", status: "PENDING")
+                        bbcGithubNotify(context: "pypi/upload", status: "PENDING")
                         sh 'rm -rf dist/*'
-                        bbcMakeWheel("py27")
-                        bbcMakeWheel("py3")
-                        bbcTwineUpload(toxenv: "py3")
+                        bbcMakeGlobalWheel("py27")
+                        bbcMakeGlobalWheel("py3")
+                        bbcTwineUpload(toxenv: "py3", pypi: true)
                         script {
-                            env.artifactoryUpload_result = "SUCCESS" // This will only run if the steps above succeeded
+                            env.pypiUpload_result = "SUCCESS" // This will only run if the steps above succeeded
                         }
                     }
                     post {
                         always {
-                            bbcGithubNotify(context: "artifactory/upload", status: env.artifactoryUpload_result)
+                            bbcGithubNotify(context: "pypi/upload", status: env.pypiUpload_result)
                         }
                     }
                 }
