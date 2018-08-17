@@ -39,7 +39,15 @@ except ImportError:
 __all__ = ["TsValueError", "TimeOffset", "Timestamp", "TimeRange"]
 
 
-_MAX_NANOSEC = 1000000000
+# THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PIUBLIC INTERFACE
+# The same values are made available by methods that are, such as
+#
+# TimeOffser.MAX_NANOSEC
+#
+# So use those instead. At some point these constants could go away without warning
+
+MAX_NANOSEC = 1000000000
+MAX_SECONDS = 281474976710656
 
 # The UTC leap seconds table below was extracted from the information provided at
 # http://www.ietf.org/timezones/data/leap-seconds.list
@@ -48,7 +56,7 @@ _MAX_NANOSEC = 1000000000
 # The NTP epoch seconds have been converted to Unix epoch seconds. The difference between
 # the NTP epoch at 1 Jan 1900 and the Unix epoch at 1 Jan 1970 is 2208988800 seconds
 
-_UTC_LEAP = [
+UTC_LEAP = [
   # || UTC SEC  |  TAI SEC - 1 ||
   (1483228800, 1483228836),    # 1 Jan 2017, 37 leap seconds
   (1435708800, 1435708835),    # 1 Jul 2015, 36 leap seconds
@@ -93,7 +101,7 @@ def _parse_seconds_fraction(frac):
     Returns the nanoseconds
     """
     ns = 0
-    mult = _MAX_NANOSEC
+    mult = TimeOffset.MAX_NANOSEC
     for c in frac:
         if c < '0' or c > '9' or int(mult) < 1:
             break
@@ -129,7 +137,7 @@ class TimeOffset(object):
     ROUND_NEAREST = 1
     ROUND_UP = 2
 
-    MAX_NANOSEC = _MAX_NANOSEC
+    MAX_NANOSEC = 1000000000
     MAX_SECONDS = 281474976710656
 
     def __init__(self, sec=0, ns=0, sign=1):
@@ -577,7 +585,7 @@ class Timestamp(TimeOffset):
     @classmethod
     def from_utc(cls, utc_sec, utc_ns, is_leap=False):
         leap_sec = 0
-        for tbl_sec, tbl_tai_sec_minus_1 in _UTC_LEAP:
+        for tbl_sec, tbl_tai_sec_minus_1 in UTC_LEAP:
             if utc_sec >= tbl_sec:
                 leap_sec = (tbl_tai_sec_minus_1 + 1) - tbl_sec
                 break
@@ -589,7 +597,7 @@ class Timestamp(TimeOffset):
         converting to UTC.
         """
         leap_sec = 0
-        for utc_sec, tai_sec_minus_1 in _UTC_LEAP:
+        for utc_sec, tai_sec_minus_1 in UTC_LEAP:
             if self.sec >= tai_sec_minus_1:
                 leap_sec = (tai_sec_minus_1 + 1) - utc_sec
                 break
@@ -617,7 +625,7 @@ class Timestamp(TimeOffset):
         """
         leap_sec = 0
         is_leap = False
-        for utc_sec, tai_sec_minus_1 in _UTC_LEAP:
+        for utc_sec, tai_sec_minus_1 in UTC_LEAP:
             if self.sec >= tai_sec_minus_1:
                 leap_sec = (tai_sec_minus_1 + 1) - utc_sec
                 is_leap = self.sec == tai_sec_minus_1
