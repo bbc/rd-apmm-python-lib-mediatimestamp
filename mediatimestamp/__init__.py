@@ -39,6 +39,13 @@ except ImportError:
 __all__ = ["TsValueError", "TimeOffset", "Timestamp", "TimeRange"]
 
 
+# THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PIUBLIC INTERFACE
+# The same values are made available by methods that are, such as
+#
+# TimeOffser.MAX_NANOSEC
+#
+# So use those instead. At some point these constants could go away without warning
+
 MAX_NANOSEC = 1000000000
 MAX_SECONDS = 281474976710656
 
@@ -94,7 +101,7 @@ def _parse_seconds_fraction(frac):
     Returns the nanoseconds
     """
     ns = 0
-    mult = MAX_NANOSEC
+    mult = TimeOffset.MAX_NANOSEC
     for c in frac:
         if c < '0' or c > '9' or int(mult) < 1:
             break
@@ -130,6 +137,9 @@ class TimeOffset(object):
     ROUND_NEAREST = 1
     ROUND_UP = 2
 
+    MAX_NANOSEC = 1000000000
+    MAX_SECONDS = 281474976710656
+
     def __init__(self, sec=0, ns=0, sign=1):
         self.sec = int(sec)
         self.ns = int(ns)
@@ -148,7 +158,7 @@ class TimeOffset(object):
             raise TsValueError("invalid interval factor")
         sec = rate_den // (rate_num * factor)
         rem = rate_den % (rate_num * factor)
-        ns = MAX_NANOSEC * rem // (rate_num * factor)
+        ns = cls.MAX_NANOSEC * rem // (rate_num * factor)
         return cls(sec=sec, ns=ns)
 
     @classmethod
@@ -195,7 +205,7 @@ class TimeOffset(object):
         abs_count = abs(count)
         sec = (abs_count * rate_den) // rate_num
         rem = (abs_count * rate_den) % rate_num
-        ns = (rem * MAX_NANOSEC) // rate_num
+        ns = (rem * cls.MAX_NANOSEC) // rate_num
         sign = 1
         if count < 0:
             sign = -1
@@ -224,8 +234,8 @@ class TimeOffset(object):
     @classmethod
     def from_nanosec(cls, nanosec):
         abs_nanosec = abs(nanosec)
-        sec = abs_nanosec // MAX_NANOSEC
-        ns = abs_nanosec % MAX_NANOSEC
+        sec = abs_nanosec // cls.MAX_NANOSEC
+        ns = abs_nanosec % cls.MAX_NANOSEC
         sign = 1
         if nanosec < 0:
             sign = -1
@@ -283,9 +293,9 @@ class TimeOffset(object):
         #             = {f1} + {f2}
         # reduce {f1} as follows: a*b/c = ((a/c)*c + a%c) * b) / c = (a/c)*b + (a%c)*b/c
         f1_whole = (abs_off.sec // rate_den) * rate_num
-        f1_nsec = (abs_off.sec % rate_den) * rate_num * MAX_NANOSEC // rate_den
+        f1_nsec = (abs_off.sec % rate_den) * rate_num * self.MAX_NANOSEC // rate_den
         f2_nsec = abs_off.ns * rate_num // rate_den
-        return self.sign * (f1_whole + (f1_nsec + f2_nsec) // MAX_NANOSEC)
+        return self.sign * (f1_whole + (f1_nsec + f2_nsec) // self.MAX_NANOSEC)
 
     def to_millisec(self, rounding=ROUND_NEAREST):
         use_rounding = rounding
@@ -316,7 +326,7 @@ class TimeOffset(object):
         return self.sign * (self.sec*1000000 + (self.ns + round_ns)//1000)
 
     def to_nanosec(self):
-        return self.sign * (self.sec*MAX_NANOSEC + self.ns)
+        return self.sign * (self.sec*self.MAX_NANOSEC + self.ns)
 
     def normalise(self, rate_num, rate_den=1, rounding=ROUND_NEAREST):
         return self.from_count(self.to_count(rate_num, rate_den, rounding), rate_num, rate_den)
@@ -406,10 +416,10 @@ class TimeOffset(object):
         toff = type(self)(self.sec, self.ns, self.sign)
         abs_anint = abs(anint)
         sec = self.sec // abs_anint
-        ns = int((self.ns + (self.sec % abs_anint) * MAX_NANOSEC) / abs_anint + 5e-10)
+        ns = int((self.ns + (self.sec % abs_anint) * self.MAX_NANOSEC) / abs_anint + 5e-10)
 
-        toff.sec = sec + ns // MAX_NANOSEC
-        toff.ns = ns % MAX_NANOSEC
+        toff.sec = sec + ns // self.MAX_NANOSEC
+        toff.ns = ns % self.MAX_NANOSEC
         if anint < 0:
             toff.sign *= -1
         toff._make_valid()
@@ -420,28 +430,28 @@ class TimeOffset(object):
 
     def __imul__(self, anint):
         abs_anint = abs(anint)
-        ns_sec = self.ns * (abs_anint // MAX_NANOSEC)
-        ns = self.ns * (abs_anint % MAX_NANOSEC)
+        ns_sec = self.ns * (abs_anint // self.MAX_NANOSEC)
+        ns = self.ns * (abs_anint % self.MAX_NANOSEC)
 
-        self.sec = self.sec * abs_anint + ns_sec + ns // MAX_NANOSEC
-        self.ns = ns % MAX_NANOSEC
+        self.sec = self.sec * abs_anint + ns_sec + ns // self.MAX_NANOSEC
+        self.ns = ns % self.MAX_NANOSEC
         if anint < 0:
             self.sign *= -1
         self._make_valid()
         return self
 
     def _complete_iadd_or_isub(self, sec, ns):
-        if ns >= MAX_NANOSEC:
-            ns -= MAX_NANOSEC
+        if ns >= self.MAX_NANOSEC:
+            ns -= self.MAX_NANOSEC
             sec += 1
-        elif -ns >= MAX_NANOSEC:
-            ns += MAX_NANOSEC
+        elif -ns >= self.MAX_NANOSEC:
+            ns += self.MAX_NANOSEC
             sec -= 1
         if sec < 0 and ns > 0:
-            ns -= MAX_NANOSEC
+            ns -= self.MAX_NANOSEC
             sec += 1
         elif sec > 0 and ns < 0:
-            ns += MAX_NANOSEC
+            ns += self.MAX_NANOSEC
             sec -= 1
 
         if sec < 0 or ns < 0:
@@ -455,7 +465,7 @@ class TimeOffset(object):
         self._make_valid()
 
     def _get_fractional_seconds(self, fixed_size=False):
-        div = MAX_NANOSEC / 10
+        div = self.MAX_NANOSEC / 10
         rem = self.ns
         sec_frac = ""
 
@@ -488,8 +498,8 @@ class TimeOffset(object):
             self.sign = 1
         elif self.ns < 0:
             self.ns = 0
-        elif self.ns >= MAX_NANOSEC:
-            self.ns = MAX_NANOSEC - 1
+        elif self.ns >= self.MAX_NANOSEC:
+            self.ns = self.MAX_NANOSEC - 1
 
 
 class Timestamp(TimeOffset):
@@ -506,7 +516,7 @@ class Timestamp(TimeOffset):
             # Fall back to system time if IPP Utils not found
             # No PTP so not as accurate
             utc_time = time.time()
-            return cls.from_utc(int(utc_time), int(utc_time*MAX_NANOSEC) - int(utc_time)*MAX_NANOSEC)
+            return cls.from_utc(int(utc_time), int(utc_time*cls.MAX_NANOSEC) - int(utc_time)*cls.MAX_NANOSEC)
 
     @classmethod
     def from_tai_sec_frac(cls, ts_str):
@@ -688,9 +698,9 @@ class Timestamp(TimeOffset):
             self.sec = 0
             self.ns = 0
             self.sign = 1
-        elif self.sec >= MAX_SECONDS:
-            self.sec = MAX_SECONDS - 1
-            self.ns = MAX_NANOSEC - 1
+        elif self.sec >= self.MAX_SECONDS:
+            self.sec = self.MAX_SECONDS - 1
+            self.ns = self.MAX_NANOSEC - 1
 
 
 class TimeRange (object):

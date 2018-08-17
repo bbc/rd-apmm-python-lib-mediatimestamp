@@ -29,6 +29,9 @@ else:
 
 
 class TestTimeOffset(unittest.TestCase):
+    def test_MAX_NANOSEC(self):
+        self.assertEqual(TimeOffset.MAX_NANOSEC, 1000000000)
+
     def test_from_timeoffset(self):
         """This tests that TimeOffsets can be created with a variety of values."""
         tests_ts = [
@@ -342,6 +345,9 @@ class TestTimeOffset(unittest.TestCase):
 
 
 class TestTimestamp(unittest.TestCase):
+    def test_MAX_NANOSEC(self):
+        self.assertEqual(Timestamp.MAX_NANOSEC, 1000000000)
+
     def test_get_time_pythonic(self):
         """This tests that the fallback pure python implementation of get_time works as expected."""
         test_ts = [
