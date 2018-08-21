@@ -1,5 +1,9 @@
 # mediatimestamp Changelog
 
+## 1.0.2
+- Updated docstrings to note that "seconds:nanoseconds" is preferred over
+  "seconds.fraction".
+
 ## 1.0.1
 - Added `MAX_NANOSEC` and `MAX_SECONDS` to `TimeOffset`
 
