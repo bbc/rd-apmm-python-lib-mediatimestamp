@@ -132,7 +132,12 @@ def _parse_iso8601(iso8601):
 
 
 class TimeOffset(object):
-    """A nanosecond precision time difference object."""
+    """A nanosecond precision time difference object.
+
+    Note that the canonical representation of a TimeOffset is seconds:nanoseconds, e.g. "4:500000000".
+    TimeOffsets in seconds.fractions format (e.g. "4.5") can be parsed, but should not be used for serialization or
+    storage due to difficulty disambiguating them from floats.
+    """
     ROUND_DOWN = 0
     ROUND_NEAREST = 1
     ROUND_UP = 2
@@ -193,6 +198,10 @@ class TimeOffset(object):
 
     @classmethod
     def from_str(cls, toff_str):
+        """Parse a string as a TimeOffset
+
+        Accepts both second:nanosecond and second.fraction formats.
+        """
         if '.' in toff_str:
             return cls.from_sec_frac(toff_str)
         else:
