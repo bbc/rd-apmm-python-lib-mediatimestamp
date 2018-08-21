@@ -582,6 +582,11 @@ class Timestamp(TimeOffset):
 
     @classmethod
     def from_str(cls, ts_str, force_pure_python=False):
+        """Parse a string as a TimeStamp
+
+        Accepts SMPTE timelabel, ISO 8601 UTC, second:nanosecond and second.fraction formats, along with "now" to mean
+        the current time.
+        """
         if 'F' in ts_str:
             return cls.from_smpte_timelabel(ts_str)
         elif 'T' in ts_str:
