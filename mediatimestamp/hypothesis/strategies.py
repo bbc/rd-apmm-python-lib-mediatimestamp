@@ -27,6 +27,9 @@ __all__ = ["timestamps", "timeoffsets", "timeranges", "disjoint_timeranges"]
 MIN_TIMESTAMP = Timestamp(0, 0)
 MAX_TIMESTAMP = Timestamp(Timestamp.MAX_SECONDS, Timestamp.MAX_NANOSEC - 1)
 
+MIN_TIMEOFFSET = TimeOffset(-TimeOffset.MAX_SECONDS, TimeOffset.MAX_NANOSEC - 1)
+MAX_TIMEOFFSET = Timestamp(TimeOffset.MAX_SECONDS, TimeOffset.MAX_NANOSEC - 1)
+
 
 def timestamps(min_value=MIN_TIMESTAMP, max_value=MAX_TIMESTAMP):
     """Draw from this strategy to get timestamps between the given minimum and maximum values.
@@ -37,7 +40,7 @@ def timestamps(min_value=MIN_TIMESTAMP, max_value=MAX_TIMESTAMP):
     return integers(min_value=min_value.to_nanosec(), max_value=max_value.to_nanosec()).map(Timestamp.from_nanosec)
 
 
-def timeoffsets(min_value=-MAX_TIMESTAMP, max_value=MAX_TIMESTAMP):
+def timeoffsets(min_value=MIN_TIMEOFFSET, max_value=MAX_TIMEOFFSET):
     """Draw from this strategy to get timeoffsets between the given minimum and maximum values.
     Shrinks towards zero."""
 
