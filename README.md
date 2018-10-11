@@ -13,7 +13,6 @@ distributed via the PTP protocol (IEEE 1588).
 ### Requirements
 
 * A working Python 2.7 or Python 3.x installation
-* BBC R&D's internal artifactory pypi server set up as a source for pip (if installing via pip)
 * BBC R&D's internal deb repository set up as a source for apt (if installing via apt-get)
 * The tool [tox](https://tox.readthedocs.io/en/latest/) is needed to run the unittests, but not required to use the library.
 
@@ -40,6 +39,22 @@ import mediatimestamp
 # Print the current time in seconds:nanoseconds format
 print(mediatimestamp.Timestamp.get_time())
 ```
+
+This module provides three main classes which are used for
+representing time:
+
+* `Timestamp` represents an instant in time expressed as a nanosecond
+   precision timestamp.
+* `TimeOffset` represents a duration measured in nanoseconds.
+* `TimeRange` represents a time range defined by its start and end
+  timestamps, which may be inclusive of neither, one, or both of its
+  ends.
+
+In addition a submodule `mediatimestamp.hypothesis.strategies` is
+provided for those who wish to make use of these timestamps in code
+that is to be tested using the `hypothesis` library. The strategies
+provided in this module allow the creation of hypothesis based tests
+which make use of `Timestamp` and `TimeRange` objects.
 
 ## Documentation
 

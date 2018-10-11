@@ -1,5 +1,10 @@
 # mediatimestamp Changelog
 
+## 1.1.0
+- Added hypothesis submodule containing strategies compatible with the
+  `hypothesis` library which can be used to generate timestamps when
+  testing code which uses this library.
+
 ## 1.0.2
 - Updated docstrings to note that "seconds:nanoseconds" is preferred over
   "seconds.fraction".
