@@ -1,4 +1,4 @@
-\PYTHON=`which python`
+PYTHON=`which python`
 PYTHON2=`which python2`
 PYTHON3=`which python3`
 PY2DSC=`which py2dsc`
