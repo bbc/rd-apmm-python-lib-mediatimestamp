@@ -58,7 +58,7 @@ pipeline {
                 }
 		stage ("Build Docs") {
 		    steps {
-		        sh 'make docs'
+		        sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-docs make docs'
 		    }
 		}
                 stage ("Unit Tests") {
