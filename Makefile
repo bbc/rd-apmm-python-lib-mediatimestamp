@@ -1,4 +1,4 @@
-PYTHON=`which python`
+\PYTHON=`which python`
 PYTHON2=`which python2`
 PYTHON3=`which python3`
 PY2DSC=`which py2dsc`
@@ -28,6 +28,8 @@ RPM_PREFIX?=$(topdir)/build/rpm
 
 RPMDIRS=BUILD BUILDROOT RPMS SOURCES SPECS SRPMS
 RPMBUILDDIRS=$(patsubst %, $(RPM_PREFIX)/%, $(RPMDIRS))
+
+TOXDIR?=$(topbuilddir)/.tox/
 
 all:
 	@echo "$(PROJECT)-$(VERSION)"
@@ -65,11 +67,16 @@ clean:
 	find $(topdir) -name '*.py,cover' -delete
 	rm -rf $(topbuilddir)/*.html
 
-.tox/py3/bin/activate: tox.ini
-	tox -r --notest
+testenv: $(TOXDIR)/py27/bin/activate $(TOXDIR)/py3/bin/activate
+
+$(TOXDIR)/py3/bin/activate: tox.ini
+	tox -e py3 --recreate --workdir $(TOXDIR)
+
+$(TOXDIR)/py27/bin/activate: tox.ini
+	tox -e py27 --recreate --workdir $(TOXDIR)
 
 test:
-	tox
+	tox --workdir $(TOXDIR)
 
 deb_dist: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
 	$(PY2DSC) $(PY2DSC_PARAMS) $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
@@ -119,7 +126,7 @@ egg:
 
 docs: $(MODNAME).html
 
-$(MODNAME).html: .tox/py3/bin/activate
-	. .tox/py3/bin/activate && pydoc -w $(MODNAME)
+$(MODNAME).html: $(TOXDIR)/py3/bin/activate
+	. $(TOXDIR)/py3/bin/activate && pydoc -w $(MODNAME)
 
-.PHONY: test test2 test3 clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec docs
+.PHONY: test testenv clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec docs
