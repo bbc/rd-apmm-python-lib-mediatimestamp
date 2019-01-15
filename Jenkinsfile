@@ -147,6 +147,7 @@ pipeline {
                 anyOf {
                     expression { return params.FORCE_PYUPLOAD }
                     expression { return params.FORCE_DEBUPLOAD }
+		    expression { return params.FORCE_DOCSUPLOAD }
                     expression {
                         bbcShouldUploadArtifacts(branches: ["master"])
                     }
