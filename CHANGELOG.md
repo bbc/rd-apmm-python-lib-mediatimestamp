@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.1.1
+- Added upload of pydoc docs to Jenkinsfile
+
 ## 1.1.0
 - Added hypothesis submodule containing strategies compatible with the
   `hypothesis` library which can be used to generate timestamps when

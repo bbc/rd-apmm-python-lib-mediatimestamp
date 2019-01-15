@@ -30,6 +30,7 @@ pipeline {
     parameters {
         booleanParam(name: "FORCE_PYUPLOAD", defaultValue: false, description: "Force Python artifact upload")
         booleanParam(name: "FORCE_DEBUPLOAD", defaultValue: false, description: "Force Debian package upload")
+        booleanParam(name: "FORCE_DOCSUPLOAD", defaultValue: false, description: "Force docs upload")
     }
     environment {
         http_proxy = "http://www-cache.rd.bbc.co.uk:8080"
@@ -55,6 +56,11 @@ pipeline {
                         }
                     }
                 }
+		stage ("Build Docs") {
+		    steps {
+		        sh 'make docs'
+		    }
+		}
                 stage ("Unit Tests") {
                     stages {
                         stage ("Python 2.7 Unit Tests") {
@@ -147,6 +153,19 @@ pipeline {
                 }
             }
             parallel {
+	        stage ("Upload Docs") {
+		    when {
+		        anyOf {
+			    expression { return params.FORCE_DOCSUPLOAD }
+			    expression {
+			        bbcShouldUploadArtifacts(branches: ["master"])
+                            }
+                        }
+                    }
+                    steps {
+                        bbcAPMMDocsUpload(sourceFiles: "./*.html")
+                    }
+		}
                 stage ("Upload to PyPi") {
                     when {
                         anyOf {

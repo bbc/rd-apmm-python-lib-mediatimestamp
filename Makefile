@@ -31,16 +31,17 @@ RPMBUILDDIRS=$(patsubst %, $(RPM_PREFIX)/%, $(RPMDIRS))
 
 all:
 	@echo "$(PROJECT)-$(VERSION)"
-	@echo "make source  - Create source package"
-	@echo "make install - Install on local system (only during development)"
-	@echo "make clean   - Get rid of scratch and byte files"
-	@echo "make test    - Test using tox and nose2"
-	@echo "make deb     - Create deb package"
-	@echo "make dsc     - Create debian source package"
-	@echo "make rpm     - Create rpm package"
-	@echo "make wheel   - Create whl package"
-	@echo "make egg     - Create egg package"
+	@echo "make source   - Create source package"
+	@echo "make install  - Install on local system (only during development)"
+	@echo "make clean    - Get rid of scratch and byte files"
+	@echo "make test     - Test using tox and nose2"
+	@echo "make deb      - Create deb package"
+	@echo "make dsc      - Create debian source package"
+	@echo "make rpm      - Create rpm package"
+	@echo "make wheel    - Create whl package"
+	@echo "make egg      - Create egg package"
 	@echo "make rpm_dirs - Create directories for rpm building"
+	@echo "make docs     - Render pydocs as html"
 
 $(topbuilddir)/dist:
 	mkdir -p $@
@@ -62,6 +63,10 @@ clean:
 	rm -rf $(topbuilddir)/*.egg-info
 	find $(topdir) -name '*.pyc' -delete
 	find $(topdir) -name '*.py,cover' -delete
+	rm -rf $(topbuilddir)/*.html
+
+.tox/py3/bin/activate: tox.ini
+	tox -r --notest
 
 test:
 	tox
@@ -112,4 +117,9 @@ egg:
 	$(PYTHON2) $(topdir)/setup.py bdist_egg
 	$(PYTHON3) $(topdir)/setup.py bdist_egg
 
-.PHONY: test test2 test3 clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec
+docs: $(MODNAME).html
+
+$(MODNAME).html: .tox/py3/bin/activate
+	. .tox/py3/bin/activate && pydoc -w $(MODNAME)
+
+.PHONY: test test2 test3 clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec docs
