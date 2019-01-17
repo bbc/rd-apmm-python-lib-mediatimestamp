@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.1.2
+- BUGFIX: upload all pydocs
+
 ## 1.1.1
 - Added upload of pydoc docs to Jenkinsfile
 

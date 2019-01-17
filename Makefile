@@ -65,7 +65,7 @@ clean:
 	rm -rf $(topbuilddir)/*.egg-info
 	find $(topdir) -name '*.pyc' -delete
 	find $(topdir) -name '*.py,cover' -delete
-	rm -rf $(topbuilddir)/*.html
+	rm -rf $(topbuilddir)/docs
 
 testenv: $(TOXDIR)/py27/bin/activate $(TOXDIR)/py3/bin/activate
 
@@ -124,9 +124,13 @@ egg:
 	$(PYTHON2) $(topdir)/setup.py bdist_egg
 	$(PYTHON3) $(topdir)/setup.py bdist_egg
 
-docs: $(MODNAME).html
+docs: $(topbuilddir)/docs/$(MODNAME).html
 
-$(MODNAME).html: $(TOXDIR)/py3/bin/activate
-	. $(TOXDIR)/py3/bin/activate && pydoc -w $(MODNAME)
+$(topbuilddir)/docs/$(MODNAME):
+	mkdir -p $(topbuilddir)/docs
+	ln -s $(topdir)/$(MODNAME) $(topbuilddir)/docs/
+
+$(topbuilddir)/docs/$(MODNAME).html: $(topbuilddir)/docs/$(MODNAME) $(TOXDIR)/py3/bin/activate
+	. $(TOXDIR)/py3/bin/activate && cd $(topbuilddir)/docs/ && pydoc -w ./
 
 .PHONY: test testenv clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec docs
