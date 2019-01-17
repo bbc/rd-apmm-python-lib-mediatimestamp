@@ -29,18 +29,21 @@ RPM_PREFIX?=$(topdir)/build/rpm
 RPMDIRS=BUILD BUILDROOT RPMS SOURCES SPECS SRPMS
 RPMBUILDDIRS=$(patsubst %, $(RPM_PREFIX)/%, $(RPMDIRS))
 
+TOXDIR?=$(topbuilddir)/.tox/
+
 all:
 	@echo "$(PROJECT)-$(VERSION)"
-	@echo "make source  - Create source package"
-	@echo "make install - Install on local system (only during development)"
-	@echo "make clean   - Get rid of scratch and byte files"
-	@echo "make test    - Test using tox and nose2"
-	@echo "make deb     - Create deb package"
-	@echo "make dsc     - Create debian source package"
-	@echo "make rpm     - Create rpm package"
-	@echo "make wheel   - Create whl package"
-	@echo "make egg     - Create egg package"
+	@echo "make source   - Create source package"
+	@echo "make install  - Install on local system (only during development)"
+	@echo "make clean    - Get rid of scratch and byte files"
+	@echo "make test     - Test using tox and nose2"
+	@echo "make deb      - Create deb package"
+	@echo "make dsc      - Create debian source package"
+	@echo "make rpm      - Create rpm package"
+	@echo "make wheel    - Create whl package"
+	@echo "make egg      - Create egg package"
 	@echo "make rpm_dirs - Create directories for rpm building"
+	@echo "make docs     - Render pydocs as html"
 
 $(topbuilddir)/dist:
 	mkdir -p $@
@@ -62,9 +65,18 @@ clean:
 	rm -rf $(topbuilddir)/*.egg-info
 	find $(topdir) -name '*.pyc' -delete
 	find $(topdir) -name '*.py,cover' -delete
+	rm -rf $(topbuilddir)/*.html
+
+testenv: $(TOXDIR)/py27/bin/activate $(TOXDIR)/py3/bin/activate
+
+$(TOXDIR)/py3/bin/activate: tox.ini
+	tox -e py3 --recreate --workdir $(TOXDIR)
+
+$(TOXDIR)/py27/bin/activate: tox.ini
+	tox -e py27 --recreate --workdir $(TOXDIR)
 
 test:
-	tox
+	tox --workdir $(TOXDIR)
 
 deb_dist: $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
 	$(PY2DSC) $(PY2DSC_PARAMS) $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz
@@ -112,4 +124,9 @@ egg:
 	$(PYTHON2) $(topdir)/setup.py bdist_egg
 	$(PYTHON3) $(topdir)/setup.py bdist_egg
 
-.PHONY: test test2 test3 clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec
+docs: $(MODNAME).html
+
+$(MODNAME).html: $(TOXDIR)/py3/bin/activate
+	. $(TOXDIR)/py3/bin/activate && pydoc -w $(MODNAME)
+
+.PHONY: test testenv clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec docs

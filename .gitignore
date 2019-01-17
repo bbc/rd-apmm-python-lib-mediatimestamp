@@ -113,3 +113,6 @@ virtpython2
 virtpython3
 mediagrains/cogframe.py
 cog.i
+
+# docs
+*.html
