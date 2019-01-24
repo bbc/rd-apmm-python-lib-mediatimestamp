@@ -21,11 +21,14 @@
 
 pipeline {
     agent {
-        label "16.04&&ipstudio-deps"
+        label "ubuntu&&apmm-slave"
     }
     options {
         ansiColor('xterm') // Add support for coloured output
         buildDiscarder(logRotator(numToKeepStr: '10')) // Discard old builds
+    }
+    triggers {
+        cron(env.BRANCH_NAME == 'master' ? 'H H(0-8) * * *' : '') // Build master some time every morning
     }
     parameters {
         booleanParam(name: "FORCE_PYUPLOAD", defaultValue: false, description: "Force Python artifact upload")

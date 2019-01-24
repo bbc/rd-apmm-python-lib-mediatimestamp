@@ -1,5 +1,10 @@
 # mediatimestamp Changelog
 
+## 1.1.3
+- Remove unused custom install command from tox.ini.
+- Add Jenkins build trigger to rebuild master every day.
+- Allow build to run on a wider variety of slaves.
+
 ## 1.1.2
 - BUGFIX: upload all pydocs
 
