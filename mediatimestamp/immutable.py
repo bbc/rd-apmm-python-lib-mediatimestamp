@@ -497,6 +497,10 @@ class TimeOffset(object):
             ns = 0
         elif ns >= self.MAX_NANOSEC:
             ns = self.MAX_NANOSEC - 1
+
+        if sec >= self.MAX_SECONDS:
+            sec = self.MAX_SECONDS - 1
+            ns = self.MAX_NANOSEC - 1
         return (sec, ns, sign)
 
 
@@ -697,17 +701,6 @@ class Timestamp(TimeOffset):
                     rate_num, rate_den,
                     utc_sign_char, utc_offset_hour, utc_offset_min,
                     tai_sign_char, abs(tai_offset))
-
-    def _make_valid(self, sec, ns, sign):
-        (sec, ns, sign) = super(Timestamp, self)._make_valid(sec, ns, sign)
-        if sign < 0:
-            sec = 0
-            ns = 0
-            sign = 1
-        elif sec >= self.MAX_SECONDS:
-            sec = self.MAX_SECONDS - 1
-            ns = self.MAX_NANOSEC - 1
-        return (sec, ns, sign)
 
 
 class TimeRange (object):
