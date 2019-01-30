@@ -21,6 +21,28 @@ And finally it includes an immutable TimeRange object which stores a range betwe
 
 These data types are of use in a number of situations, but particularly for code that will handle PTP timestamps, which
 are normally stored in this fashion.
+
+
+
+Expected Logic for binary operations on timestamps and time offsets:
+
+Timestamps and Time Offsets can be added and subtracted. The type of the final result depends upon the order and type of the operands
+
+TS + TO = TS
+TS + TS = TS (treats 2nd TS as TO)
+TO + TS = TS
+TO + TO = TO
+
+TS - TO = TS
+TS - TS = TO
+TO - TS = TO (treats TS as TO)
+TO - TO = TO
+
++= and -= always give the same result type as the first operand
+
+Time Offsets can always be multiplied or divided by integers and floats and always give TimeOffsets as a result.
+
+Timestamps multiplied by integers or floats will be treated as TimeOffsets
 """
 
 from __future__ import print_function
@@ -301,8 +323,11 @@ class TimeOffset(object):
         else:
             return 0
 
-    def __repr__(self):
+    def __str__(self):
         return self.to_sec_nsec()
+
+    def __repr__(self):
+        return "{}.from_sec_nsec({!r})".format(type(self).__module__ + '.' + type(self).__name__, self.to_sec_nsec())
 
     def __abs__(self):
         return TimeOffset(self.sec, self.ns, 1)
@@ -354,7 +379,10 @@ class TimeOffset(object):
             sec = sec
             ns = ns
 
-        return self.__class__(sec, ns, sign)
+        if not isinstance(self, Timestamp) and not isinstance(other, Timestamp):
+            return TimeOffset(sec, ns, sign)
+        else:
+            return Timestamp(sec, ns, sign)
 
     def __sub__(self, other_in):
         other = self._cast_arg(other_in)
@@ -382,7 +410,10 @@ class TimeOffset(object):
             sec = sec
             ns = ns
 
-        return TimeOffset(sec, ns, sign)
+        if isinstance(self, Timestamp) and not isinstance(other, Timestamp):
+            return Timestamp(sec, ns, sign)
+        else:
+            return TimeOffset(sec, ns, sign)
 
     def __iadd__(self, other_in):
         other = self._cast_arg(other_in)
@@ -407,24 +438,18 @@ class TimeOffset(object):
             sec += (ns // self.MAX_NANOSEC)
             ns %= self.MAX_NANOSEC
 
-        return self.__class__(sec, ns, sign)
+        return TimeOffset(sec, ns, sign)
 
     def __rmul__(self, anint):
-        sec = self.sec * abs(anint)
-        ns = self.ns * abs(anint)
+        return (self * anint)
 
-        if anint < 0:
-            sign = self.sign * -1
-        else:
-            sign = self.sign
-
-        if ns >= self.MAX_NANOSEC:
-            sec += (ns // self.MAX_NANOSEC)
-            ns %= self.MAX_NANOSEC
-
-        return self.__class__(sec, ns, sign)
+    def __div__(self, anint):
+        return (self // anint)
 
     def __truediv__(self, anint):
+        return (self // anint)
+
+    def __floordiv__(self, anint):
         (sec, ns, sign) = (self.sec, self.ns, self.sign)
         abs_anint = abs(anint)
         sec = sec // abs_anint
@@ -434,10 +459,7 @@ class TimeOffset(object):
         ns = ns % self.MAX_NANOSEC
         if anint < 0:
             sign *= -1
-        return type(self)(sec, ns, sign)
-
-    def __floordiv__(self, anint):
-        return self.__truediv__(anint)
+        return TimeOffset(sec, ns, sign)
 
     def _get_fractional_seconds(self, fixed_size=False):
         div = self.MAX_NANOSEC / 10
@@ -838,7 +860,7 @@ class TimeRange (object):
                    (self.inclusivity & TimeRange.INCLUDE_END) == (other.inclusivity & TimeRange.INCLUDE_END))))))
 
     def __repr__(self):
-        return "TimeRange.from_str('{}')".format(self.to_sec_nsec_range())
+        return "{}.{}.from_str('{}')".format(type(self).__module__, type(self).__name__, self.to_sec_nsec_range())
 
     def contains_subrange(self, tr):
         """Returns True if the timerange supplied lies entirely inside this timerange"""
