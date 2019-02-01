@@ -36,7 +36,7 @@ from .exceptions import TsValueError
 #
 # So use those instead. At some point these constants could go away without warning
 
-from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
+from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP  # noqa: F401
 
 
 class BaseTimeOffset (object):
@@ -45,6 +45,7 @@ class BaseTimeOffset (object):
         self.__dict__['ns'] = int(ns)
         self.__dict__['sign'] = int(sign)
 
+
 class BaseTimeRange (object):
     def __init__(self, start, end, inclusivity):
         self.__dict__['start'] = start
@@ -52,4 +53,5 @@ class BaseTimeRange (object):
         self.__dict__['inclusivity'] = inclusivity
 
 
-from .mutable import TimeOffset, Timestamp, TimeRange
+# This is at the bottom because the above classes are needed before it can be imported
+from .mutable import TimeOffset, Timestamp, TimeRange  # noqa: E402

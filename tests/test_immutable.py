@@ -25,9 +25,11 @@ from copy import deepcopy
 
 from mediatimestamp.immutable import Timestamp, TimeOffset, TsValueError, TimeRange
 
+
 @contextlib.contextmanager
 def dummysubtest(*args, **kwargs):
     yield None
+
 
 if PY2:
     BUILTINS = "__builtin__"
@@ -58,18 +60,20 @@ class TestTimeOffset(unittest.TestCase):
     def test_normalise(self):
         tests_ts = [
             (TimeOffset(0, 0), (30000, 1001), TimeOffset(0, 0)),
-            (TimeOffset(1001, 0), (30000, 1001),TimeOffset(1001, 0)),
+            (TimeOffset(1001, 0), (30000, 1001), TimeOffset(1001, 0)),
             (TimeOffset(1001, 1001.0/30000/2*1000000000), (30000, 1001), TimeOffset(1001, 0)),
             (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1), (30000, 1001), TimeOffset(1001, 1001.0/30000*1000000000)),
             (TimeOffset(1001, 1001.0/30000/2*1000000000, -1), (30000, 1001), TimeOffset(1001, 0, -1)),
-            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1), (30000, 1001), TimeOffset(1001, 1001.0/30000*1000000000, -1))
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1), (30000, 1001),
+             TimeOffset(1001, 1001.0/30000*1000000000, -1))
         ]
 
         for t in tests_ts:
             with self.subTest(t=t):
                 r = t[0].normalise(t[1][0], t[1][1])
                 self.assertEqual(r, t[2],
-                                 msg="{!r}.normalise({}, {}) == {!r}, expected {!r}".format(t[0], t[1][0], t[1][1], r, t[2]))
+                                 msg=("{!r}.normalise({}, {}) == {!r}, expected {!r}"
+                                      .format(t[0], t[1][0], t[1][1], r, t[2])))
 
     def test_hash(self):
         self.assertEqual(hash(TimeOffset(0, 0)), hash(TimeOffset(0, 0)))
@@ -111,14 +115,17 @@ class TestTimeOffset(unittest.TestCase):
             with self.subTest(t=t):
                 r = TimeOffset.get_interval_fraction(*t[0])
                 self.assertEqual(r, t[1],
-                                 msg="TimeOffset.get_interval_fraction{!r} == {!r}, expected {!r}".format(t[0], r, t[1]))
+                                 msg=("TimeOffset.get_interval_fraction{!r} == {!r}, expected {!r}"
+                                      .format(t[0], r, t[1])))
 
         bad_params = [(0, 1, 1),
                       (50, 0, 1),
                       (50, 1, 0)]
 
         for params in bad_params:
-            with self.assertRaises(TsValueError, msg="TimeOffset.get_interval_fraction{!r} should have raised TsValueError exception".format(params)):
+            with self.assertRaises(TsValueError,
+                                   msg=("TimeOffset.get_interval_fraction{!r} should have raised TsValueError exception"
+                                        .format(params))):
                 TimeOffset.get_interval_fraction(*params)
 
     def test_from_sec_frac(self):
@@ -458,7 +465,8 @@ class TestTimestamp(unittest.TestCase):
             self.assertEqual(r, t[3],
                              msg="{!r} {} {!r} = {!r}, expected {!r}".format(t[0], t[1], t[2], r, t[3]))
             self.assertEqual(type(r), type(t[3]),
-                             msg="type({!r} {} {!r}) == {!r}, expected {!r}".format(t[0], t[1], t[2], type(r), type(t[3])))
+                             msg=("type({!r} {} {!r}) == {!r}, expected {!r}"
+                                  .format(t[0], t[1], t[2], type(r), type(t[3]))))
 
     def test_multdiv(self):
         """This tests multiplication and division on timestamps."""
@@ -493,7 +501,8 @@ class TestTimestamp(unittest.TestCase):
             self.assertEqual(r, t[3],
                              msg="{!r} {} {!r} == {!r}, expected {!r}".format(t[0], t[1], t[2], r, t[3]))
             self.assertEqual(type(r), type(t[3]),
-                             msg="type({!r} {} {!r}) == {!r}, expected {!r}".format(t[0], t[1], t[2], type(r), type(t[3])))
+                             msg=("type({!r} {} {!r}) == {!r}, expected {!r}"
+                                  .format(t[0], t[1], t[2], type(r), type(t[3]))))
 
     def test_compare(self):
         """This tests comparison of timestamps."""
@@ -599,7 +608,8 @@ class TestTimestamp(unittest.TestCase):
         for t in tests_ts:
             ts = Timestamp.from_sec_nsec(t[0])
             self.assertIsInstance(ts, Timestamp,
-                                  msg="Timestamp.from_sec_nsec({!r}) == {!r} not an instance of Timestamp".format(t[0], ts))
+                                  msg=("Timestamp.from_sec_nsec({!r}) == {!r} not an instance of Timestamp"
+                                       .format(t[0], ts)))
             self.assertEqual(
                 ts,
                 t[1],
@@ -657,7 +667,8 @@ class TestTimestamp(unittest.TestCase):
         for t in tests_ts:
             ts = Timestamp.from_sec_frac(t[0])
             self.assertIsInstance(ts, Timestamp,
-                                  msg="Timestamp.from_sec_frac({!r}) == {!r} not instance of Timestamp".format(t[0], ts))
+                                  msg=("Timestamp.from_sec_frac({!r}) == {!r} not instance of Timestamp"
+                                       .format(t[0], ts)))
             self.assertEqual(
                 ts,
                 t[1],

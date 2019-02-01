@@ -14,19 +14,6 @@
 
 from __future__ import print_function
 
-from six import integer_types
-
-import calendar
-import time
-import re
-from datetime import datetime
-from dateutil import tz
-try:
-    import pyipputils.ipptimestamp
-    IPP_UTILS = True
-except ImportError:
-    IPP_UTILS = False
-
 # THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PIUBLIC INTERFACE
 # The same values are made available by methods that are, such as
 #

@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This library provides a class TimeOffset which stores an immutable signed time difference value with nanosecond precision.
+"""This library provides a class TimeOffset which stores an immutable signed time difference value with nanosecond
+precision.
 
-It also provides a class Timestamp which is a descendent of TimeOffset which represents an immutable positive time offset since
+It also provides a class Timestamp which is a descendent of TimeOffset which represents an immutable time offset since
 the epoch (ie. 1970-01-01T00:00:00.000000000Z)
 
 And finally it includes an immutable TimeRange object which stores a range between two Timestamps.
@@ -26,7 +27,8 @@ are normally stored in this fashion.
 
 Expected Logic for binary operations on timestamps and time offsets:
 
-Timestamps and Time Offsets can be added and subtracted. The type of the final result depends upon the order and type of the operands
+Timestamps and Time Offsets can be added and subtracted. The type of the final result depends upon the order and type of
+the operands
 
 TS + TO = TS
 TS + TS = TS (treats 2nd TS as TO)
@@ -115,8 +117,8 @@ class TimeOffset(BaseTimeOffset):
     ROUND_NEAREST = 1
     ROUND_UP = 2
 
-    MAX_NANOSEC = 1000000000
-    MAX_SECONDS = 281474976710656
+    MAX_NANOSEC = MAX_NANOSEC
+    MAX_SECONDS = MAX_SECONDS
 
     def __init__(self, sec=0, ns=0, sign=1):
         (sec, ns, sign) = self._make_valid(int(sec), int(ns), int(sign))
@@ -935,4 +937,3 @@ class TimeRange (BaseTimeRange):
                 self.end is not None and
                 self.start == self.end and
                 self.inclusivity != TimeRange.INCLUSIVE)
-

@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This library provides a class TimeOffset which stores an mutable signed time difference value with nanosecond precision.
+"""This library provides a class TimeOffset which stores an mutable signed time difference value with nanosecond
+precision.
 
-It also provides a class Timestamp which is a descendent of TimeOffset which represents a mutable positive time offset since
-the epoch (ie. 1970-01-01T00:00:00.000000000Z)
+It also provides a class Timestamp which is a descendent of TimeOffset which represents a mutable positive time offset
+since the epoch (ie. 1970-01-01T00:00:00.000000000Z)
 
 And finally it includes a mutable TimeRange object which stores a range between two Timestamps.
 
@@ -93,8 +94,8 @@ class TimeOffset(BaseTimeOffset):
     ROUND_NEAREST = 1
     ROUND_UP = 2
 
-    MAX_NANOSEC = 1000000000
-    MAX_SECONDS = 281474976710656
+    MAX_NANOSEC = MAX_NANOSEC
+    MAX_SECONDS = MAX_SECONDS
 
     def __init__(self, sec=0, ns=0, sign=1):
         super(TimeOffset, self).__init__(sec, ns, sign)
@@ -918,4 +919,3 @@ class TimeRange (BaseTimeRange):
                 self.end is not None and
                 self.start == self.end and
                 self.inclusivity != TimeRange.INCLUSIVE)
-

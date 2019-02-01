@@ -49,7 +49,8 @@ def immutabletimestamps(min_value=MIN_IMMUTABLETIMESTAMP, max_value=MAX_IMMUTABL
 
     # This is pretty straightforward: generates integers in the right range and interprets then as nanosecond values to
     # generate Timestamps with
-    return integers(min_value=min_value.to_nanosec(), max_value=max_value.to_nanosec()).map(ImmutableTimestamp.from_nanosec)
+    return integers(min_value=min_value.to_nanosec(),
+                    max_value=max_value.to_nanosec()).map(ImmutableTimestamp.from_nanosec)
 
 
 def immutabletimeoffsets(min_value=MIN_IMMUTABLETIMEOFFSET, max_value=MAX_IMMUTABLETIMEOFFSET):
@@ -58,10 +59,13 @@ def immutabletimeoffsets(min_value=MIN_IMMUTABLETIMEOFFSET, max_value=MAX_IMMUTA
 
     # This is pretty straightforward: generates integers in the right range and interprets then as nanosecond values to
     # generate TimeOffsets with
-    return integers(min_value=min_value.to_nanosec(), max_value=max_value.to_nanosec()).map(ImmutableTimeOffset.from_nanosec)
+    return integers(min_value=min_value.to_nanosec(),
+                    max_value=max_value.to_nanosec()).map(ImmutableTimeOffset.from_nanosec)
 
 
-def immutabletimeranges_of_length(length, in_range=ImmutableTimeRange.eternity(), inclusivity=ImmutableTimeRange.INCLUSIVE):
+def immutabletimeranges_of_length(length,
+                                  in_range=ImmutableTimeRange.eternity(),
+                                  inclusivity=ImmutableTimeRange.INCLUSIVE):
     min_value = in_range.start if in_range.start is not None else MIN_IMMUTABLETIMESTAMP
     max_value = (in_range.end if in_range.end is not None else MAX_IMMUTABLETIMESTAMP) - length
 
@@ -71,9 +75,10 @@ def immutabletimeranges_of_length(length, in_range=ImmutableTimeRange.eternity()
             .map(lambda start: ImmutableTimeRange.from_start_length(start, length, inclusivity)))
 
 
-def immutabletimeranges(in_range=ImmutableTimeRange.eternity(), inclusivity=ImmutableTimeRange.INCLUSIVE):
-    """Draw from this strategy to get non-empty immutable timeranges with the specified inclusivity completely contained in the
-    specified range. Shrinks towards smaller ranges and earlier ones."""
+def immutabletimeranges(in_range=ImmutableTimeRange.eternity(),
+                        inclusivity=ImmutableTimeRange.INCLUSIVE):
+    """Draw from this strategy to get non-empty immutable timeranges with the specified inclusivity completely contained
+    in the specified range. Shrinks towards smaller ranges and earlier ones."""
     max_length = in_range.length if not isinstance(in_range.length, float) else MAX_IMMUTABLETIMESTAMP
 
     # This is a tad more complex: each time a range is drawn from this we generate a timestamp to use as a length and
@@ -83,8 +88,8 @@ def immutabletimeranges(in_range=ImmutableTimeRange.eternity(), inclusivity=Immu
 
 
 def disjoint_immutabletimeranges(in_range=ImmutableTimeRange.eternity(), min_size=0, max_size=None):
-    """Draw from this strategy to get lists of non-overlapping immutable TimeRange classes all of which will be inclusive and
-    contained within the specified range.
+    """Draw from this strategy to get lists of non-overlapping immutable TimeRange classes all of which will be
+    inclusive and contained within the specified range.
 
     Shrinks towards fewer ranges, smaller ones, and earlier ones."""
 
@@ -101,10 +106,12 @@ def disjoint_immutabletimeranges(in_range=ImmutableTimeRange.eternity(), min_siz
                 min_size=2*n,
                 max_size=2*n
             )).map(sorted).map(
-                lambda l: [ImmutableTimeRange(l[2*x+0], l[2*x+1], ImmutableTimeRange.INCLUSIVE) for x in range(0, len(l)//2)]
+                lambda l: [ImmutableTimeRange(l[2*x+0], l[2*x+1], ImmutableTimeRange.INCLUSIVE)
+                           for x in range(0, len(l)//2)]
             ).filter(
                 lambda l: all(l[x].end != l[x+1].start for x in range(0, len(l) - 1))
             ))
+
 
 #
 # Mutable versions for backwards compatibility. There's no good reason to need these.
@@ -116,39 +123,42 @@ MAX_MUTABLETIMESTAMP = MutableTimestamp(MutableTimestamp.MAX_SECONDS, MutableTim
 MIN_MUTABLETIMEOFFSET = MutableTimeOffset(MutableTimeOffset.MAX_SECONDS, MutableTimeOffset.MAX_NANOSEC - 1, -1)
 MAX_MUTABLETIMEOFFSET = MutableTimestamp(MutableTimeOffset.MAX_SECONDS, MutableTimeOffset.MAX_NANOSEC - 1)
 
+
 def mutabletimestamps(min_value=MIN_MUTABLETIMESTAMP, max_value=MAX_MUTABLETIMESTAMP):
     """Draw from this strategy to get mutable timestamps between the given minimum and maximum values.
     Shrinks towards earlier timestamps."""
 
-    return immutabletimestamps(min_value=ImmutableTimestamp.from_timeoffset(min_value),
-                               max_value=ImmutableTimestamp.from_timeoffset(max_value)).map(MutableTimestamp.from_timeoffset)
+    return (immutabletimestamps(min_value=ImmutableTimestamp.from_timeoffset(min_value),
+                                max_value=ImmutableTimestamp.from_timeoffset(max_value))
+            .map(MutableTimestamp.from_timeoffset))
 
 
 def mutabletimeoffsets(min_value=MIN_MUTABLETIMEOFFSET, max_value=MAX_MUTABLETIMEOFFSET):
     """Draw from this strategy to get mutable timeoffsets between the given minimum and maximum values.
     Shrinks towards zero."""
 
-    return immutabletimeoffsets(min_value=ImmutableTimeOffset.from_timeoffset(min_value),
-                                max_value=ImmutableTimeOffset.from_timeoffset(max_value)).map(MutableTimeOffset.from_timeoffset)
+    return (immutabletimeoffsets(min_value=ImmutableTimeOffset.from_timeoffset(min_value),
+                                 max_value=ImmutableTimeOffset.from_timeoffset(max_value))
+            .map(MutableTimeOffset.from_timeoffset))
 
 
 def mutabletimeranges(in_range=MutableTimeRange.eternity(), inclusivity=MutableTimeRange.INCLUSIVE):
-    """Draw from this strategy to get non-empty mutable timeranges with the specified inclusivity completely contained in the
-    specified range. Shrinks towards smaller ranges and earlier ones."""
+    """Draw from this strategy to get non-empty mutable timeranges with the specified inclusivity completely contained
+    in the specified range. Shrinks towards smaller ranges and earlier ones."""
 
     return immutabletimeranges(in_range=ImmutableTimeRange.from_timerange(in_range),
                                inclusivity=inclusivity).map(MutableTimeRange.from_timerange)
 
 
 def disjoint_mutabletimeranges(in_range=MutableTimeRange.eternity(), min_size=0, max_size=None):
-    """Draw from this strategy to get lists of non-overlapping mutable TimeRange classes all of which will be inclusive and
-    contained within the specified range.
+    """Draw from this strategy to get lists of non-overlapping mutable TimeRange classes all of which will be
+    inclusive and contained within the specified range.
 
     Shrinks towards fewer ranges, smaller ones, and earlier ones."""
 
     return disjoint_immutabletimeranges(in_range=ImmutableTimeRange.from_timerange(in_range),
                                         min_size=min_size,
-                                        max_size=max_suze).map(MutableTimeRange.from_timerange)
+                                        max_size=max_size).map(MutableTimeRange.from_timerange)
 
 
 #
