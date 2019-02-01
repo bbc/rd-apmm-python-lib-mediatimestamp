@@ -685,6 +685,13 @@ class TimeRange (object):
         self.inclusivity = inclusivity
 
     @classmethod
+    def from_timerange(cls, other):
+        """Construct a mutable timerange from another timerange (which might be immutable)"""
+        return TimeRange(Timestamp.from_timeoffset(other.start),
+                         Timestamp.from_timeoffset(other.end),
+                         other.inclusivity)
+
+    @classmethod
     def from_start(cls, start, inclusivity=INCLUSIVE):
         """Construct a time range starting at start with no end
 

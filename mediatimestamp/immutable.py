@@ -725,6 +725,13 @@ class TimeRange (object):
         raise TsValueError("Cannot assign to an immutable TimeRange")
 
     @classmethod
+    def from_timerange(cls, other):
+        """Construct an immutable timerange from another timerange (which might be mutable)"""
+        return TimeRange(Timestamp.from_timeoffset(other.start),
+                         Timestamp.from_timeoffset(other.end),
+                         other.inclusivity)
+
+    @classmethod
     def from_start(cls, start, inclusivity=INCLUSIVE):
         """Construct a time range starting at start with no end
 
