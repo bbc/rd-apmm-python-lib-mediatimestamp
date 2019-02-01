@@ -66,6 +66,8 @@ __all__ = ["TimeOffset", "Timestamp", "TimeRange"]
 from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
 from .exceptions import TsValueError
 
+from . import BaseTimeOffset
+
 
 def _parse_seconds_fraction(frac):
     """ Parse the fraction part of a timestamp seconds, using maximum 9 digits
@@ -102,7 +104,7 @@ def _parse_iso8601(iso8601):
     return (int(iso_date[0]), int(iso_date[1]), int(iso_date[2]), int(iso_time[0]), int(iso_time[1]), int(sec), ns)
 
 
-class TimeOffset(object):
+class TimeOffset(BaseTimeOffset):
     """A nanosecond precision immutable time difference object.
 
     Note that the canonical representation of a TimeOffset is seconds:nanoseconds, e.g. "4:500000000".
@@ -118,9 +120,7 @@ class TimeOffset(object):
 
     def __init__(self, sec=0, ns=0, sign=1):
         (sec, ns, sign) = self._make_valid(int(sec), int(ns), int(sign))
-        self.__dict__['sec'] = sec
-        self.__dict__['ns'] = ns
-        self.__dict__['sign'] = sign
+        super(TimeOffset, self).__init__(sec, ns, sign)
 
     def __setattr__(self, name, value):
         raise TsValueError("Cannot assign to an immutable TimeOffset")
@@ -336,7 +336,7 @@ class TimeOffset(object):
         return self.to_nanosec()
 
     def __eq__(self, other):
-        return isinstance(self._cast_arg(other), TimeOffset) and self.compare(other) == 0
+        return isinstance(self._cast_arg(other), BaseTimeOffset) and self.compare(other) == 0
 
     def __ne__(self, other):
         return not (self == other)
@@ -481,6 +481,8 @@ class TimeOffset(object):
             return TimeOffset(other)
         elif isinstance(other, float):
             return TimeOffset.from_sec_frac(str(other))
+        elif isinstance(other, BaseTimeOffset) and not isinstance(other, TimeOffset):
+            return TimeOffset.from_timeoffset(other)
         else:
             return other
 

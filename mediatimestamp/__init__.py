@@ -27,7 +27,6 @@ from __future__ import absolute_import
 __all__ = ["TsValueError", "TimeOffset", "Timestamp", "TimeRange"]
 
 from .exceptions import TsValueError
-from .mutable import TimeOffset, Timestamp, TimeRange
 
 
 # THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PIUBLIC INTERFACE
@@ -38,3 +37,13 @@ from .mutable import TimeOffset, Timestamp, TimeRange
 # So use those instead. At some point these constants could go away without warning
 
 from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
+
+
+class BaseTimeOffset (object):
+    def __init__(self, sec=0, ns=0, sign=1):
+        self.__dict__['sec'] = int(sec)
+        self.__dict__['ns'] = int(ns)
+        self.__dict__['sign'] = int(sign)
+
+
+from .mutable import TimeOffset, Timestamp, TimeRange
