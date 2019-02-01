@@ -45,5 +45,11 @@ class BaseTimeOffset (object):
         self.__dict__['ns'] = int(ns)
         self.__dict__['sign'] = int(sign)
 
+class BaseTimeRange (object):
+    def __init__(self, start, end, inclusivity):
+        self.__dict__['start'] = start
+        self.__dict__['end'] = end
+        self.__dict__['inclusivity'] = inclusivity
+
 
 from .mutable import TimeOffset, Timestamp, TimeRange

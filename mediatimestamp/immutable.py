@@ -66,7 +66,7 @@ __all__ = ["TimeOffset", "Timestamp", "TimeRange"]
 from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
 from .exceptions import TsValueError
 
-from . import BaseTimeOffset
+from . import BaseTimeOffset, BaseTimeRange
 
 
 def _parse_seconds_fraction(frac):
@@ -705,7 +705,7 @@ class Timestamp(TimeOffset):
                     tai_sign_char, abs(tai_offset))
 
 
-class TimeRange (object):
+class TimeRange (BaseTimeRange):
     """A nanosecond immutable precision time range object"""
 
     EXCLUSIVE = 0x0
@@ -719,9 +719,7 @@ class TimeRange (object):
         :param start: A Timestamp or None
         :param end: A Timestamp or None
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
-        self.__dict__['start'] = start
-        self.__dict__['end'] = end
-        self.__dict__['inclusivity'] = inclusivity
+        super(TimeRange, self).__init__(start, end, inclusivity)
 
     def __setattr__(self, name, value):
         raise TsValueError("Cannot assign to an immutable TimeRange")
@@ -852,7 +850,7 @@ class TimeRange (object):
                       (self.inclusivity & TimeRange.INCLUDE_END == 0))))
 
     def __eq__(self, other):
-        return (isinstance(other, TimeRange) and
+        return (isinstance(other, BaseTimeRange) and
                 ((self.is_empty() and other.is_empty()) or
                 (((self.start is None and other.start is None) or
                   (self.start == other.start and

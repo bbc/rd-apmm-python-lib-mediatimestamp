@@ -28,7 +28,7 @@ from __future__ import absolute_import
 
 from six import integer_types
 
-from . import BaseTimeOffset
+from . import BaseTimeOffset, BaseTimeRange
 
 import calendar
 import time
@@ -668,7 +668,7 @@ class Timestamp(TimeOffset):
             self.ns = self.MAX_NANOSEC - 1
 
 
-class TimeRange (object):
+class TimeRange (BaseTimeRange):
     """A nanosecond mutable precision time range object"""
 
     EXCLUSIVE = 0x0
@@ -682,9 +682,7 @@ class TimeRange (object):
         :param start: A Timestamp or None
         :param end: A Timestamp or None
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
-        self.start = start
-        self.end = end
-        self.inclusivity = inclusivity
+        super(TimeRange, self).__init__(start, end, inclusivity)
 
     @classmethod
     def from_timerange(cls, other):
