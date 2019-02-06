@@ -20,7 +20,7 @@ import mock
 from datetime import datetime
 from dateutil import tz
 
-from mediatimestamp import Timestamp, TimeOffset, TsValueError, TimeRange
+from mediatimestamp.mutable import Timestamp, TimeOffset, TsValueError, TimeRange
 
 if PY2:
     BUILTINS = "__builtin__"
