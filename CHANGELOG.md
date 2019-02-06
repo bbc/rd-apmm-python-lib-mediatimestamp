@@ -1,5 +1,11 @@
 # mediatimestamp Changelog
 
+## 1.2.0
+- Added new immutable timestamps, offsets, and ranges in their own
+namespace
+- New style immutable timestamps can be negative
+- New style immutable timestamps have a more useful repr
+
 ## 1.1.3
 - Remove unused custom install command from tox.ini.
 - Add Jenkins build trigger to rebuild master every day.
