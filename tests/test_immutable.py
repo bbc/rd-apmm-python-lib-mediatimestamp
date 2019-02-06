@@ -542,10 +542,11 @@ class TestTimestamp(unittest.TestCase):
         """This tests that invalid int values fed into timestamp constructor get normalised."""
 
         tests_ts = [
-            (Timestamp(-1, 0), Timestamp()),
+            (Timestamp(-1, 0), Timestamp(1, 0, -1)),
             (Timestamp(281474976710656, 0), Timestamp(281474976710655, 999999999)),
-            (Timestamp(0, 1000000000), Timestamp(0, 999999999)),
-            (Timestamp(0, -1), Timestamp(0, 0))
+            (Timestamp(0, 1000000000), Timestamp(1, 0)),
+            (Timestamp(0, -1), Timestamp(0, 1, -1)),
+            (Timestamp(5, -1000000007), Timestamp(3, 999999993))
         ]
 
         for t in tests_ts:

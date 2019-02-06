@@ -24,10 +24,10 @@ are normally stored in this fashion.
 from __future__ import print_function
 from __future__ import absolute_import
 
-__all__ = ["TsValueError", "TimeOffset", "Timestamp", "TimeRange"]
-
 from .exceptions import TsValueError
+from .mutable import TimeOffset, Timestamp, TimeRange
 
+__all__ = ["TsValueError", "TimeOffset", "Timestamp", "TimeRange"]
 
 # THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PIUBLIC INTERFACE
 # The same values are made available by methods that are, such as
@@ -37,21 +37,3 @@ from .exceptions import TsValueError
 # So use those instead. At some point these constants could go away without warning
 
 from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP  # noqa: F401
-
-
-class BaseTimeOffset (object):
-    def __init__(self, sec=0, ns=0, sign=1):
-        self.__dict__['sec'] = int(sec)
-        self.__dict__['ns'] = int(ns)
-        self.__dict__['sign'] = int(sign)
-
-
-class BaseTimeRange (object):
-    def __init__(self, start, end, inclusivity):
-        self.__dict__['start'] = start
-        self.__dict__['end'] = end
-        self.__dict__['inclusivity'] = inclusivity
-
-
-# This is at the bottom because the above classes are needed before it can be imported
-from .mutable import TimeOffset, Timestamp, TimeRange  # noqa: E402

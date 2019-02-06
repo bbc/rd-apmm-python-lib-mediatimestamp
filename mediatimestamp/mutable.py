@@ -29,7 +29,7 @@ from __future__ import absolute_import
 
 from six import integer_types
 
-from . import BaseTimeOffset, BaseTimeRange
+from .bases import BaseTimeOffset, BaseTimeRange
 
 import calendar
 import time
@@ -42,10 +42,10 @@ try:
 except ImportError:
     IPP_UTILS = False
 
-__all__ = ["TimeOffset", "Timestamp", "TimeRange"]
-
 from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
 from .exceptions import TsValueError
+
+__all__ = ["TimeOffset", "Timestamp", "TimeRange"]
 
 
 def _parse_seconds_fraction(frac):

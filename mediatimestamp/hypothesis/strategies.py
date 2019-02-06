@@ -40,7 +40,7 @@ MAX_IMMUTABLETIMEOFFSET = ImmutableTimestamp(ImmutableTimeOffset.MAX_SECONDS, Im
 
 
 #
-# Immutable versions. I reccomend using these where possible
+# Immutable versions. It is recommended to use these where possible
 #
 
 def immutabletimestamps(min_value=MIN_IMMUTABLETIMESTAMP, max_value=MAX_IMMUTABLETIMESTAMP):

@@ -27,8 +27,8 @@ are normally stored in this fashion.
 
 Expected Logic for binary operations on timestamps and time offsets:
 
-Timestamps and Time Offsets can be added and subtracted. The type of the final result depends upon the order and type of
-the operands
+Timestamp and TimeOffset objects can be added and subtracted. The type of the final result depends upon the order and
+type of the operands
 
 TS + TO = TS
 TS + TS = TS (treats 2nd TS as TO)
@@ -42,9 +42,10 @@ TO - TO = TO
 
 += and -= always give the same result type as the first operand
 
-Time Offsets can always be multiplied or divided by integers and floats and always give TimeOffsets as a result.
+Instances of TimeOffset can always be multiplied or divided by integers and floats and always give
+another TimeOffset as a result.
 
-Timestamps multiplied by integers or floats will be treated as TimeOffsets
+An instance of Timestamp multiplied by integers or floats will be treated as an instance of TimeOffset
 """
 
 from __future__ import print_function
@@ -63,12 +64,11 @@ try:
 except ImportError:
     IPP_UTILS = False
 
-__all__ = ["TimeOffset", "Timestamp", "TimeRange"]
-
 from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
 from .exceptions import TsValueError
+from .bases import BaseTimeOffset, BaseTimeRange
 
-from . import BaseTimeOffset, BaseTimeRange
+__all__ = ["TimeOffset", "Timestamp", "TimeRange"]
 
 
 def _parse_seconds_fraction(frac):
@@ -359,63 +359,21 @@ class TimeOffset(BaseTimeOffset):
         other = self._cast_arg(other_in)
         sec = self.sign*self.sec + other.sign*other.sec
         ns = self.sign*self.ns + other.sign*other.ns
-        if ns >= self.MAX_NANOSEC:
-            ns -= self.MAX_NANOSEC
-            sec += 1
-        elif -ns >= self.MAX_NANOSEC:
-            ns += self.MAX_NANOSEC
-            sec -= 1
-        if sec < 0 and ns > 0:
-            ns -= self.MAX_NANOSEC
-            sec += 1
-        elif sec > 0 and ns < 0:
-            ns += self.MAX_NANOSEC
-            sec -= 1
-
-        if sec < 0 or ns < 0:
-            sign = -1
-            sec = abs(sec)
-            ns = abs(ns)
-        else:
-            sign = 1
-            sec = sec
-            ns = ns
 
         if not isinstance(self, Timestamp) and not isinstance(other, Timestamp):
-            return TimeOffset(sec, ns, sign)
+            return TimeOffset(sec, ns)
         else:
-            return Timestamp(sec, ns, sign)
+            return Timestamp(sec, ns)
 
     def __sub__(self, other_in):
         other = self._cast_arg(other_in)
         sec = self.sign*self.sec - other.sign*other.sec
         ns = self.sign*self.ns - other.sign*other.ns
-        if ns >= self.MAX_NANOSEC:
-            ns -= self.MAX_NANOSEC
-            sec += 1
-        elif -ns >= self.MAX_NANOSEC:
-            ns += self.MAX_NANOSEC
-            sec -= 1
-        if sec < 0 and ns > 0:
-            ns -= self.MAX_NANOSEC
-            sec += 1
-        elif sec > 0 and ns < 0:
-            ns += self.MAX_NANOSEC
-            sec -= 1
-
-        if sec < 0 or ns < 0:
-            sign = -1
-            sec = abs(sec)
-            ns = abs(ns)
-        else:
-            sign = 1
-            sec = sec
-            ns = ns
 
         if isinstance(self, Timestamp) and not isinstance(other, Timestamp):
-            return Timestamp(sec, ns, sign)
+            return Timestamp(sec, ns)
         else:
-            return TimeOffset(sec, ns, sign)
+            return TimeOffset(sec, ns)
 
     def __iadd__(self, other_in):
         other = self._cast_arg(other_in)
@@ -489,22 +447,27 @@ class TimeOffset(BaseTimeOffset):
             return other
 
     def _make_valid(self, sec, ns, sign):
-        if sign >= 0 or (sec == 0 and ns == 0):
+        if sign > 0 or (sec == 0 and ns == 0):
             sign = 1
         else:
             sign = -1
-        if sec < 0:
-            sec = 0
-            ns = 0
-            sign = 1
-        elif ns < 0:
-            ns = 0
-        elif ns >= self.MAX_NANOSEC:
-            ns = self.MAX_NANOSEC - 1
+
+        sec += (ns // self.MAX_NANOSEC)
+        ns %= self.MAX_NANOSEC
+
+        if sec < 0 or (sec == 0 and ns < 0):
+            sec *= -1
+            ns *= -1
+            sign *= -1
+
+        if ns < 0:
+            sec -= 1
+            ns += self.MAX_NANOSEC
 
         if sec >= self.MAX_SECONDS:
             sec = self.MAX_SECONDS - 1
             ns = self.MAX_NANOSEC - 1
+
         return (sec, ns, sign)
 
 

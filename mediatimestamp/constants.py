@@ -14,7 +14,7 @@
 
 from __future__ import print_function
 
-# THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PIUBLIC INTERFACE
+# THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PUBLIC INTERFACE
 # The same values are made available by methods that are, such as
 #
 # TimeOffset.MAX_NANOSEC

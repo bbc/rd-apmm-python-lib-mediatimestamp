@@ -14,6 +14,8 @@
 
 import unittest
 
+from mediatimestamp.bases import BaseTimeOffset
+from mediatimestamp.immutable import TimeOffset
 from mediatimestamp.mutable import TimeOffset as MutableTimeOffset
 
 from mediatimestamp.hypothesis.strategies import immutabletimeoffsets
@@ -21,6 +23,10 @@ from hypothesis import given, assume
 
 
 class TestInteroperability(unittest.TestCase):
+
+    def test_both_offsets_descend_from_base(self):
+        self.assertTrue(issubclass(TimeOffset, BaseTimeOffset))
+        self.assertTrue(issubclass(MutableTimeOffset, BaseTimeOffset))
 
     @given(immutabletimeoffsets())
     def test_mutable_and_immutable_offsets_compare_as_equal(self, offs):
