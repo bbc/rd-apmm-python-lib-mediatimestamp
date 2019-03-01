@@ -1,5 +1,9 @@
 # mediatimestamp Changelog
 
+## 1.3.0
+- Added at_rate method to immutable.TimeRange which returns an
+  iterable of Timestamps
+
 ## 1.2.0
 - Added new immutable timestamps, offsets, and ranges in their own
 namespace
