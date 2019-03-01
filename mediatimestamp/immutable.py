@@ -58,6 +58,7 @@ import time
 import re
 from datetime import datetime
 from dateutil import tz
+from fractions import Fraction
 try:
     import pyipputils.ipptimestamp
     IPP_UTILS = True
@@ -688,6 +689,80 @@ class TimeRange (BaseTimeRange):
 
     def __setattr__(self, name, value):
         raise TsValueError("Cannot assign to an immutable TimeRange")
+
+    def __iter__(self):
+        return self.at_rate(MAX_NANOSEC)
+
+    def __reversed__(self):
+        return self.reversed_at_rate(MAX_NANOSEC)
+
+    def at_rate(self, numerator, denominator=1, phase_offset=TimeOffset()):
+        """Returns an iterable which yields Timestamp objects at the specified rate within the
+        range starting at the beginning and moving later.
+
+        :param numerator: The numerator for the rate in Hz (or the exact rate as a Fraction or float)
+        :param denominator: The denominator for the rate in Hz
+        :param phase_offset: A TimeOffset object which sets the phase offset of the first timestamp
+                             drawn from the iterable.
+
+        :raises: ValueError If a phase_offset is specified which is larger than the reciprocal of the rate
+
+        :returns: an iterable that yields Timestamp objects
+        """
+        rate = Fraction(numerator, denominator)
+        if phase_offset >= TimeOffset.from_count(1, rate.numerator, rate.denominator):
+            raise ValueError("phase_offset of {} is too large for rate {}".format(phase_offset, rate))
+
+        if self.start is None:
+            raise ValueError("Cannot iterate over a timerange with no start")
+
+        count = (self.start - phase_offset).to_count(rate.numerator, rate.denominator)
+
+        while True:
+            ts = Timestamp.from_count(count, rate.numerator, rate.denominator) + phase_offset
+            count += 1
+
+            if ts < self.start or ((self.inclusivity & TimeRange.INCLUDE_START) == 0 and ts == self.start):
+                continue
+            elif (self.end is not None and
+                  (ts > self.end or ((self.inclusivity & TimeRange.INCLUDE_END) == 0 and ts == self.end))):
+                break
+            else:
+                yield ts
+
+    def reversed_at_rate(self, numerator, denominator=1, phase_offset=TimeOffset()):
+        """Returns an iterable which yields Timestamp objects at the specified rate within the
+        range starting at the end and moving earlier.
+
+        :param numerator: The numerator for the rate in Hz (or the exact rate as a Fraction or float)
+        :param denominator: The denominator for the rate in Hz
+        :param phase_offset: A TimeOffset object which sets the phase offset of the first timestamp
+                             drawn from the iterable.
+
+        :raises: ValueError If a phase_offset is specified which is larger than the reciprocal of the rate
+
+        :returns: an iterable that yields Timestamp objects
+        """
+        rate = Fraction(numerator, denominator)
+        if phase_offset >= TimeOffset.from_count(1, rate.numerator, rate.denominator):
+            raise ValueError("phase_offset of {} is too large for rate {}".format(phase_offset, rate))
+
+        if self.end is None:
+            raise ValueError("Cannot reverse iterate over a timerange with no end")
+
+        count = (self.end - phase_offset).to_count(rate.numerator, rate.denominator)
+
+        while True:
+            ts = Timestamp.from_count(count, rate.numerator, rate.denominator) + phase_offset
+            count -= 1
+
+            if ts > self.end or ((self.inclusivity & TimeRange.INCLUDE_END) == 0 and ts == self.end):
+                continue
+            elif (self.start is not None and
+                  (ts < self.start or ((self.inclusivity & TimeRange.INCLUDE_START) == 0 and ts == self.start))):
+                break
+            else:
+                yield ts
 
     @classmethod
     def from_timerange(cls, other):

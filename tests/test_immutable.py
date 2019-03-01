@@ -1126,3 +1126,40 @@ class TestTimeRange (unittest.TestCase):
 
         for t in test_trs:
             self.assertEqual(repr(t[0]), t[1])
+
+    def test_at_rate(self):
+        test_data = [
+            (TimeRange.from_str("[10:0_11:0)"), 50, TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0)"), 50, TimeOffset(0, 100),
+             [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0]"), 50, TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(0, 51)]),
+            (TimeRange.from_str("[10:0_11:0]"), 50, TimeOffset(0, 100),
+             [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("(10:0_11:0)"), 50, TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(1, 50)]),
+            (TimeRange.from_str("(10:0_11:0)"), 50, TimeOffset(0, 100),
+             [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("(10:0_11:0]"), 50, TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(1, 51)]),
+            (TimeRange.from_str("(10:0_11:0]"), 50, TimeOffset(0, 100),
+             [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
+        ]
+
+        for (tr, rate, phase_offset, expected) in test_data:
+            self.assertEqual(list(tr.at_rate(rate, phase_offset=phase_offset)), expected)
+            self.assertEqual(list(tr.reversed_at_rate(rate, phase_offset=phase_offset)), list(reversed(expected)))
+
+        gen = TimeRange.from_str("[10:0_").at_rate(50)
+        for ts in [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]:
+            self.assertEqual(next(gen), ts)
+
+        gen = TimeRange.from_str("_10:0]").reversed_at_rate(50)
+        for ts in [Timestamp(10, 0) - TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]:
+            self.assertEqual(next(gen), ts)
+
+        self.assertEqual(list(TimeRange.from_str("[10:0_10:50)")),
+                         [Timestamp(10, 0) + TimeOffset(0, n) for n in range(0, 50)])
+        self.assertEqual(list(reversed(TimeRange.from_str("[10:0_10:50)"))),
+                         [Timestamp(10, 0) + TimeOffset(0, 49 - n) for n in range(0, 50)])
