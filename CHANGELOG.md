@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.5.0
+- Added normalisation function for immutable.TimeRange
+
 ## 1.4.0
 - Added richer comparison functions for immutable.TimeRange
 
