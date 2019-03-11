@@ -679,6 +679,14 @@ class TimeRange (BaseTimeRange):
     INCLUDE_END = 0x2
     INCLUSIVE = 0x3
 
+    ROUND_DOWN = 0
+    ROUND_NEAREST = 1
+    ROUND_UP = 2
+    ROUND_IN = 3
+    ROUND_OUT = 4
+    ROUND_START = 5
+    ROUND_END = 6
+
     def __init__(self, start, end, inclusivity=INCLUSIVE):
         """Construct a time range starting at start and ending at end
 
@@ -1136,3 +1144,81 @@ class TimeRange (BaseTimeRange):
                 self.end is not None and
                 self.start == self.end and
                 self.inclusivity != TimeRange.INCLUSIVE)
+
+    def normalise(self, rate_num, rate_den=1, rounding=ROUND_NEAREST):
+        """Returns a normalised half-open TimeRange based on this timerange.
+
+        The returned TimeRange will always have INCLUDE_START inclusivity.
+
+        If the original TimeRange was inclusive of its start then the returned TimeRange will
+        start at the normalised timestamp closest to that start point (respecting rounding).
+
+        If the original TimeRange was exclusive of its start then the returned TimeRange will
+        start at the next normalised timestamp after the normalised timestamp closest to that
+        start point (respecting rounding).
+
+        If the original TimeRange was exclusive of its end then the returned TimeRange will
+        end just before the normalised timestamp closest to that end point (respecting rounding).
+
+        If the original TimeRange was inclusive of its end then the returned TimeRange will
+        end just before the next normalised timestamp after the normalised timestamp closest to that
+        end point (respecting rounding).
+
+        The rounding options are:
+        * ROUND_NEAREST -- each end of the range independently rounds to the nearest normalised timestamp
+        * ROUND_UP -- both ends of the range round up
+        * ROUND_DOWN -- both ends of the range round down
+        * ROUND_IN -- The start of the range rounds up, the end rounds down
+        * ROUND_OUT -- The start of the range rounds down, the end rounds up
+        * ROUND_START -- The start rounds to the nearest normalised timestamp, the end rounds in the same direction
+                         as the start
+        * ROUND_END -- The end rounds to the nearest normalised timestamp, the start rounds in the same direction
+                       as the end
+        """
+        if rounding == TimeRange.ROUND_OUT:
+            start_rounding = TimeRange.ROUND_DOWN
+            end_rounding = TimeRange.ROUND_UP
+        elif rounding == TimeRange.ROUND_IN:
+            start_rounding = TimeRange.ROUND_UP
+            end_rounding = TimeRange.ROUND_DOWN
+        elif rounding in [TimeRange.ROUND_START, TimeRange.ROUND_END]:
+            start_rounding = TimeRange.ROUND_NEAREST
+            end_rounding = TimeRange.ROUND_NEAREST
+        else:
+            start_rounding = rounding
+            end_rounding = rounding
+
+        if self.bounded_before():
+            start = self.start.to_count(rate_num, rate_den, start_rounding)
+        else:
+            start = None
+
+        if self.bounded_after():
+            end = self.end.to_count(rate_num, rate_den, end_rounding)
+        else:
+            end = None
+
+        if rounding == TimeRange.ROUND_START and self.bounded_before() and self.bounded_after():
+            if start == self.start.to_count(rate_num, rate_den, TimeRange.ROUND_UP):
+                end = self.end.to_count(rate_num, rate_den, TimeRange.ROUND_UP)
+            else:
+                end = self.end.to_count(rate_num, rate_den, TimeRange.ROUND_DOWN)
+        elif rounding == TimeRange.ROUND_END and self.bounded_before() and self.bounded_after():
+            if end == self.end.to_count(rate_num, rate_den, TimeRange.ROUND_UP):
+                start = self.start.to_count(rate_num, rate_den, TimeRange.ROUND_UP)
+            else:
+                start = self.start.to_count(rate_num, rate_den, TimeRange.ROUND_DOWN)
+
+        if start is not None and not self.includes_start():
+            start += 1
+        if end is not None and self.includes_end():
+            end += 1
+
+        if start is not None:
+            start = Timestamp.from_count(start, rate_num, rate_den)
+        if end is not None:
+            end = Timestamp.from_count(end, rate_num, rate_den)
+
+        return TimeRange(start,
+                         end,
+                         TimeRange.INCLUDE_START)
