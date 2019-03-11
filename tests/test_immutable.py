@@ -835,6 +835,10 @@ class TestTimestamp(unittest.TestCase):
 
 
 class TestTimeRange (unittest.TestCase):
+    def setUp(self):
+        if PY2:
+            self.subTest = dummysubtest
+
     def test_never(self):
         rng = TimeRange.never()
 
@@ -1163,3 +1167,228 @@ class TestTimeRange (unittest.TestCase):
                          [Timestamp(10, 0) + TimeOffset(0, n) for n in range(0, 50)])
         self.assertEqual(list(reversed(TimeRange.from_str("[10:0_10:50)"))),
                          [Timestamp(10, 0) + TimeOffset(0, 49 - n) for n in range(0, 50)])
+
+    def test_comparisons(self):
+        # Test data format:
+        #  (a, b,
+        #   (starts_inside, ends_inside, is_earlier, is_later,
+        #    starts_earlier, starts_later, ends_earlier, ends_later,
+        #    overlaps_with, is_contiguous_with))
+        test_data = [
+            (TimeRange.from_str("_"), TimeRange.from_str("_"),
+             (True, True, False, False, False, False, False, False, True, True)),
+            (TimeRange.from_str("_"), TimeRange.from_str("[0:0_"),
+             (False, True, False, False, True, False, False, False, True, True)),
+            (TimeRange.from_str("_"), TimeRange.from_str("_0:0]"),
+             (True, False, False, False, False, False, False, True, True, True)),
+            (TimeRange.from_str("_"), TimeRange.from_str("[0:0_10:0)"),
+             (False, False, False, False, True, False, False, True, True, True)),
+
+            (TimeRange.from_str("_5:0)"), TimeRange.from_str("_"),
+             (True, True, False, False, False, False, True, False, True, True)),
+            (TimeRange.from_str("_5:0)"), TimeRange.from_str("[0:0_"),
+             (False, True, False, False, True, False, True, False, True, True)),
+            (TimeRange.from_str("_5:0)"), TimeRange.from_str("_0:0]"),
+             (True, False, False, False, False, False, False, True, True, True)),
+            (TimeRange.from_str("_5:0)"), TimeRange.from_str("_10:0]"),
+             (True, True, False, False, False, False, True, False, True, True)),
+            (TimeRange.from_str("_5:0)"), TimeRange.from_str("[0:0_10:0)"),
+             (False, True, False, False, True, False, True, False, True, True)),
+
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("_"),
+             (True, True, False, False, False, False, True, False, True, True)),
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("[0:0_"),
+             (False, False, True, False, True, False, True, False, False, True)),
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("_0:0]"),
+             (True, True, False, False, False, False, True, False, True, True)),
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("_0:0)"),
+             (True, True, False, False, False, False, False, False, True, True)),
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("_10:0]"),
+             (True, True, False, False, False, False, True, False, True, True)),
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("[0:0_10:0)"),
+             (False, False, True, False, True, False, True, False, False, True)),
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("(0:0_10:0)"),
+             (False, False, True, False, True, False, True, False, False, False)),
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("[5:0_10:0)"),
+             (False, False, True, False, True, False, True, False, False, False)),
+
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("_"),
+             (True, True, False, False, False, True, False, False, True, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("[0:0_"),
+             (True, True, False, False, False, False, False, False, True, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("(0:0_"),
+             (False, True, False, False, True, False, False, False, True, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("[5:0_"),
+             (False, True, False, False, True, False, False, False, True, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("_0:0]"),
+             (True, False, False, False, False, True, False, True, True, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("_0:0)"),
+             (False, False, False, True, False, True, False, True, False, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("_10:0]"),
+             (True, False, False, False, False, True, False, True, True, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("[0:0_10:0)"),
+             (True, False, False, False, False, False, False, True, True, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("(0:0_10:0)"),
+             (False, False, False, False, True, False, False, True, True, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("[5:0_10:0)"),
+             (False, False, False, False, True, False, False, True, True, True)),
+
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("_"),
+             (True, True, False, False, False, True, False, False, True, True)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("[0:0_"),
+             (True, True, False, False, False, True, False, False, True, True)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("(0:0_"),
+             (True, True, False, False, False, True, False, False, True, True)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("[5:0_"),
+             (True, True, False, False, False, False, False, False, True, True)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("(5:0_"),
+             (False, True, False, False, True, False, False, False, True, True)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("_0:0]"),
+             (False, False, False, True, False, True, False, True, False, False)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("_0:0)"),
+             (False, False, False, True, False, True, False, True, False, False)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("_10:0]"),
+             (True, False, False, False, False, True, False, True, True, True)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("[0:0_10:0)"),
+             (True, False, False, False, False, True, False, True, True, True)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("(0:0_10:0)"),
+             (True, False, False, False, False, True, False, True, True, True)),
+            (TimeRange.from_str("[5:0_)"), TimeRange.from_str("[5:0_10:0)"),
+             (True, False, False, False, False, False, False, True, True, True)),
+
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("_"),
+             (True, True, False, False, False, True, True, False, True, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[0:0_"),
+             (True, True, False, False, False, False, True, False, True, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("(0:0_"),
+             (False, True, False, False, True, False, True, False, True, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[10:0_"),
+             (False, False, True, False, True, False, True, False, False, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("(10:0_"),
+             (False, False, True, False, True, False, True, False, False, False)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("_0:0]"),
+             (True, False, False, False, False, True, False, True, True, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("_0:0)"),
+             (False, False, False, True, False, True, False, True, False, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("_10:0]"),
+             (True, True, False, False, False, True, True, False, True, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("_10:0)"),
+             (True, True, False, False, False, True, False, False, True, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[0:0_10:0)"),
+             (True, True, False, False, False, False, False, False, True, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("(0:0_10:0)"),
+             (False, True, False, False, True, False, False, False, True, True)),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[5:0_10:0)"),
+             (False, True, False, False, True, False, False, False, True, True)),
+
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("_"),
+             (True, True, False, False, False, True, True, False, True, True)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("[0:0_"),
+             (True, True, False, False, False, True, True, False, True, True)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("(0:0_"),
+             (True, True, False, False, False, False, True, False, True, True)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("[10:0_"),
+             (False, False, True, False, True, False, True, False, False, True)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("(10:0_"),
+             (False, False, True, False, True, False, True, False, False, False)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("_0:0]"),
+             (False, False, False, True, False, True, False, True, False, True)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("_0:0)"),
+             (False, False, False, True, False, True, False, True, False, False)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("_10:0]"),
+             (True, True, False, False, False, True, True, False, True, True)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("_10:0)"),
+             (True, True, False, False, False, True, False, False, True, True)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("[0:0_10:0)"),
+             (True, True, False, False, False, True, False, False, True, True)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("(0:0_10:0)"),
+             (True, True, False, False, False, False, False, False, True, True)),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("[5:0_10:0)"),
+             (False, True, False, False, True, False, False, False, True, True)),
+
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("_"),
+             (True, True, False, False, False, True, True, False, True, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[0:0_"),
+             (True, True, False, False, False, False, True, False, True, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("(0:0_"),
+             (False, True, False, False, True, False, True, False, True, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[10:0_"),
+             (False, False, True, False, True, False, True, False, False, False)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("(10:0_"),
+             (False, False, True, False, True, False, True, False, False, False)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("_0:0]"),
+             (True, False, False, False, False, True, False, True, True, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("_0:0)"),
+             (False, False, False, True, False, True, False, True, False, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("_10:0]"),
+             (True, True, False, False, False, True, True, False, True, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("_10:0)"),
+             (True, True, False, False, False, True, True, False, True, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[0:0_10:0)"),
+             (True, True, False, False, False, False, True, False, True, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("(0:0_10:0)"),
+             (False, True, False, False, True, False, True, False, True, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[5:0_10:0)"),
+             (False, False, True, False, True, False, True, False, False, True)),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("(5:0_10:0)"),
+             (False, False, True, False, True, False, True, False, False, False)),
+        ]
+        functions = ("starts_inside_timerange",
+                     "ends_inside_timerange",
+                     "is_earlier_than_timerange",
+                     "is_later_than_timerange",
+                     "starts_earlier_than_timerange",
+                     "starts_later_than_timerange",
+                     "ends_earlier_than_timerange",
+                     "ends_later_than_timerange",
+                     "overlaps_with_timerange",
+                     "is_contiguous_with_timerange")
+
+        for (a, b, expected) in test_data:
+            for (fname, expected_value) in zip(functions, expected):
+                with self.subTest(a=a, b=b, fname=fname, expected_value=expected_value):
+                    if expected_value:
+                        self.assertTrue(getattr(a, fname)(b),
+                                        msg="{!r}.{}({!r}) is False, expected to be True".format(a, fname, b))
+                    else:
+                        self.assertFalse(getattr(a, fname)(b),
+                                         msg="{!r}.{}({!r}) is True, expected to be False".format(a, fname, b))
+
+    def test_split(self):
+        test_data = [
+            (TimeRange.from_str("_"), Timestamp.from_str("0:0"),
+             TimeRange.from_str("_0:0)"), TimeRange.from_str("[0:0_")),
+            (TimeRange.from_str("[0:0_"), Timestamp.from_str("10:0"),
+             TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[10:0_")),
+            (TimeRange.from_str("_10:0)"), Timestamp.from_str("0:0"),
+             TimeRange.from_str("_0:0)"), TimeRange.from_str("[0:0_10:0)")),
+            (TimeRange.from_str("[0:0_10:0)"), Timestamp.from_str("5:0"),
+             TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[5:0_10:0)")),
+            (TimeRange.from_str("[0:0_10:0]"), Timestamp.from_str("5:0"),
+             TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[5:0_10:0]")),
+            (TimeRange.from_str("(0:0_10:0)"), Timestamp.from_str("5:0"),
+             TimeRange.from_str("(0:0_5:0)"), TimeRange.from_str("[5:0_10:0)")),
+            (TimeRange.from_str("(0:0_10:0]"), Timestamp.from_str("5:0"),
+             TimeRange.from_str("(0:0_5:0)"), TimeRange.from_str("[5:0_10:0]")),
+            (TimeRange.from_str("[0:0]"), Timestamp.from_str("0:0"),
+             TimeRange.never(), TimeRange.from_str("[0:0_0:0]")),
+            (TimeRange.from_str("[0:0_10:0)"), Timestamp.from_str("0:0"),
+             TimeRange.never(), TimeRange.from_str("[0:0_10:0)")),
+            (TimeRange.from_str("[0:0_10:0]"), Timestamp.from_str("10:0"),
+             TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[10:0]")),
+        ]
+
+        for (tr, ts, left, right) in test_data:
+            with self.subTest(tr=tr, ts=ts, expected=(left, right)):
+                self.assertEqual(tr.split_at(ts), (left, right))
+
+        test_data = [
+            (TimeRange.from_str("[0:0_10:0)"), Timestamp.from_str("11:0")),
+            (TimeRange.from_str("[0:0_10:0)"), Timestamp.from_str("10:0")),
+            (TimeRange.from_str("[0:0_10:0]"), Timestamp.from_str("10:1")),
+        ]
+
+        for (tr, ts) in test_data:
+            with self.subTest(tr=tr, ts=ts):
+                with self.assertRaises(ValueError):
+                    tr.split_at(ts)

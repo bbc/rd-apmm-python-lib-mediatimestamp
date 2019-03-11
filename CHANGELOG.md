@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.4.0
+- Added richer comparison functions for immutable.TimeRange
+
 ## 1.3.0
 - Added at_rate method to immutable.TimeRange which returns an
   iterable of Timestamps

@@ -878,6 +878,24 @@ class TimeRange (BaseTimeRange):
             return float("inf")
         return self.end - self.start
 
+    def bounded_before(self):
+        return self.start is not None
+
+    def bounded_after(self):
+        return self.end is not None
+
+    def unbounded(self):
+        return self.start is None and self.end is None
+
+    def includes_start(self):
+        return (self.inclusivity & TimeRange.INCLUDE_START) != 0
+
+    def includes_end(self):
+        return (self.inclusivity & TimeRange.INCLUDE_END) != 0
+
+    def finite(self):
+        return (self.start is not None and self.end is not None)
+
     def __contains__(self, ts):
         """Returns true if the timestamp is within this range."""
         return ((self.start is None or ts >= self.start) and
@@ -968,6 +986,149 @@ class TimeRange (BaseTimeRange):
             return TimeRange.never()
 
         return TimeRange(start, end, inclusivity)
+
+    def starts_inside_timerange(self, other):
+        """Returns true if the start of this timerange is located inside the other."""
+        return ((self.bounded_before() and self.start in other and
+                 (not (other.bounded_after() and self.start == other.end and not self.includes_start()))) or
+                (self.bounded_before() and other.bounded_before() and self.start == other.start and
+                 (not (self.includes_start() and not other.includes_start()))) or
+                (not self.bounded_before() and not other.bounded_before()))
+
+    def ends_inside_timerange(self, other):
+        """Returns true if the end of this timerange is located inside the other."""
+        return ((self.bounded_after() and self.end in other and
+                 (not (other.bounded_before() and self.end == other.start and not self.includes_end()))) or
+                (self.bounded_after() and other.bounded_after() and self.end == other.end and
+                 (not (self.includes_end() and not other.includes_end()))) or
+                (not self.bounded_after() and not other.bounded_after()))
+
+    def is_earlier_than_timerange(self, other):
+        """Returns true if this timerange ends earlier than the start of the other."""
+        return (other.bounded_before() and
+                self.bounded_after() and
+                (self.end < other.start or
+                 (self.end == other.start and
+                  not (self.includes_end() and other.includes_start()))))
+
+    def is_later_than_timerange(self, other):
+        """Returns true if this timerange starts later than the end of the other."""
+        return (other.bounded_after() and
+                self.bounded_before() and
+                (self.start > other.end or
+                 (self.start == other.end and
+                  not (self.includes_start() and other.includes_end()))))
+
+    def starts_earlier_than_timerange(self, other):
+        """Returns true if this timerange starts earlier than the start of the other."""
+        return (other.bounded_before() and
+                (not self.bounded_before() or
+                 (self.start < other.start or
+                  (self.start == other.start and
+                   self.includes_start() and
+                   not other.includes_start()))))
+
+    def starts_later_than_timerange(self, other):
+        """Returns true if this timerange starts later than the start of the other."""
+        return (self.bounded_before() and
+                (not other.bounded_before() or
+                 (self.start > other.start or
+                  (self.start == other.start and
+                   (not self.includes_start() and other.includes_start())))))
+
+    def ends_earlier_than_timerange(self, other):
+        """Returns true if this timerange ends earlier than the end of the other."""
+        return (self.bounded_after() and
+                (not other.bounded_after() or
+                 (self.end < other.end or
+                  (self.end == other.end and
+                   (not self.includes_end() and other.includes_end())))))
+
+    def ends_later_than_timerange(self, other):
+        """Returns true if this timerange ends later than the end of the other."""
+        return (other.bounded_after() and
+                (not self.bounded_after() or
+                 (self.end > other.end or
+                  (self.end == other.end and
+                   self.includes_end() and
+                   not other.includes_end()))))
+
+    def overlaps_with_timerange(self, other):
+        """Returns true if this timerange and the other overlap."""
+        return (not self.is_earlier_than_timerange(other) and not self.is_later_than_timerange(other))
+
+    def is_contiguous_with_timerange(self, other):
+        """Returns true if the union of this timerange and the other would be a valid timerange"""
+        return (self.overlaps_with_timerange(other) or
+                (self.is_earlier_than_timerange(other) and
+                 self.end == other.start and
+                 (self.includes_end() or other.includes_start())) or
+                (self.is_later_than_timerange(other) and
+                 self.start == other.end and
+                 (self.includes_start() or other.includes_end())))
+
+    def union_with_timerange(self, other):
+        """Returns the union of this timerange and the other.
+        :raises: ValueError if the ranges are not contiguous."""
+        if not self.is_contiguous_with_timerange(other):
+            raise ValueError("Timeranges {} and {} are not contiguous, so cannot take the union.".format(self, other))
+
+        inclusivity = TimeRange.EXCLUSIVE
+        if self.start == other.start:
+            start = self.start
+            inclusivity |= ((self.inclusivity | other.inclusivity) & TimeRange.INCLUDE_START)
+        elif self.starts_earlier_than_timerange(other):
+            start = self.start
+            inclusivity |= (self.inclusivity & TimeRange.INCLUDE_START)
+        else:
+            start = other.start
+            inclusivity |= (other.inclusivity & TimeRange.INCLUDE_START)
+
+        if self.end == other.end:
+            end = self.end
+            inclusivity |= ((self.inclusivity | other.inclusivity) & TimeRange.INCLUDE_END)
+        elif self.ends_later_than_timerange(other):
+            end = self.end
+            inclusivity |= (self.inclusivity & TimeRange.INCLUDE_END)
+        else:
+            end = other.end
+            inclusivity |= (other.inclusivity & TimeRange.INCLUDE_END)
+
+        return TimeRange(start, end, inclusivity)
+
+    def split_at(self, timestamp):
+        """Splits a timerange at a specified timestamp.
+
+        It is guaranteed that the splitting point will be in the *second* TimeRange returned, and not in the first.
+
+        :param timestamp: the timestamp to split at
+        :returns: A pair of TimeRange objects
+        :raises: ValueError if timestamp not in self"""
+
+        if timestamp not in self:
+            raise ValueError("Cannot split range {} at {}".format(self, timestamp))
+
+        return (TimeRange(self.start, timestamp, (self.inclusivity & TimeRange.INCLUDE_START)),
+                TimeRange(timestamp, self.end, TimeRange.INCLUDE_START | (self.inclusivity & TimeRange.INCLUDE_END)))
+
+    def timerange_between(self, other):
+        """Returns the time range between the end of the earlier timerange and the start of the later one"""
+        if self.is_contiguous_with_timerange(other):
+            return TimeRange.never()
+        elif self.is_earlier_than_timerange(other):
+            inclusivity = TimeRange.EXCLUSIVE
+            if not self.includes_end():
+                inclusivity |= TimeRange.INLCUDE_START
+            if not other.includes_start():
+                inclusivity |= TimeRange.INCLUDE_END
+            return TimeRange(self.end, other.start, inclusivity)
+        else:
+            inclusivity = TimeRange.EXCLUSIVE
+            if not self.includes_start():
+                inclusivity |= TimeRange.INLCUDE_END
+            if not other.includes_end():
+                inclusivity |= TimeRange.INCLUDE_start
+            return TimeRange(other.end, self.start, inclusivity)
 
     def is_empty(self):
         """Returns true on any empty range."""
