@@ -186,6 +186,12 @@ class TimeOffset(BaseTimeOffset):
 
     @classmethod
     def from_count(cls, count, rate_num, rate_den=1):
+        """Returns a new TimeOffset derived from a count and a particular rate.
+
+        :param count: The sample count
+        :param rate_num: The numerator of the rate, in Hz
+        :param rate_den: The denominator of the rate in Hz
+        """
         if rate_num <= 0 or rate_den <= 0:
             raise TsValueError("invalid rate")
         abs_count = abs(count)
@@ -250,6 +256,13 @@ class TimeOffset(BaseTimeOffset):
             self._get_fractional_seconds(fixed_size=fixed_size))
 
     def to_count(self, rate_num, rate_den=1, rounding=ROUND_NEAREST):
+        """Returns an integer such that if this TimeOffset is equal to an exact number of samples at the given rate
+        then this is equal, and otherwise the value is rounded as indicated by the rounding parameter.
+
+        :param rate_num: numerator of rate
+        :param rate_den: denominator of rate
+        :param rounding: One of TimeOffset.ROUND_NEAREST, TimeOffset.ROUND_UP, or TimeOffset.ROUND_DOWN
+        """
         if rate_num <= 0 or rate_den <= 0:
             raise TsValueError("invalid rate")
         abs_off = self.__abs__()
@@ -276,6 +289,11 @@ class TimeOffset(BaseTimeOffset):
         f1_nsec = (abs_off.sec % rate_den) * rate_num * self.MAX_NANOSEC // rate_den
         f2_nsec = abs_off.ns * rate_num // rate_den
         return self.sign * (f1_whole + (f1_nsec + f2_nsec) // self.MAX_NANOSEC)
+
+    def to_phase_offset(self, rate_num, rate_den=1):
+        """Return the smallest positive TimeOffset such that abs(self - returnval) represents an integer number of
+        samples at the given rate"""
+        return self - self.normalise(rate_num, rate_den, rounding=TimeOffset.ROUND_DOWN)
 
     def to_millisec(self, rounding=ROUND_NEAREST):
         use_rounding = rounding
@@ -309,6 +327,13 @@ class TimeOffset(BaseTimeOffset):
         return self.sign * (self.sec*self.MAX_NANOSEC + self.ns)
 
     def normalise(self, rate_num, rate_den=1, rounding=ROUND_NEAREST):
+        """Return the nearest TimeOffset to self which represents an integer number of samples at the given rate.
+
+        :param rate_num: Rate numerator
+        :param rate_den: Rate denominator
+        :param rounding: How to round, if set to TimeOffset.ROUND_DOWN (resp. TimeOffset.ROUND_UP) this method will only
+                         return a TimeOffset less than or equal to this one (resp. greater than or equal to).
+        """
         return self.from_count(self.to_count(rate_num, rate_den, rounding), rate_num, rate_den)
 
     def compare(self, other_in):
@@ -678,6 +703,16 @@ class TimeRange (BaseTimeRange):
     INCLUDE_START = 0x1
     INCLUDE_END = 0x2
     INCLUSIVE = 0x3
+
+    ROUND_DOWN = 0
+    ROUND_NEAREST = 1
+    ROUND_UP = 2
+    ROUND_IN = 3
+    ROUND_OUT = 4
+    ROUND_START = 5
+    ROUND_END = 6
+    PRESERVE_START = 7
+    PRESERVE_END = 8
 
     def __init__(self, start, end, inclusivity=INCLUSIVE):
         """Construct a time range starting at start and ending at end
@@ -1136,3 +1171,93 @@ class TimeRange (BaseTimeRange):
                 self.end is not None and
                 self.start == self.end and
                 self.inclusivity != TimeRange.INCLUSIVE)
+
+    def normalise(self, rate_num, rate_den=1, rounding=ROUND_NEAREST, phase_offset=TimeOffset()):
+        """Returns a normalised half-open TimeRange based on this timerange.
+
+        The returned TimeRange will always have INCLUDE_START inclusivity.
+
+        If the original TimeRange was inclusive of its start then the returned TimeRange will
+        start at the normalised timestamp closest to that start point (respecting rounding).
+
+        If the original TimeRange was exclusive of its start then the returned TimeRange will
+        start at the next normalised timestamp after the normalised timestamp closest to that
+        start point (respecting rounding).
+
+        If the original TimeRange was exclusive of its end then the returned TimeRange will
+        end just before the normalised timestamp closest to that end point (respecting rounding).
+
+        If the original TimeRange was inclusive of its end then the returned TimeRange will
+        end just before the next normalised timestamp after the normalised timestamp closest to that
+        end point (respecting rounding).
+
+        The rounding options are:
+        * ROUND_NEAREST -- each end of the range independently rounds to the nearest normalised timestamp
+        * ROUND_UP -- both ends of the range round up
+        * ROUND_DOWN -- both ends of the range round down
+        * ROUND_IN -- The start of the range rounds up, the end rounds down
+        * ROUND_OUT -- The start of the range rounds down, the end rounds up
+        * ROUND_START -- The start rounds to the nearest normalised timestamp, the end rounds in the same direction
+                         as the start
+        * ROUND_END -- The end rounds to the nearest normalised timestamp, the start rounds in the same direction
+                       as the end
+        * PRESERVE_START -- The start is not rounded at all, the end is adjusted to match its phase offset
+                            (and the phase_offset parameter will be ignored)
+        * PRESERVE_END -- The end is not rounded at all, the start is adjusted to match its phase offset
+                          (and the phase_offset parameter will be ignored)
+        """
+        if rounding == TimeRange.ROUND_OUT:
+            start_rounding = TimeRange.ROUND_DOWN
+            end_rounding = TimeRange.ROUND_UP
+        elif rounding == TimeRange.ROUND_IN:
+            start_rounding = TimeRange.ROUND_UP
+            end_rounding = TimeRange.ROUND_DOWN
+        elif rounding in [TimeRange.ROUND_START, TimeRange.ROUND_END]:
+            start_rounding = TimeRange.ROUND_NEAREST
+            end_rounding = TimeRange.ROUND_NEAREST
+        elif rounding in [TimeRange.PRESERVE_START, TimeRange.PRESERVE_END]:
+            start_rounding = TimeRange.ROUND_DOWN
+            end_rounding = TimeRange.ROUND_DOWN
+        else:
+            start_rounding = rounding
+            end_rounding = rounding
+
+        if self.bounded_before():
+            start = self.start.to_count(rate_num, rate_den, start_rounding)
+        else:
+            start = None
+
+        if self.bounded_after():
+            end = self.end.to_count(rate_num, rate_den, end_rounding)
+        else:
+            end = None
+
+        if rounding == TimeRange.ROUND_START and self.bounded_before() and self.bounded_after():
+            if start == self.start.to_count(rate_num, rate_den, TimeRange.ROUND_UP):
+                end = self.end.to_count(rate_num, rate_den, TimeRange.ROUND_UP)
+            else:
+                end = self.end.to_count(rate_num, rate_den, TimeRange.ROUND_DOWN)
+        elif rounding == TimeRange.ROUND_END and self.bounded_before() and self.bounded_after():
+            if end == self.end.to_count(rate_num, rate_den, TimeRange.ROUND_UP):
+                start = self.start.to_count(rate_num, rate_den, TimeRange.ROUND_UP)
+            else:
+                start = self.start.to_count(rate_num, rate_den, TimeRange.ROUND_DOWN)
+
+        if self.bounded_before() and rounding == TimeRange.PRESERVE_START:
+            phase_offset = self.start.to_phase_offset(rate_num, rate_den)
+        elif self.bounded_after() and rounding == TimeRange.PRESERVE_END:
+            phase_offset = self.end.to_phase_offset(rate_num, rate_den)
+
+        if start is not None and not self.includes_start():
+            start += 1
+        if end is not None and self.includes_end():
+            end += 1
+
+        if start is not None:
+            start = Timestamp.from_count(start, rate_num, rate_den) + phase_offset
+        if end is not None:
+            end = Timestamp.from_count(end, rate_num, rate_den) + phase_offset
+
+        return TimeRange(start,
+                         end,
+                         TimeRange.INCLUDE_START)
