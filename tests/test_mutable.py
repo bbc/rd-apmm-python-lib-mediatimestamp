@@ -16,11 +16,17 @@ from six import PY2
 
 import unittest
 import mock
+import contextlib
 
 from datetime import datetime
 from dateutil import tz
+from fractions import Fraction
 
 from mediatimestamp.mutable import Timestamp, TimeOffset, TsValueError, TimeRange
+
+@contextlib.contextmanager
+def dummysubtest(*args, **kwargs):
+    yield None
 
 if PY2:
     BUILTINS = "__builtin__"
@@ -29,6 +35,10 @@ else:
 
 
 class TestTimeOffset(unittest.TestCase):
+    def setUp(self):
+        if PY2:
+            self.subTest = dummysubtest
+
     def test_MAX_NANOSEC(self):
         self.assertEqual(TimeOffset.MAX_NANOSEC, 1000000000)
 
@@ -45,22 +55,59 @@ class TestTimeOffset(unittest.TestCase):
 
     def test_normalise(self):
         tests_ts = [
-            (TimeOffset(0, 0).normalise(30000, 1001),
+            (TimeOffset(0, 0), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
              TimeOffset(0, 0)),
-            (TimeOffset(1001, 0).normalise(30000, 1001),
+            (TimeOffset(1001, 0), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
              TimeOffset(1001, 0)),
-            (TimeOffset(1001, 1001.0/30000/2*1000000000).normalise(30000, 1001),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
              TimeOffset(1001, 0)),
-            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1).normalise(30000, 1001),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
              TimeOffset(1001, 1001.0/30000*1000000000)),
-            (TimeOffset(1001, 1001.0/30000/2*1000000000, -1).normalise(30000, 1001),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000, -1), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
              TimeOffset(1001, 0, -1)),
-            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1).normalise(30000, 1001),
-             TimeOffset(1001, 1001.0/30000*1000000000, -1))
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
+             TimeOffset(1001, 1001.0/30000*1000000000, -1)),
+            (TimeOffset(1521731233, 320000000), Fraction(25, 3), TimeOffset.ROUND_NEAREST,
+             TimeOffset(1521731233, 320000000)),
+            (TimeOffset(0, 0), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(0, 0)),
+            (TimeOffset(1001, 0), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 1001.0/30000*1000000000)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 1001.0/30000*1000000000)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000, -1), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 0, -1)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 0, -1)),
+            (TimeOffset(1521731233, 320000000), Fraction(25, 3), TimeOffset.ROUND_UP,
+             TimeOffset(1521731233, 320000000)),
+            (TimeOffset(0, 0), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(0, 0)),
+            (TimeOffset(1001, 0), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000, -1), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 1001.0/30000*1000000000, -1)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 1001.0/30000*1000000000, -1)),
+            (TimeOffset(1521731233, 320000000), Fraction(25, 3), TimeOffset.ROUND_DOWN,
+             TimeOffset(1521731233, 320000000)),
         ]
 
-        for t in tests_ts:
-            self.assertEqual(t[0], t[1])
+        for (input, rate, rounding, expected) in tests_ts:
+            with self.subTest(input=input,
+                              rate=rate,
+                              rounding=rounding,
+                              expected=expected):
+                r = input.normalise(rate.numerator, rate.denominator, rounding=rounding)
+                self.assertEqual(r, expected,
+                                 msg=("{!r}.normalise({}, {}, rounding={}) == {!r}, expected {!r}"
+                                      .format(input, rate.numerator, rate.denominator, rounding, r, expected)))
 
     def test_hash(self):
         self.assertEqual(hash(TimeOffset(0, 0)), hash(TimeOffset(0, 0)))
