@@ -1,5 +1,16 @@
 # mediatimestamp Changelog
 
+## 1.5.1
+- Fixed bug in `TimeOffset.to_count` (both versions) that caused
+  incorrect results when rounding down when the denominator of the
+  rate properly divided neither the seconds part nor the nanoseconds
+  part of the timestamp, nor the number of nanoseconds in a second,
+  but did properly divide the whole timestamp expressed in
+  nanoseconds. This bug has been present for some time but had not
+  previously been seen because there was no test coverage for
+  non-nearest rounding and none of our tests used rates with prime
+  denominators other than 2.
+
 ## 1.5.0
 - Added normalisation function for immutable.TimeRange
 
