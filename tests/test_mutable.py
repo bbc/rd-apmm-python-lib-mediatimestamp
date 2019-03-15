@@ -24,9 +24,11 @@ from fractions import Fraction
 
 from mediatimestamp.mutable import Timestamp, TimeOffset, TsValueError, TimeRange
 
+
 @contextlib.contextmanager
 def dummysubtest(*args, **kwargs):
     yield None
+
 
 if PY2:
     BUILTINS = "__builtin__"
