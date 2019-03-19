@@ -106,6 +106,10 @@ class TestTimeOffset(unittest.TestCase):
 
         n = 0
         for (input, rate, rounding, expected) in tests_ts:
+            # Nb. subTest will add a printout of all its kwargs to any error message generated
+            # by a failure within it. The variable n is being used here to ensure that the index
+            # of the current test within tests_ts is printed on any failure. (Nb. only works with
+            # python3 unittest test runner)
             with self.subTest(test_data_index=n,
                               input=input,
                               rate=rate,

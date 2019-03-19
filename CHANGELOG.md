@@ -10,6 +10,7 @@
   previously been seen because there was no test coverage for
   non-nearest rounding and none of our tests used rates with prime
   denominators other than 2.
+- Switched test runner in tox from nose2 to unittest
 
 ## 1.5.0
 - Added normalisation function for immutable.TimeRange
