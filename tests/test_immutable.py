@@ -60,21 +60,66 @@ class TestTimeOffset(unittest.TestCase):
 
     def test_normalise(self):
         tests_ts = [
-            (TimeOffset(0, 0), (30000, 1001), TimeOffset(0, 0)),
-            (TimeOffset(1001, 0), (30000, 1001), TimeOffset(1001, 0)),
-            (TimeOffset(1001, 1001.0/30000/2*1000000000), (30000, 1001), TimeOffset(1001, 0)),
-            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1), (30000, 1001), TimeOffset(1001, 1001.0/30000*1000000000)),
-            (TimeOffset(1001, 1001.0/30000/2*1000000000, -1), (30000, 1001), TimeOffset(1001, 0, -1)),
-            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1), (30000, 1001),
-             TimeOffset(1001, 1001.0/30000*1000000000, -1))
+            (TimeOffset(0, 0), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
+             TimeOffset(0, 0)),
+            (TimeOffset(1001, 0), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
+             TimeOffset(1001, 1001.0/30000*1000000000)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000, -1), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
+             TimeOffset(1001, 0, -1)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1), Fraction(30000, 1001), TimeOffset.ROUND_NEAREST,
+             TimeOffset(1001, 1001.0/30000*1000000000, -1)),
+            (TimeOffset(1521731233, 320000000), Fraction(25, 3), TimeOffset.ROUND_NEAREST,
+             TimeOffset(1521731233, 320000000)),
+            (TimeOffset(0, 0), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(0, 0)),
+            (TimeOffset(1001, 0), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 1001.0/30000*1000000000)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 1001.0/30000*1000000000)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000, -1), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 0, -1)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1), Fraction(30000, 1001), TimeOffset.ROUND_UP,
+             TimeOffset(1001, 0, -1)),
+            (TimeOffset(1521731233, 320000000), Fraction(25, 3), TimeOffset.ROUND_UP,
+             TimeOffset(1521731233, 320000000)),
+            (TimeOffset(0, 0), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(0, 0)),
+            (TimeOffset(1001, 0), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 0)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000, -1), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 1001.0/30000*1000000000, -1)),
+            (TimeOffset(1001, 1001.0/30000/2*1000000000 + 1, -1), Fraction(30000, 1001), TimeOffset.ROUND_DOWN,
+             TimeOffset(1001, 1001.0/30000*1000000000, -1)),
+            (TimeOffset(1521731233, 320000000), Fraction(25, 3), TimeOffset.ROUND_DOWN,
+             TimeOffset(1521731233, 320000000)),
         ]
 
-        for t in tests_ts:
-            with self.subTest(t=t):
-                r = t[0].normalise(t[1][0], t[1][1])
-                self.assertEqual(r, t[2],
-                                 msg=("{!r}.normalise({}, {}) == {!r}, expected {!r}"
-                                      .format(t[0], t[1][0], t[1][1], r, t[2])))
+        n = 0
+        for (input, rate, rounding, expected) in tests_ts:
+            # Nb. subTest will add a printout of all its kwargs to any error message generated
+            # by a failure within it. The variable n is being used here to ensure that the index
+            # of the current test within tests_ts is printed on any failure. (Nb. only works with
+            # python3 unittest test runner)
+            with self.subTest(test_data_index=n,
+                              input=input,
+                              rate=rate,
+                              rounding=rounding,
+                              expected=expected):
+                n += 1
+                r = input.normalise(rate.numerator, rate.denominator, rounding=rounding)
+                self.assertEqual(r, expected,
+                                 msg=("{!r}.normalise({}, {}, rounding={}) == {!r}, expected {!r}"
+                                      .format(input, rate.numerator, rate.denominator, rounding, r, expected)))
 
     def test_hash(self):
         self.assertEqual(hash(TimeOffset(0, 0)), hash(TimeOffset(0, 0)))

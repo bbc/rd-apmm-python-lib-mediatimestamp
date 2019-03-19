@@ -251,10 +251,12 @@ class TimeOffset(BaseTimeOffset):
         #             = (off_sec x rate_num / rate_den) + (off_nsec x rate_num) / rate_den)
         #             = {f1} + {f2}
         # reduce {f1} as follows: a*b/c = ((a/c)*c + a%c) * b) / c = (a/c)*b + (a%c)*b/c
+        # then combine the f1 and f2 nanosecond values before division by rate_den to avoid loss of precision when
+        # off_sec and off_nsec are not multiples of rate_den, but (off_sec + off_nsec) is
         f1_whole = (abs_off.sec // rate_den) * rate_num
-        f1_nsec = (abs_off.sec % rate_den) * rate_num * self.MAX_NANOSEC // rate_den
-        f2_nsec = abs_off.ns * rate_num // rate_den
-        return self.sign * (f1_whole + (f1_nsec + f2_nsec) // self.MAX_NANOSEC)
+        f1_dennsec = (abs_off.sec % rate_den) * rate_num * self.MAX_NANOSEC
+        f2_dennsec = abs_off.ns * rate_num
+        return self.sign * (f1_whole + (f1_dennsec + f2_dennsec) // (rate_den * self.MAX_NANOSEC))
 
     def to_millisec(self, rounding=ROUND_NEAREST):
         use_rounding = rounding
