@@ -1,5 +1,9 @@
 # mediatimestamp Changelog
 
+## 1.5.3
+- Change order of phase offset in TimeRange normalisation with
+PRESERVE_START/END to avoid rounding error causing an unexpected result.
+
 ## 1.5.2
 - Fixed bug in taking unions with empty ranges
 
