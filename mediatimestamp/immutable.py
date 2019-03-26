@@ -1240,19 +1240,24 @@ class TimeRange (BaseTimeRange):
             start_rounding = TimeRange.ROUND_NEAREST
             end_rounding = TimeRange.ROUND_NEAREST
         elif rounding in [TimeRange.PRESERVE_START, TimeRange.PRESERVE_END]:
-            start_rounding = TimeRange.ROUND_DOWN
-            end_rounding = TimeRange.ROUND_DOWN
+            start_rounding = TimeRange.ROUND_NEAREST
+            end_rounding = TimeRange.ROUND_NEAREST
         else:
             start_rounding = rounding
             end_rounding = rounding
 
+        if self.bounded_before() and rounding == TimeRange.PRESERVE_START:
+            phase_offset = self.start.to_phase_offset(rate_num, rate_den)
+        elif self.bounded_after() and rounding == TimeRange.PRESERVE_END:
+            phase_offset = self.end.to_phase_offset(rate_num, rate_den)
+
         if self.bounded_before():
-            start = self.start.to_count(rate_num, rate_den, start_rounding)
+            start = (self.start - phase_offset).to_count(rate_num, rate_den, start_rounding)
         else:
             start = None
 
         if self.bounded_after():
-            end = self.end.to_count(rate_num, rate_den, end_rounding)
+            end = (self.end - phase_offset).to_count(rate_num, rate_den, end_rounding)
         else:
             end = None
 
@@ -1266,11 +1271,6 @@ class TimeRange (BaseTimeRange):
                 start = self.start.to_count(rate_num, rate_den, TimeRange.ROUND_UP)
             else:
                 start = self.start.to_count(rate_num, rate_den, TimeRange.ROUND_DOWN)
-
-        if self.bounded_before() and rounding == TimeRange.PRESERVE_START:
-            phase_offset = self.start.to_phase_offset(rate_num, rate_den)
-        elif self.bounded_after() and rounding == TimeRange.PRESERVE_END:
-            phase_offset = self.end.to_phase_offset(rate_num, rate_den)
 
         if start is not None and not self.includes_start():
             start += 1

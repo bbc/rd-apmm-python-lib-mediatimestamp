@@ -1522,6 +1522,16 @@ class TestTimeRange (unittest.TestCase):
              TimeRange.from_str("[0:10000000_1:10000000)")),
             (TimeRange.from_str("(0:00000000_0:970000000]"), Fraction(25, 1), TimeRange.PRESERVE_END,
              TimeRange.from_str("[0:50000000_1:10000000)")),
+            (TimeRange.from_str("[1537349337:0_1537349346:999979166]"), Fraction(48000, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[1537349337:0_1537349347:0)")),
+            (TimeRange.from_str("[1537349337:0_1537349346:999979166]"), Fraction(48000, 1), TimeRange.ROUND_UP,
+             TimeRange.from_str("[1537349337:0_1537349347:0)")),
+            (TimeRange.from_str("[1537349337:0_1537349346:999979166]"), Fraction(48000, 1), TimeRange.ROUND_DOWN,
+             TimeRange.from_str("[1537349337:0_1537349346:999979166)")),
+            (TimeRange.from_str("[1537349337:0_1537349346:999979166]"), Fraction(48000, 1), TimeRange.PRESERVE_START,
+             TimeRange.from_str("[1537349337:0_1537349347:0)")),
+            (TimeRange.from_str("[1537349337:0_1537349346:999979166]"), Fraction(48000, 1), TimeRange.PRESERVE_END,
+             TimeRange.from_str("[1537349336:999999999_1537349346:999999999)")),
         ]
 
         for (tr, rate, rounding, expected) in tests_tr:
