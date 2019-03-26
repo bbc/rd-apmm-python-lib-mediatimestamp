@@ -1026,23 +1026,29 @@ class TimeRange (BaseTimeRange):
 
     def starts_inside_timerange(self, other):
         """Returns true if the start of this timerange is located inside the other."""
-        return ((self.bounded_before() and self.start in other and
-                 (not (other.bounded_after() and self.start == other.end and not self.includes_start()))) or
-                (self.bounded_before() and other.bounded_before() and self.start == other.start and
-                 (not (self.includes_start() and not other.includes_start()))) or
-                (not self.bounded_before() and not other.bounded_before()))
+        return (not self.is_empty() and
+                not other.is_empty() and
+                ((self.bounded_before() and self.start in other and
+                  (not (other.bounded_after() and self.start == other.end and not self.includes_start()))) or
+                 (self.bounded_before() and other.bounded_before() and self.start == other.start and
+                  (not (self.includes_start() and not other.includes_start()))) or
+                 (not self.bounded_before() and not other.bounded_before())))
 
     def ends_inside_timerange(self, other):
         """Returns true if the end of this timerange is located inside the other."""
-        return ((self.bounded_after() and self.end in other and
-                 (not (other.bounded_before() and self.end == other.start and not self.includes_end()))) or
-                (self.bounded_after() and other.bounded_after() and self.end == other.end and
-                 (not (self.includes_end() and not other.includes_end()))) or
-                (not self.bounded_after() and not other.bounded_after()))
+        return (not self.is_empty() and
+                not other.is_empty() and
+                ((self.bounded_after() and self.end in other and
+                  (not (other.bounded_before() and self.end == other.start and not self.includes_end()))) or
+                 (self.bounded_after() and other.bounded_after() and self.end == other.end and
+                  (not (self.includes_end() and not other.includes_end()))) or
+                 (not self.bounded_after() and not other.bounded_after())))
 
     def is_earlier_than_timerange(self, other):
         """Returns true if this timerange ends earlier than the start of the other."""
-        return (other.bounded_before() and
+        return (not self.is_empty() and
+                not other.is_empty() and
+                other.bounded_before() and
                 self.bounded_after() and
                 (self.end < other.start or
                  (self.end == other.start and
@@ -1050,7 +1056,9 @@ class TimeRange (BaseTimeRange):
 
     def is_later_than_timerange(self, other):
         """Returns true if this timerange starts later than the end of the other."""
-        return (other.bounded_after() and
+        return (not self.is_empty() and
+                not other.is_empty() and
+                other.bounded_after() and
                 self.bounded_before() and
                 (self.start > other.end or
                  (self.start == other.end and
@@ -1058,7 +1066,9 @@ class TimeRange (BaseTimeRange):
 
     def starts_earlier_than_timerange(self, other):
         """Returns true if this timerange starts earlier than the start of the other."""
-        return (other.bounded_before() and
+        return (not self.is_empty() and
+                not other.is_empty() and
+                other.bounded_before() and
                 (not self.bounded_before() or
                  (self.start < other.start or
                   (self.start == other.start and
@@ -1067,7 +1077,9 @@ class TimeRange (BaseTimeRange):
 
     def starts_later_than_timerange(self, other):
         """Returns true if this timerange starts later than the start of the other."""
-        return (self.bounded_before() and
+        return (not self.is_empty() and
+                not other.is_empty() and
+                self.bounded_before() and
                 (not other.bounded_before() or
                  (self.start > other.start or
                   (self.start == other.start and
@@ -1075,7 +1087,9 @@ class TimeRange (BaseTimeRange):
 
     def ends_earlier_than_timerange(self, other):
         """Returns true if this timerange ends earlier than the end of the other."""
-        return (self.bounded_after() and
+        return (not self.is_empty() and
+                not other.is_empty() and
+                self.bounded_after() and
                 (not other.bounded_after() or
                  (self.end < other.end or
                   (self.end == other.end and
@@ -1083,7 +1097,9 @@ class TimeRange (BaseTimeRange):
 
     def ends_later_than_timerange(self, other):
         """Returns true if this timerange ends later than the end of the other."""
-        return (other.bounded_after() and
+        return (not self.is_empty() and
+                not other.is_empty() and
+                other.bounded_after() and
                 (not self.bounded_after() or
                  (self.end > other.end or
                   (self.end == other.end and
@@ -1109,6 +1125,12 @@ class TimeRange (BaseTimeRange):
         :raises: ValueError if the ranges are not contiguous."""
         if not self.is_contiguous_with_timerange(other):
             raise ValueError("Timeranges {} and {} are not contiguous, so cannot take the union.".format(self, other))
+
+        if self.is_empty():
+            return other
+
+        if other.is_empty():
+            return self
 
         inclusivity = TimeRange.EXCLUSIVE
         if self.start == other.start:

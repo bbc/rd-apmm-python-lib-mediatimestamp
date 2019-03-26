@@ -1378,6 +1378,33 @@ class TestTimeRange (unittest.TestCase):
              (False, False, True, False, True, False, True, False, False, True)),
             (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("(5:0_10:0)"),
              (False, False, True, False, True, False, True, False, False, False)),
+
+            (TimeRange.never(), TimeRange.from_str("_"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("[0:0_"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("(0:0_"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("[10:0_"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("(10:0_"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("_0:0]"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("_0:0)"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("_10:0]"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("_10:0)"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("[0:0_10:0)"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("(0:0_10:0)"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("[5:0_10:0)"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("(5:0_10:0)"),
+             (False, False, False, False, False, False, False, False, True, True)),
         ]
         functions = ("starts_inside_timerange",
                      "ends_inside_timerange",
@@ -1503,3 +1530,45 @@ class TestTimeRange (unittest.TestCase):
                 self.assertEqual(result, expected,
                                  msg=("{!r}.normalise({}, {}, rounding={}) == {!r}, expected {!r}"
                                       .format(tr, rate.numerator, rate.denominator, rounding, result, expected)))
+
+    def test_union(self):
+        test_data = [
+            (TimeRange.from_str("()"), TimeRange.from_str("()"),
+             TimeRange.from_str("()")),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[10:0]"),
+             TimeRange.from_str("[0:0_10:0]")),
+            (TimeRange.from_str("_"), TimeRange.from_str("[0:0]"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("_"), TimeRange.from_str("()"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("()"), TimeRange.from_str("_"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("_10:0)"), TimeRange.from_str("[0:0_"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[5:0_"),
+             TimeRange.from_str("[0:0_")),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[5:0_15:0)"),
+             TimeRange.from_str("[0:0_15:0)")),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[10:0_15:0)"),
+             TimeRange.from_str("[0:0_15:0)")),
+            (TimeRange.from_str("()"), TimeRange.from_str("[5:0_"),
+             TimeRange.from_str("[5:0_")),
+            (TimeRange.from_str("()"), TimeRange.from_str("[5:0_15:0)"),
+             TimeRange.from_str("[5:0_15:0)")),
+            (TimeRange.from_str("()"), TimeRange.from_str("_15:0)"),
+             TimeRange.from_str("_15:0)")),
+        ]
+
+        for (first, second, expected) in test_data:
+            with self.subTest(first=first, second=second, expected=expected):
+                self.assertEqual(first.union_with_timerange(second), expected)
+
+        test_data = [
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("(0:0_")),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[10:0_15:0)")),
+        ]
+
+        for (first, second) in test_data:
+            with self.subTest(first=first, second=second):
+                with self.assertRaises(ValueError):
+                    first.union_with_timerange(second)

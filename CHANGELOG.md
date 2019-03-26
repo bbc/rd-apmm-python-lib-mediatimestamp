@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.5.2
+- Fixed bug in taking unions with empty ranges
+
 ## 1.5.1
 - Fixed bug in `TimeOffset.to_count` (both versions) that caused
   incorrect results when rounding down when the denominator of the
