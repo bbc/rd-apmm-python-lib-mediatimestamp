@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.6.0
+- Removed the PRESERVE_START and PRESERVE_END rounding options which are used in TimeRange.normalise().
+
 ## 1.5.2
 - Fixed bug in taking unions with empty ranges
 
