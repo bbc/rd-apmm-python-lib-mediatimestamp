@@ -713,8 +713,6 @@ class TimeRange (BaseTimeRange):
     ROUND_OUT = 4
     ROUND_START = 5
     ROUND_END = 6
-    PRESERVE_START = 7
-    PRESERVE_END = 8
 
     def __init__(self, start, end, inclusivity=INCLUSIVE):
         """Construct a time range starting at start and ending at end
@@ -1225,10 +1223,6 @@ class TimeRange (BaseTimeRange):
                          as the start
         * ROUND_END -- The end rounds to the nearest normalised timestamp, the start rounds in the same direction
                        as the end
-        * PRESERVE_START -- The start is not rounded at all, the end is adjusted to match its phase offset
-                            (and the phase_offset parameter will be ignored)
-        * PRESERVE_END -- The end is not rounded at all, the start is adjusted to match its phase offset
-                          (and the phase_offset parameter will be ignored)
         """
         if rounding == TimeRange.ROUND_OUT:
             start_rounding = TimeRange.ROUND_DOWN
@@ -1239,9 +1233,6 @@ class TimeRange (BaseTimeRange):
         elif rounding in [TimeRange.ROUND_START, TimeRange.ROUND_END]:
             start_rounding = TimeRange.ROUND_NEAREST
             end_rounding = TimeRange.ROUND_NEAREST
-        elif rounding in [TimeRange.PRESERVE_START, TimeRange.PRESERVE_END]:
-            start_rounding = TimeRange.ROUND_DOWN
-            end_rounding = TimeRange.ROUND_DOWN
         else:
             start_rounding = rounding
             end_rounding = rounding
@@ -1267,20 +1258,15 @@ class TimeRange (BaseTimeRange):
             else:
                 start = self.start.to_count(rate_num, rate_den, TimeRange.ROUND_DOWN)
 
-        if self.bounded_before() and rounding == TimeRange.PRESERVE_START:
-            phase_offset = self.start.to_phase_offset(rate_num, rate_den)
-        elif self.bounded_after() and rounding == TimeRange.PRESERVE_END:
-            phase_offset = self.end.to_phase_offset(rate_num, rate_den)
-
         if start is not None and not self.includes_start():
             start += 1
         if end is not None and self.includes_end():
             end += 1
 
         if start is not None:
-            start = Timestamp.from_count(start, rate_num, rate_den) + phase_offset
+            start = Timestamp.from_count(start, rate_num, rate_den)
         if end is not None:
-            end = Timestamp.from_count(end, rate_num, rate_den) + phase_offset
+            end = Timestamp.from_count(end, rate_num, rate_den)
 
         return TimeRange(start,
                          end,
