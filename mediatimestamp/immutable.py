@@ -1194,7 +1194,7 @@ class TimeRange (BaseTimeRange):
                 self.start == self.end and
                 self.inclusivity != TimeRange.INCLUSIVE)
 
-    def normalise(self, rate_num, rate_den=1, rounding=ROUND_NEAREST, phase_offset=TimeOffset()):
+    def normalise(self, rate_num, rate_den=1, rounding=ROUND_NEAREST):
         """Returns a normalised half-open TimeRange based on this timerange.
 
         The returned TimeRange will always have INCLUDE_START inclusivity.
