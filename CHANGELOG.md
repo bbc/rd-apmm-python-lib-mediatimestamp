@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.7.0
+- Added extend_to_encompass_timerange function for immutable.TimeRange.
+
 ## 1.6.0
 - Removed the PRESERVE_START and PRESERVE_END rounding options which are used in TimeRange.normalise().
 
