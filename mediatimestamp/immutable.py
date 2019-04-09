@@ -1124,6 +1124,10 @@ class TimeRange (BaseTimeRange):
         if not self.is_contiguous_with_timerange(other):
             raise ValueError("Timeranges {} and {} are not contiguous, so cannot take the union.".format(self, other))
 
+        return self.extend_to_encompass_timerange(other)
+
+    def extend_to_encompass_timerange(self, other):
+        """Returns the timerange that encompasses this and the other timerange."""
         if self.is_empty():
             return other
 
