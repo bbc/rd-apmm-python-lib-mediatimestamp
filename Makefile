@@ -1,6 +1,7 @@
 PYTHON=`which python`
 PYTHON2=`which python2`
 PYTHON3=`which python3`
+PYTHON34=`which python3.4`
 PY2DSC=`which py2dsc`
 
 PY2DSC_PARAMS?=--with-python2=true --with-python3=true
@@ -96,7 +97,7 @@ deb: source deb_dist $(DEBIANOVERRIDES)
 $(RPM_PREFIX)/$(MODNAME).spec: rpm_spec
 
 rpm_spec: $(topdir)/setup.py
-	$(PYTHON3) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX)
+	$(PYTHON34) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX)
 # END OF RPM SPEC RULES
 
 $(RPMBUILDDIRS):
