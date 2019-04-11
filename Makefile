@@ -96,7 +96,7 @@ deb: source deb_dist $(DEBIANOVERRIDES)
 $(RPM_PREFIX)/$(MODNAME).spec: rpm_spec
 
 rpm_spec: $(topdir)/setup.py
-	$(PYTHON3) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX)
+	$(PYTHON3) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX) --python=python3.4
 # END OF RPM SPEC RULES
 
 $(RPMBUILDDIRS):
