@@ -1519,7 +1519,7 @@ class TestTimeRange (unittest.TestCase):
                                  msg=("{!r}.normalise({}, {}, rounding={}) == {!r}, expected {!r}"
                                       .format(tr, rate.numerator, rate.denominator, rounding, result, expected)))
 
-    def test_union(self):
+    def test_extend_to_encompass(self):
         test_data = [
             (TimeRange.from_str("()"), TimeRange.from_str("()"),
              TimeRange.from_str("()")),
@@ -1545,15 +1545,35 @@ class TestTimeRange (unittest.TestCase):
              TimeRange.from_str("[5:0_15:0)")),
             (TimeRange.from_str("()"), TimeRange.from_str("_15:0)"),
              TimeRange.from_str("_15:0)")),
+
+            # discontiguous
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("(0:0_"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("(0:0_"), TimeRange.from_str("_0:0)"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("(5:0_15:0)"),
+             TimeRange.from_str("[0:0_15:0)")),
+            (TimeRange.from_str("(5:0_15:0)"), TimeRange.from_str("[0:0_5:0)"),
+             TimeRange.from_str("[0:0_15:0)")),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[10:0_15:0)"),
+             TimeRange.from_str("[0:0_15:0)")),
+            (TimeRange.from_str("[10:0_15:0)"), TimeRange.from_str("[0:0_5:0)"),
+             TimeRange.from_str("[0:0_15:0)")),
         ]
 
         for (first, second, expected) in test_data:
             with self.subTest(first=first, second=second, expected=expected):
-                self.assertEqual(first.union_with_timerange(second), expected)
+                self.assertEqual(first.extend_to_encompass_timerange(second), expected)
 
+    def test_union_raises(self):
+        # discontiguous part of test_extend_to_encompass raises for a union
         test_data = [
             (TimeRange.from_str("_0:0)"), TimeRange.from_str("(0:0_")),
+            (TimeRange.from_str("(0:0_"), TimeRange.from_str("_0:0)")),
+            (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("(5:0_15:0)")),
+            (TimeRange.from_str("(5:0_15:0)"), TimeRange.from_str("[0:0_5:0)")),
             (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[10:0_15:0)")),
+            (TimeRange.from_str("[10:0_15:0)"), TimeRange.from_str("[0:0_5:0)")),
         ]
 
         for (first, second) in test_data:
