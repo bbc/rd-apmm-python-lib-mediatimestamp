@@ -3,8 +3,7 @@
 /*
  Runs the following steps in parallel and reports results to GitHub:
  - Lint using flake8
- - Run Python 2.7 unit tests in tox
- - Run Pythin 3 unit tests in tox
+ - Run Pythin 3.6 unit tests in tox
  - Build Debian packages for supported Ubuntu versions
 
  If these steps succeed and the master branch is being built, wheels and debs are uploaded to Artifactory and the
@@ -21,7 +20,7 @@
 
 pipeline {
     agent {
-        label "ubuntu&&apmm-slave"
+        label "ubuntu&&apmm-slave&&18.04"
     }
     options {
         ansiColor('xterm') // Add support for coloured output
@@ -66,32 +65,14 @@ pipeline {
                 }
                 stage ("Unit Tests") {
                     stages {
-                        stage ("Python 2.7 Unit Tests") {
-                            steps {
-                                script {
-                                    env.py27_result = "FAILURE"
-                                }
-                                bbcGithubNotify(context: "tests/py27", status: "PENDING")
-                                // Use a workdirectory in /tmp to avoid shebang length limitation
-                                sh 'tox -e py27 --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-py27'
-                                script {
-                                    env.py27_result = "SUCCESS" // This will only run if the sh above succeeded
-                                }
-                            }
-                            post {
-                                always {
-                                    bbcGithubNotify(context: "tests/py27", status: env.py27_result)
-                                }
-                            }
-                        }
-                        stage ("Python 3 Unit Tests") {
+                        stage ("Python 3.6 Unit Tests") {
                             steps {
                                 script {
                                     env.py3_result = "FAILURE"
                                 }
                                 bbcGithubNotify(context: "tests/py3", status: "PENDING")
                                 // Use a workdirectory in /tmp to avoid shebang length limitation
-                                sh 'tox -e py3 --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-py3'
+                                sh 'tox -e py36 --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-py3'
                                 script {
                                     env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
                                 }
@@ -159,7 +140,7 @@ pipeline {
             parallel {
                 stage ("Upload Docs") {
                     when {
-		                    anyOf {
+                         anyOf {
                             expression { return params.FORCE_DOCSUPLOAD }
                             expression {
                                 bbcShouldUploadArtifacts(branches: ["master"])
@@ -185,9 +166,8 @@ pipeline {
                         }
                         bbcGithubNotify(context: "pypi/upload", status: "PENDING")
                         sh 'rm -rf dist/*'
-                        bbcMakeGlobalWheel("py27")
-                        bbcMakeGlobalWheel("py3")
-                        bbcTwineUpload(toxenv: "py3", pypi: true)
+                        bbcMakeGlobalWheel("py36")
+                        bbcTwineUpload(toxenv: "py36", pypi: true)
                         script {
                             env.pypiUpload_result = "SUCCESS" // This will only run if the steps above succeeded
                         }

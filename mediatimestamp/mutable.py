@@ -24,11 +24,6 @@ These data types are of use in a number of situations, but particularly for code
 are normally stored in this fashion.
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-
-from six import integer_types
-
 from .bases import BaseTimeOffset, BaseTimeRange
 
 import calendar
@@ -441,7 +436,7 @@ class TimeOffset(BaseTimeOffset):
         return sec_frac
 
     def _cast_arg(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             return TimeOffset(other)
         elif isinstance(other, float):
             return TimeOffset.from_sec_frac(str(other))

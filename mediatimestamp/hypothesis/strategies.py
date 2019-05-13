@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2018 British Broadcasting Corporation
 #
 # This is an internal BBC tool and is not licensed externally
@@ -13,9 +11,6 @@ quantities of data to test hypothetical features of software.
 This module provides additional strategies for hypothesis which generate the types of objects provided by this library,
 it will be of use if using hypothesis to test code which depends upon mediatimestamp.
 """
-
-from __future__ import print_function
-from __future__ import absolute_import
 
 from hypothesis.strategies import integers, lists
 

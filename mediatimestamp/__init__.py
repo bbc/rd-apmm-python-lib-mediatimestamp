@@ -21,9 +21,6 @@ These data types are of use in a number of situations, but particularly for code
 are normally stored in this fashion.
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-
 from .exceptions import TsValueError
 from .mutable import TimeOffset, Timestamp, TimeRange
 
