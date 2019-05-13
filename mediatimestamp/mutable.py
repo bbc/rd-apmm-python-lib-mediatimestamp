@@ -22,6 +22,10 @@ And finally it includes a mutable TimeRange object which stores a range between 
 
 These data types are of use in a number of situations, but particularly for code that will handle PTP timestamps, which
 are normally stored in this fashion.
+
+
+These mutable timestamps are included primarily for backward compatibility reasons, and are likely to go away or become
+more like the mutable versions at some point
 """
 
 from .bases import BaseTimeOffset, BaseTimeRange

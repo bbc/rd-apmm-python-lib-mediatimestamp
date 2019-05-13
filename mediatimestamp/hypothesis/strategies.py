@@ -157,9 +157,9 @@ def disjoint_mutabletimeranges(in_range=MutableTimeRange.eternity(), min_size=0,
 
 
 #
-# In a future version these will become aliases for the immutable versions
+# In versions prior to 2.0.0 these were aliases for the mutable versions
 #
-timeoffsets = mutabletimeoffsets
-timestamps = mutabletimestamps
-timeranges = mutabletimeranges
-disjoint_timeranges = disjoint_mutabletimeranges
+timeoffsets = immutabletimeoffsets
+timestamps = immutabletimestamps
+timeranges = immutabletimeranges
+disjoint_timeranges = disjoint_immutabletimeranges
