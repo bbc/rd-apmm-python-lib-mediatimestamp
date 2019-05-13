@@ -48,11 +48,6 @@ another TimeOffset as a result.
 An instance of Timestamp multiplied by integers or floats will be treated as an instance of TimeOffset
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-
-from six import integer_types
-
 import calendar
 import time
 import re
@@ -465,7 +460,7 @@ class TimeOffset(BaseTimeOffset):
         return sec_frac
 
     def _cast_arg(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             return TimeOffset(other)
         elif isinstance(other, float):
             return TimeOffset.from_sec_frac(str(other))

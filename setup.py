@@ -1,3 +1,4 @@
+#!/dev/env python3
 # Copyright 2017 British Broadcasting Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
 from setuptools import setup
 import os
 
 # Basic metadata
 name = 'mediatimestamp'
-version = '1.7.0'
+version = '2.0.0.dev1'
 description = 'A timestamp library for high precision nanosecond timestamps'
 url = 'https://github.com/bbc/rd-apmm-python-lib-mediatimestamp'
 author = 'James P. Weaver'
@@ -65,6 +65,7 @@ packages_required = [
 deps_required = []
 
 setup(name=name,
+      python_requires='>=3.4',
       version=version,
       description=description,
       url=url,
