@@ -47,7 +47,7 @@ pipeline {
                             env.lint_result = "FAILURE"
                         }
                         bbcGithubNotify(context: "lint/flake8", status: "PENDING")
-                        sh 'flake8'
+                        sh 'python3.6 -m flake8'
                         script {
                             env.lint_result = "SUCCESS" // This will only run if the sh above succeeded
                         }
