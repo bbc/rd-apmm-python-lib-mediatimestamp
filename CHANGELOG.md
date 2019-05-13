@@ -1,7 +1,7 @@
 # mediatimestamp Changelog
 
 ## 2.0.0 (under construction)
-- Removed support for python2.7
+- Removed support for python2.7 in code and infrastructure
 
 ## 1.7.0
 - Added extend_to_encompass_timerange function for immutable.TimeRange.
