@@ -1466,6 +1466,25 @@ class TestTimeRange (unittest.TestCase):
                 with self.assertRaises(ValueError):
                     tr.split_at(ts)
 
+    def test_timerange_between(self):
+        test_data = [
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[5:0_15:0)"),
+                TimeRange.never()),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[15:0_20:0)"),
+                TimeRange.from_str("[10:0_15:0)")),
+            (TimeRange.from_str("[0:0_10:0]"), TimeRange.from_str("(15:0_20:0)"),
+                TimeRange.from_str("(10:0_15:0]")),
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[15:0_20:0)"),
+                TimeRange.from_str("[10:0_15:0)")),
+            (TimeRange.from_str("[0:0_10:0]"), TimeRange.from_str("(15:0_20:0)"),
+                TimeRange.from_str("(10:0_15:0]")),
+        ]
+
+        for (left, right, expected) in test_data:
+            with self.subTest(left=left, right=right, expected=expected):
+                self.assertEqual(left.timerange_between(right), expected)
+                self.assertEqual(right.timerange_between(left), expected)
+
     def test_normalise(self):
         tests_tr = [
             (TimeRange.from_str("[0:0_1:0)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,

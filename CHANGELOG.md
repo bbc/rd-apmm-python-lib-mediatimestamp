@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.7.1
+- Correct inclusivity names in `timerange_between` method.
+
 ## 1.7.0
 - Added extend_to_encompass_timerange function for immutable.TimeRange.
 - Hardcode use of python3.4 in RPM spec file to workaround missing python3 soft

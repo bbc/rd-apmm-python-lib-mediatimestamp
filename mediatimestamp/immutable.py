@@ -1179,16 +1179,16 @@ class TimeRange (BaseTimeRange):
         elif self.is_earlier_than_timerange(other):
             inclusivity = TimeRange.EXCLUSIVE
             if not self.includes_end():
-                inclusivity |= TimeRange.INLCUDE_START
+                inclusivity |= TimeRange.INCLUDE_START
             if not other.includes_start():
                 inclusivity |= TimeRange.INCLUDE_END
             return TimeRange(self.end, other.start, inclusivity)
         else:
             inclusivity = TimeRange.EXCLUSIVE
             if not self.includes_start():
-                inclusivity |= TimeRange.INLCUDE_END
+                inclusivity |= TimeRange.INCLUDE_END
             if not other.includes_end():
-                inclusivity |= TimeRange.INCLUDE_start
+                inclusivity |= TimeRange.INCLUDE_START
             return TimeRange(other.end, self.start, inclusivity)
 
     def is_empty(self):
