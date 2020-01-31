@@ -40,69 +40,65 @@ pipeline {
         https_proxy = "http://www-cache.rd.bbc.co.uk:8080"
     }
     stages {
-        stage ("Parallel Jobs") {
-            parallel {
-                stage ("Linting Check") {
-                    steps {
-                        script {
-                            env.lint_result = "FAILURE"
-                        }
-                        bbcGithubNotify(context: "lint/flake8", status: "PENDING")
-                        sh 'make lint'
-                        script {
-                            env.lint_result = "SUCCESS" // This will only run if the sh above succeeded
-                        }
-                    }
-                    post {
-                        always {
-                            bbcGithubNotify(context: "lint/flake8", status: env.lint_result)
-                        }
-                    }
+        stage ("Linting Check") {
+            steps {
+                script {
+                    env.lint_result = "FAILURE"
                 }
-                stage ("Build Docs") {
-                   steps {
-                       sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-docs make docs'
-                   }
+                bbcGithubNotify(context: "lint/flake8", status: "PENDING")
+                sh 'make lint'
+                script {
+                    env.lint_result = "SUCCESS" // This will only run if the sh above succeeded
                 }
-                stage ("Python 3 Unit Tests") {
-                    steps {
-                        script {
-                            env.py3_result = "FAILURE"
-                        }
-                        bbcGithubNotify(context: "tests/py3", status: "PENDING")
-                        // Use a workdirectory in /tmp to avoid shebang length limitation
-                        sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-py36 make test'
-                        script {
-                            env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
-                        }
-                    }
-                    post {
-                        always {
-                            bbcGithubNotify(context: "tests/py3", status: env.py3_result)
-                        }
-                    }
+            }
+            post {
+                always {
+                    bbcGithubNotify(context: "lint/flake8", status: env.lint_result)
                 }
-                stage ("Debian Source Build") {
-                    steps {
-                        script {
-                            env.debSourceBuild_result = "FAILURE"
-                        }
-                        bbcGithubNotify(context: "deb/sourceBuild", status: "PENDING")
+            }
+        }
+        stage ("Build Docs") {
+            steps {
+                sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-docs make docs'
+            }
+        }
+        stage ("Python 3 Unit Tests") {
+            steps {
+                script {
+                    env.py3_result = "FAILURE"
+                }
+                bbcGithubNotify(context: "tests/py3", status: "PENDING")
+                // Use a workdirectory in /tmp to avoid shebang length limitation
+                sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-py36 make test'
+                script {
+                    env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
+                }
+            }
+            post {
+                always {
+                    bbcGithubNotify(context: "tests/py3", status: env.py3_result)
+                }
+            }
+        }
+        stage ("Debian Source Build") {
+            steps {
+                script {
+                    env.debSourceBuild_result = "FAILURE"
+                }
+                bbcGithubNotify(context: "deb/sourceBuild", status: "PENDING")
 
-                        sh 'rm -rf deb_dist'
-                        sh 'python ./setup.py sdist'
-                        sh 'make dsc'
-                        bbcPrepareDsc()
-                        stash(name: "deb_dist", includes: "deb_dist/*")
-                        script {
-                            env.debSourceBuild_result = "SUCCESS" // This will only run if the steps above succeeded
-                        }
-                    }
-                    post {
-                        always {
-                            bbcGithubNotify(context: "deb/sourceBuild", status: env.debSourceBuild_result)
-                        }
-                    }
+                sh 'rm -rf deb_dist'
+                sh 'python ./setup.py sdist'
+                sh 'make dsc'
+                bbcPrepareDsc()
+                stash(name: "deb_dist", includes: "deb_dist/*")
+                script {
+                    env.debSourceBuild_result = "SUCCESS" // This will only run if the steps above succeeded
+                }
+            }
+            post {
+                always {
+                    bbcGithubNotify(context: "deb/sourceBuild", status: env.debSourceBuild_result)
                 }
             }
         }
@@ -134,10 +130,10 @@ pipeline {
                     }
                 }
             }
-            parallel {
+            stages {
                 stage ("Upload Docs") {
                     when {
-		                    anyOf {
+                            anyOf {
                             expression { return params.FORCE_DOCSUPLOAD }
                             expression {
                                 bbcShouldUploadArtifacts(branches: ["master"])
@@ -208,11 +204,11 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        always {
-            bbcSlackNotify(channel: "#apmm-cloudfit")
+            post {
+                always {
+                    bbcSlackNotify(channel: "#apmm-cloudfit")
+                }
+            }
         }
     }
 }
