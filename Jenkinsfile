@@ -48,7 +48,7 @@ pipeline {
                             env.lint_result = "FAILURE"
                         }
                         bbcGithubNotify(context: "lint/flake8", status: "PENDING")
-                        sh 'flake8'
+                        sh 'make lint'
                         script {
                             env.lint_result = "SUCCESS" // This will only run if the sh above succeeded
                         }
@@ -64,43 +64,21 @@ pipeline {
                        sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-docs make docs'
                    }
                 }
-                stage ("Unit Tests") {
-                    stages {
-                        stage ("Python 2.7 Unit Tests") {
-                            steps {
-                                script {
-                                    env.py27_result = "FAILURE"
-                                }
-                                bbcGithubNotify(context: "tests/py27", status: "PENDING")
-                                // Use a workdirectory in /tmp to avoid shebang length limitation
-                                sh 'tox -e py27 --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-py27'
-                                script {
-                                    env.py27_result = "SUCCESS" // This will only run if the sh above succeeded
-                                }
-                            }
-                            post {
-                                always {
-                                    bbcGithubNotify(context: "tests/py27", status: env.py27_result)
-                                }
-                            }
+                stage ("Python 3 Unit Tests") {
+                    steps {
+                        script {
+                            env.py3_result = "FAILURE"
                         }
-                        stage ("Python 3 Unit Tests") {
-                            steps {
-                                script {
-                                    env.py3_result = "FAILURE"
-                                }
-                                bbcGithubNotify(context: "tests/py3", status: "PENDING")
-                                // Use a workdirectory in /tmp to avoid shebang length limitation
-                                sh 'tox -e py3 --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-py3'
-                                script {
-                                    env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
-                                }
-                            }
-                            post {
-                                always {
-                                    bbcGithubNotify(context: "tests/py3", status: env.py3_result)
-                                }
-                            }
+                        bbcGithubNotify(context: "tests/py3", status: "PENDING")
+                        // Use a workdirectory in /tmp to avoid shebang length limitation
+                        sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-py36 make test'
+                        script {
+                            env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
+                        }
+                    }
+                    post {
+                        always {
+                            bbcGithubNotify(context: "tests/py3", status: env.py3_result)
                         }
                     }
                 }
@@ -185,9 +163,8 @@ pipeline {
                         }
                         bbcGithubNotify(context: "pypi/upload", status: "PENDING")
                         sh 'rm -rf dist/*'
-                        bbcMakeGlobalWheel("py27")
-                        bbcMakeGlobalWheel("py3")
-                        bbcTwineUpload(toxenv: "py3", pypi: true)
+                        bbcMakeGlobalWheel("py36")
+                        bbcTwineUpload(toxenv: "py36", pypi: true)
                         script {
                             env.pypiUpload_result = "SUCCESS" // This will only run if the steps above succeeded
                         }
