@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.7.2
+- This is the final version of this library to support Python 2.7
+
 ## 1.7.1
 - Correct inclusivity names in `timerange_between` method.
 
