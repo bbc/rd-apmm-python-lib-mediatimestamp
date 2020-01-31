@@ -24,11 +24,6 @@ These data types are of use in a number of situations, but particularly for code
 are normally stored in this fashion.
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-
-from six import integer_types
-
 from .bases import BaseTimeOffset, BaseTimeRange
 
 import calendar
@@ -36,11 +31,6 @@ import time
 import re
 from datetime import datetime
 from dateutil import tz
-try:
-    import pyipputils.ipptimestamp
-    IPP_UTILS = True
-except ImportError:
-    IPP_UTILS = False
 
 from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
 from .exceptions import TsValueError
@@ -441,7 +431,7 @@ class TimeOffset(BaseTimeOffset):
         return sec_frac
 
     def _cast_arg(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             return TimeOffset(other)
         elif isinstance(other, float):
             return TimeOffset.from_sec_frac(str(other))
@@ -472,14 +462,8 @@ class Timestamp(TimeOffset):
 
     @classmethod
     def get_time(cls, force_pure_python=False):
-        if not force_pure_python and IPP_UTILS:
-            (sign, sec, ns) = pyipputils.ipptimestamp.ipp_ts_gettime()
-            return cls(sign=sign, sec=sec, ns=ns)
-        else:
-            # Fall back to system time if IPP Utils not found
-            # No PTP so not as accurate
-            utc_time = time.time()
-            return cls.from_utc(int(utc_time), int(utc_time*cls.MAX_NANOSEC) - int(utc_time)*cls.MAX_NANOSEC)
+        utc_time = time.time()
+        return cls.from_utc(int(utc_time), int(utc_time*cls.MAX_NANOSEC) - int(utc_time)*cls.MAX_NANOSEC)
 
     @classmethod
     def from_tai_sec_frac(cls, ts_str):

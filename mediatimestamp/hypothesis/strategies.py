@@ -14,9 +14,6 @@ This module provides additional strategies for hypothesis which generate the typ
 it will be of use if using hypothesis to test code which depends upon mediatimestamp.
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-
 from hypothesis.strategies import integers, lists
 
 from mediatimestamp.immutable import Timestamp as ImmutableTimestamp

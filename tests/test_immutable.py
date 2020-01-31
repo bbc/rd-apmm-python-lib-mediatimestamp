@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from six import PY2
-
 import unittest
-import mock
-import contextlib
+from unittest import mock
 
 from datetime import datetime
 from dateutil import tz
@@ -27,22 +24,7 @@ from copy import deepcopy
 from mediatimestamp.immutable import Timestamp, TimeOffset, TsValueError, TimeRange
 
 
-@contextlib.contextmanager
-def dummysubtest(*args, **kwargs):
-    yield None
-
-
-if PY2:
-    BUILTINS = "__builtin__"
-else:
-    BUILTINS = "builtins"
-
-
 class TestTimeOffset(unittest.TestCase):
-    def setUp(self):
-        if PY2:
-            self.subTest = dummysubtest
-
     def test_MAX_NANOSEC(self):
         self.assertEqual(TimeOffset.MAX_NANOSEC, 1000000000)
 
@@ -881,10 +863,6 @@ class TestTimestamp(unittest.TestCase):
 
 
 class TestTimeRange (unittest.TestCase):
-    def setUp(self):
-        if PY2:
-            self.subTest = dummysubtest
-
     def test_never(self):
         rng = TimeRange.never()
 

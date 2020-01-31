@@ -15,12 +15,9 @@
 """All exceptions in this library descend from TsValueError
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-
 
 class TsValueError(Exception):
     """ Raised when the time offset or timestamp input is invalid """
     def __init__(self, msg):
-        super(TsValueError, self).__init__(msg)
+        super().__init__(msg)
         self.msg = msg
