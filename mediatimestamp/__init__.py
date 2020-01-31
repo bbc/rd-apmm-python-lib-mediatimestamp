@@ -22,15 +22,6 @@ are normally stored in this fashion.
 """
 
 from .exceptions import TsValueError
-from .mutable import TimeOffset, Timestamp, TimeRange
+from .immutable import TimeOffset, Timestamp, TimeRange
 
 __all__ = ["TsValueError", "TimeOffset", "Timestamp", "TimeRange"]
-
-# THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PIUBLIC INTERFACE
-# The same values are made available by methods that are, such as
-#
-# TimeOffset.MAX_NANOSEC
-#
-# So use those instead. At some point these constants could go away without warning
-
-from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP  # noqa: F401
