@@ -57,6 +57,23 @@ pipeline {
                 }
             }
         }
+        stage ("Type Check") {
+            steps {
+                script {
+                    env.mypy_result = "FAILURE"
+                }
+                bbcGithubNotify(context: "type/mypy", status: "PENDING")
+                sh 'make mypy'
+                script {
+                    env.mypy_result = "SUCCESS" // This will only run if the sh above succeeded
+                }
+            }
+            post {
+                always {
+                    bbcGithubNotify(context: "type/mypy", status: env.mypy_result)
+                }
+            }
+        }
         stage ("Build Docs") {
             steps {
                 sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-docs make docs'

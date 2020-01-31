@@ -69,8 +69,8 @@ clean:
 
 testenv: $(TOX_ACTIVATE)
 
-$(TOX_ACTIVATE): tox.ini
-	tox -e $(TOXENV) --recreate --workdir $(TOXDIR)
+$(TOX_ACTIVATE): tox.ini setup.py
+	tox -e $(TOXENV) --recreate --notest --workdir $(TOXDIR)
 
 test:
 	tox --workdir $(TOXDIR)
@@ -129,6 +129,9 @@ $(topbuilddir)/docs/$(MODNAME).html: $(topbuilddir)/docs/$(MODNAME) $(TOX_ACTIVA
 	. $(TOX_ACTIVATE) && cd $(topbuilddir)/docs/ && pydoc -w ./
 
 lint: $(TOX_ACTIVATE)
-	. $(TOX_ACTIVATE) && flake8
+	. $(TOX_ACTIVATE) && flake8 $(MODNAME) tests
 
-.PHONY: test testenv clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec docs lint
+mypy: $(TOX_ACTIVATE)
+	. $(TOX_ACTIVATE) && python -m mypy -p $(MODNAME)
+
+.PHONY: test testenv clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec docs lint mypy

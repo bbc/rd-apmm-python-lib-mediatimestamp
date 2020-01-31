@@ -14,24 +14,61 @@
 
 __all__ = ["BaseTimeOffset", "BaseTimeRange"]
 
+from typing import Optional
+from abc import ABCMeta, abstractmethod
 
-class BaseTimeOffset (object):
+
+class BaseTimeOffset (object, metaclass=ABCMeta):
     """This class exists as an abstract base class for all TimeOffset and
     Timestamp classes. It exists mostly so that comparisons between mutable
     and immutable timestamps can be done even though the two are entirely
     different classes."""
-    def __init__(self, sec=0, ns=0, sign=1):
+    def __init__(self, sec: int = 0, ns: int = 0, sign: int = 1):
+        self.sec: int
+        self.ns: int
+        self.sign: int
+
         self.__dict__['sec'] = int(sec)
         self.__dict__['ns'] = int(ns)
         self.__dict__['sign'] = int(sign)
 
 
-class BaseTimeRange (object):
+class BaseTimeRange (object, metaclass=ABCMeta):
     """This class exists as an abstract base class for all TimeRange classes.
     It exists mostly so that comparisons between mutable and immutable
     timeranges can be done even though the two are entirely different
     classes."""
-    def __init__(self, start, end, inclusivity):
+
+    class Inclusivity (int):
+        def __and__(self, other: int) -> "BaseTimeRange.Inclusivity":
+            return BaseTimeRange.Inclusivity(int(self) & int(other) & 0x3)
+
+        def __or__(self, other: int) -> "BaseTimeRange.Inclusivity":
+            return BaseTimeRange.Inclusivity((int(self) | int(other)) & 0x3)
+
+        def __xor__(self, other: int) -> "BaseTimeRange.Inclusivity":
+            return BaseTimeRange.Inclusivity((int(self) ^ int(other)) & 0x3)
+
+        def __invert__(self) -> "BaseTimeRange.Inclusivity":
+            return BaseTimeRange.Inclusivity((~int(self)) & 0x3)
+
+    EXCLUSIVE = Inclusivity(0x0)
+    INCLUDE_START = Inclusivity(0x1)
+    INCLUDE_END = Inclusivity(0x2)
+    INCLUSIVE = Inclusivity(0x3)
+
+    def __init__(self,
+                 start: Optional[BaseTimeOffset],
+                 end: Optional[BaseTimeOffset],
+                 inclusivity: "BaseTimeRange.Inclusivity"):
+        self.start: Optional[BaseTimeOffset]
+        self.end: Optional[BaseTimeOffset]
+        self.inclusivity: BaseTimeRange.Inclusivity
+
         self.__dict__['start'] = start
         self.__dict__['end'] = end
         self.__dict__['inclusivity'] = inclusivity
+
+    @abstractmethod
+    def is_empty(self) -> bool:
+        ...

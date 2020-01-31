@@ -658,10 +658,10 @@ class Timestamp(TimeOffset):
 class TimeRange (BaseTimeRange):
     """A nanosecond mutable precision time range object"""
 
-    EXCLUSIVE = 0x0
-    INCLUDE_START = 0x1
-    INCLUDE_END = 0x2
-    INCLUSIVE = 0x3
+    EXCLUSIVE = BaseTimeRange.EXCLUSIVE
+    INCLUDE_START = BaseTimeRange.INCLUDE_START
+    INCLUDE_END = BaseTimeRange.INCLUDE_END
+    INCLUSIVE = BaseTimeRange.INCLUSIVE
 
     def __init__(self, start, end, inclusivity=INCLUSIVE):
         """Construct a time range starting at start and ending at end

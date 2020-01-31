@@ -433,7 +433,7 @@ class TestTimestamp(unittest.TestCase):
         for t in test_ts:
             with mock.patch("time.time") as time:
                 time.return_value = t[0]
-                gottime = Timestamp.get_time(force_pure_python=True)
+                gottime = Timestamp.get_time()
                 self.assertEqual(gottime, t[1], msg="Times not equal, expected: %r, got %r" % (t[1], gottime))
 
     def test_iaddsub(self):
@@ -840,7 +840,7 @@ class TestTimestamp(unittest.TestCase):
 
         for t in tests:
             with mock.patch("time.time", return_value=0.0):
-                self.assertEqual(Timestamp.from_str(t[0], force_pure_python=True), t[1])
+                self.assertEqual(Timestamp.from_str(t[0]), t[1])
 
     def test_get_leap_seconds(self):
         """get_leap_seconds should return the correct number of leap seconds at any point in history."""
