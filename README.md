@@ -40,9 +40,8 @@ from mediatimestamp.immutable import Timestamp
 print(Timestamp.get_time())
 ```
 
-This module provides two different interfaces
-`mediatimestamp.immutable` and `mediatimestamp.mutable`, each of which
-contains three main classes which are used for representing time:
+This module provides three main classes which are used for representing
+time:
 
 * `Timestamp` represents an instant in time expressed as a nanosecond
    precision timestamp.
@@ -51,22 +50,16 @@ contains three main classes which are used for representing time:
   timestamps, which may be inclusive of neither, one, or both of its
   ends.
 
-For backwards compatibility reasons the `mutable` versions of these
-classes can also be imported directly from the base level of
-`mediatimestamp`. It is recommended that all future code not use this
-method but instead use the `mediatimestamp.immutable` submodule. In
-most cases this will not require much change to existing code. In a
-future version of this code the version imported from the base level may
-change, though this will not happen without a major version bump. It is
-intended that the immutable version will always be available via the
-`mediatimestamp.immutable` module even if this change is made.
+For backwards compatibility reasons the classes can be imported either
+directly from the base level of `mediatimestamp` or as
+`mediatimestamp.immutable`.
 
 In addition a submodule `mediatimestamp.hypothesis.strategies` is
 provided for those who wish to make use of these timestamps in code
 that is to be tested using the `hypothesis` library. The strategies
 provided in this module allow the creation of hypothesis based tests
 which make use of `Timestamp` and `TimeRange` objects. Versions
-generating mutable and immutable timestamps are provided.
+generating timestamps are provided.
 
 ## Documentation
 

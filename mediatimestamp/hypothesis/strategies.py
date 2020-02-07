@@ -20,14 +20,9 @@ from mediatimestamp.immutable import Timestamp as ImmutableTimestamp
 from mediatimestamp.immutable import TimeOffset as ImmutableTimeOffset
 from mediatimestamp.immutable import TimeRange as ImmutableTimeRange
 
-from mediatimestamp.mutable import Timestamp as MutableTimestamp
-from mediatimestamp.mutable import TimeOffset as MutableTimeOffset
-from mediatimestamp.mutable import TimeRange as MutableTimeRange
-
 
 __all__ = ["timestamps", "timeoffsets", "timeranges", "disjoint_timeranges",
-           "immutabletimestamps", "immutabletimeoffsets", "immutabletimeranges", "disjoint_immutabletimeranges",
-           "mutabletimestamps", "mutabletimeoffsets", "mutabletimeranges", "disjoint_mutabletimeranges"]
+           "immutabletimestamps", "immutabletimeoffsets", "immutabletimeranges", "disjoint_immutabletimeranges"]
 
 MIN_IMMUTABLETIMESTAMP = ImmutableTimestamp(ImmutableTimestamp.MAX_SECONDS, ImmutableTimestamp.MAX_NANOSEC - 1, -1)
 MAX_IMMUTABLETIMESTAMP = ImmutableTimestamp(ImmutableTimestamp.MAX_SECONDS, ImmutableTimestamp.MAX_NANOSEC - 1)
@@ -110,58 +105,7 @@ def disjoint_immutabletimeranges(in_range=ImmutableTimeRange.eternity(), min_siz
             ))
 
 
-#
-# Mutable versions for backwards compatibility. There's no good reason to need these.
-#
-
-MIN_MUTABLETIMESTAMP = MutableTimestamp(0, 0)
-MAX_MUTABLETIMESTAMP = MutableTimestamp(MutableTimestamp.MAX_SECONDS, MutableTimestamp.MAX_NANOSEC - 1)
-
-MIN_MUTABLETIMEOFFSET = MutableTimeOffset(MutableTimeOffset.MAX_SECONDS, MutableTimeOffset.MAX_NANOSEC - 1, -1)
-MAX_MUTABLETIMEOFFSET = MutableTimestamp(MutableTimeOffset.MAX_SECONDS, MutableTimeOffset.MAX_NANOSEC - 1)
-
-
-def mutabletimestamps(min_value=MIN_MUTABLETIMESTAMP, max_value=MAX_MUTABLETIMESTAMP):
-    """Draw from this strategy to get mutable timestamps between the given minimum and maximum values.
-    Shrinks towards earlier timestamps."""
-
-    return (immutabletimestamps(min_value=ImmutableTimestamp.from_timeoffset(min_value),
-                                max_value=ImmutableTimestamp.from_timeoffset(max_value))
-            .map(MutableTimestamp.from_timeoffset))
-
-
-def mutabletimeoffsets(min_value=MIN_MUTABLETIMEOFFSET, max_value=MAX_MUTABLETIMEOFFSET):
-    """Draw from this strategy to get mutable timeoffsets between the given minimum and maximum values.
-    Shrinks towards zero."""
-
-    return (immutabletimeoffsets(min_value=ImmutableTimeOffset.from_timeoffset(min_value),
-                                 max_value=ImmutableTimeOffset.from_timeoffset(max_value))
-            .map(MutableTimeOffset.from_timeoffset))
-
-
-def mutabletimeranges(in_range=MutableTimeRange.eternity(), inclusivity=MutableTimeRange.INCLUSIVE):
-    """Draw from this strategy to get non-empty mutable timeranges with the specified inclusivity completely contained
-    in the specified range. Shrinks towards smaller ranges and earlier ones."""
-
-    return immutabletimeranges(in_range=ImmutableTimeRange.from_timerange(in_range),
-                               inclusivity=inclusivity).map(MutableTimeRange.from_timerange)
-
-
-def disjoint_mutabletimeranges(in_range=MutableTimeRange.eternity(), min_size=0, max_size=None):
-    """Draw from this strategy to get lists of non-overlapping mutable TimeRange classes all of which will be
-    inclusive and contained within the specified range.
-
-    Shrinks towards fewer ranges, smaller ones, and earlier ones."""
-
-    return disjoint_immutabletimeranges(in_range=ImmutableTimeRange.from_timerange(in_range),
-                                        min_size=min_size,
-                                        max_size=max_size).map(MutableTimeRange.from_timerange)
-
-
-#
-# In a future version these will become aliases for the immutable versions
-#
-timeoffsets = mutabletimeoffsets
-timestamps = mutabletimestamps
-timeranges = mutabletimeranges
-disjoint_timeranges = disjoint_mutabletimeranges
+timeoffsets = immutabletimeoffsets
+timestamps = immutabletimestamps
+timeranges = immutabletimeranges
+disjoint_timeranges = disjoint_immutabletimeranges

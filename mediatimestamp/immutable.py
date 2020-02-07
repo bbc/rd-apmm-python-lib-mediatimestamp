@@ -59,7 +59,6 @@ from typing import Tuple, Union, Optional, cast, Iterator
 
 from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
 from .exceptions import TsValueError
-from .bases import BaseTimeOffset, BaseTimeRange
 
 __all__ = ["TimeOffset", "Timestamp", "TimeRange"]
 
@@ -99,10 +98,10 @@ def _parse_iso8601(iso8601: str) -> Tuple[int, int, int, int, int, int, int]:
     return (int(iso_date[0]), int(iso_date[1]), int(iso_date[2]), int(iso_time[0]), int(iso_time[1]), int(sec), ns)
 
 
-TimeOffsetConstructionType = Union[BaseTimeOffset, int, float]
+TimeOffsetConstructionType = Union["TimeOffset", int, float]
 
 
-class TimeOffset(BaseTimeOffset):
+class TimeOffset(object):
     """A nanosecond precision immutable time difference object.
 
     Note that the canonical representation of a TimeOffset is seconds:nanoseconds, e.g. "4:500000000".
@@ -121,13 +120,20 @@ class TimeOffset(BaseTimeOffset):
 
     def __init__(self, sec: int = 0, ns: int = 0, sign: int = 1):
         (sec, ns, sign) = self._make_valid(int(sec), int(ns), int(sign))
-        super(TimeOffset, self).__init__(sec, ns, sign)
+
+        self.sec: int
+        self.ns: int
+        self.sign: int
+
+        self.__dict__['sec'] = int(sec)
+        self.__dict__['ns'] = int(ns)
+        self.__dict__['sign'] = int(sign)
 
     def __setattr__(self, name: str, value: object) -> None:
         raise TsValueError("Cannot assign to an immutable TimeOffset")
 
     @classmethod
-    def from_timeoffset(cls, toff: BaseTimeOffset) -> "TimeOffset":
+    def from_timeoffset(cls, toff: "TimeOffset") -> "TimeOffset":
         return cls(sec=toff.sec, ns=toff.ns, sign=toff.sign)
 
     @classmethod
@@ -367,7 +373,7 @@ class TimeOffset(BaseTimeOffset):
         return self.to_nanosec()
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, (int, float, BaseTimeOffset)) and self.compare(other) == 0
+        return isinstance(other, (int, float, TimeOffset)) and self.compare(other) == 0
 
     def __ne__(self, other: object) -> bool:
         return not (self == other)
@@ -470,7 +476,7 @@ class TimeOffset(BaseTimeOffset):
             return TimeOffset(other)
         elif isinstance(other, float):
             return TimeOffset.from_sec_frac(str(other))
-        elif isinstance(other, BaseTimeOffset) and not isinstance(other, TimeOffset):
+        elif isinstance(other, TimeOffset) and not isinstance(other, TimeOffset):
             return TimeOffset.from_timeoffset(other)
         else:
             return other
@@ -515,7 +521,7 @@ class Timestamp(TimeOffset):
         return cls.from_utc(int(utc_time), int(utc_time*cls.MAX_NANOSEC) - int(utc_time)*cls.MAX_NANOSEC)
 
     @classmethod
-    def from_timeoffset(cls, toff: BaseTimeOffset) -> "Timestamp":
+    def from_timeoffset(cls, toff: TimeOffset) -> "Timestamp":
         return cls(sec=toff.sec, ns=toff.ns, sign=toff.sign)
 
     @classmethod
@@ -727,13 +733,26 @@ class Timestamp(TimeOffset):
         return cast(Timestamp, super().__rmul__(anint))
 
 
-class TimeRange (BaseTimeRange):
+class TimeRange (object):
     """A nanosecond immutable precision time range object"""
 
-    EXCLUSIVE = BaseTimeRange.EXCLUSIVE
-    INCLUDE_START = BaseTimeRange.INCLUDE_START
-    INCLUDE_END = BaseTimeRange.INCLUDE_END
-    INCLUSIVE = BaseTimeRange.INCLUSIVE
+    class Inclusivity (int):
+        def __and__(self, other: int) -> "TimeRange.Inclusivity":
+            return TimeRange.Inclusivity(int(self) & int(other) & 0x3)
+
+        def __or__(self, other: int) -> "TimeRange.Inclusivity":
+            return TimeRange.Inclusivity((int(self) | int(other)) & 0x3)
+
+        def __xor__(self, other: int) -> "TimeRange.Inclusivity":
+            return TimeRange.Inclusivity((int(self) ^ int(other)) & 0x3)
+
+        def __invert__(self) -> "TimeRange.Inclusivity":
+            return TimeRange.Inclusivity((~int(self)) & 0x3)
+
+    EXCLUSIVE = Inclusivity(0x0)
+    INCLUDE_START = Inclusivity(0x1)
+    INCLUDE_END = Inclusivity(0x2)
+    INCLUSIVE = Inclusivity(0x3)
 
     class Rounding(int):
         pass
@@ -749,15 +768,20 @@ class TimeRange (BaseTimeRange):
     def __init__(self,
                  start: Optional[Timestamp],
                  end: Optional[Timestamp],
-                 inclusivity: BaseTimeRange.Inclusivity = INCLUSIVE):
+                 inclusivity: "TimeRange.Inclusivity" = INCLUSIVE):
         """Construct a time range starting at start and ending at end
 
         :param start: A Timestamp or None
         :param end: A Timestamp or None
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
-        super().__init__(start, end, inclusivity)
+        super().__init__()
         self.start: Optional[Timestamp]
         self.end: Optional[Timestamp]
+        self.inclusivity: TimeRange.Inclusivity
+
+        self.__dict__['start'] = start
+        self.__dict__['end'] = end
+        self.__dict__['inclusivity'] = inclusivity
 
     def __setattr__(self, name: str, value: object) -> None:
         raise TsValueError("Cannot assign to an immutable TimeRange")
@@ -843,7 +867,7 @@ class TimeRange (BaseTimeRange):
                 yield ts
 
     @classmethod
-    def from_timerange(cls, other: BaseTimeRange) -> "TimeRange":
+    def from_timerange(cls, other: "TimeRange") -> "TimeRange":
         """Construct an immutable timerange from another timerange (which might be mutable)"""
         start: Optional[Timestamp] = None
         if other.start is not None:
@@ -858,7 +882,7 @@ class TimeRange (BaseTimeRange):
                          other.inclusivity)
 
     @classmethod
-    def from_start(cls, start: Timestamp, inclusivity: BaseTimeRange.Inclusivity = INCLUSIVE) -> "TimeRange":
+    def from_start(cls, start: Timestamp, inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
         """Construct a time range starting at start with no end
 
         :param start: A Timestamp
@@ -866,7 +890,7 @@ class TimeRange (BaseTimeRange):
         return cls(start, None, inclusivity)
 
     @classmethod
-    def from_end(cls, end: Timestamp, inclusivity: BaseTimeRange.Inclusivity = INCLUSIVE) -> "TimeRange":
+    def from_end(cls, end: Timestamp, inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
         """Construct a time range ending at end with no start
 
         :param end: A Timestamp
@@ -877,7 +901,7 @@ class TimeRange (BaseTimeRange):
     def from_start_length(cls,
                           start: Timestamp,
                           length: TimeOffset,
-                          inclusivity: BaseTimeRange.Inclusivity = INCLUSIVE) -> "TimeRange":
+                          inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
         """Construct a time range starting at start and ending at (start + length)
 
         :param start: A Timestamp
@@ -907,7 +931,7 @@ class TimeRange (BaseTimeRange):
         return cls(ts, ts, TimeRange.INCLUSIVE)
 
     @classmethod
-    def from_str(cls, s: str, inclusivity: BaseTimeRange.Inclusivity = INCLUSIVE) -> "TimeRange":
+    def from_str(cls, s: str, inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
         """Convert a string to a time range.
 
         Valid ranges are:
@@ -992,7 +1016,7 @@ class TimeRange (BaseTimeRange):
 
     def __contains__(self, ts: object) -> bool:
         """Returns true if the timestamp is within this range."""
-        return ((isinstance(ts, BaseTimeOffset)) and
+        return ((isinstance(ts, TimeOffset)) and
                 (self.start is None or ts >= self.start) and
                 (self.end is None or ts <= self.end) and
                 (not ((self.start is not None) and
@@ -1003,7 +1027,7 @@ class TimeRange (BaseTimeRange):
                       (self.inclusivity & TimeRange.INCLUDE_END == 0))))
 
     def __eq__(self, other: object) -> bool:
-        return (isinstance(other, BaseTimeRange) and
+        return (isinstance(other, TimeRange) and
                 ((self.is_empty() and other.is_empty()) or
                 (((self.start is None and other.start is None) or
                   (self.start == other.start and
