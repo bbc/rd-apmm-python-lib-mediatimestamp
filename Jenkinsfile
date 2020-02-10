@@ -40,6 +40,12 @@ pipeline {
         https_proxy = "http://www-cache.rd.bbc.co.uk:8080"
     }
     stages {
+        stage ("Clean") {
+            steps {
+                sh 'git clean -dfx'
+                sh 'make clean'
+            }
+        }
         stage ("Linting Check") {
             steps {
                 script {
@@ -76,7 +82,7 @@ pipeline {
         }
         stage ("Build Docs") {
             steps {
-                sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-docs make docs'
+                sh 'make docs'
             }
         }
         stage ("Python 3 Unit Tests") {
@@ -86,7 +92,7 @@ pipeline {
                 }
                 bbcGithubNotify(context: "tests/py3", status: "PENDING")
                 // Use a workdirectory in /tmp to avoid shebang length limitation
-                sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-py36 make test'
+                sh 'make test'
                 script {
                     env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
                 }
