@@ -1173,6 +1173,12 @@ class TestTimeRange (unittest.TestCase):
              [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(1, 51)]),
             (TimeRange.from_str("(10:0_11:0]"), 50, TimeOffset(0, 100),
              [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0)"), Fraction(50, 1), TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0)"), Fraction(50, 2), TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 25, 1) for n in range(0, 25)]),
+            (TimeRange.from_str("[10:0_11:0)"), Fraction(25, 2), TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 25, 2) for n in range(0, 13)]),
         ]
 
         for (tr, rate, phase_offset, expected) in test_data:

@@ -54,6 +54,7 @@ import re
 from datetime import datetime
 from dateutil import tz
 from fractions import Fraction
+from numbers import Rational
 
 from typing import Tuple, Union, Optional, cast, Iterator
 
@@ -61,6 +62,9 @@ from .constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
 from .exceptions import TsValueError
 
 __all__ = ["TimeOffset", "Timestamp", "TimeRange"]
+
+
+RationalTypes = Union[int, Rational]
 
 
 def _parse_seconds_fraction(frac: str) -> int:
@@ -137,14 +141,19 @@ class TimeOffset(object):
         return cls(sec=toff.sec, ns=toff.ns, sign=toff.sign)
 
     @classmethod
-    def get_interval_fraction(cls, rate_num: int, rate_den: int = 1, factor: int = 1) -> "TimeOffset":
+    def get_interval_fraction(cls,
+                              rate_num: RationalTypes,
+                              rate_den: RationalTypes = 1,
+                              factor: int = 1) -> "TimeOffset":
         if rate_num <= 0 or rate_den <= 0:
             raise TsValueError("invalid rate")
         if factor < 1:
             raise TsValueError("invalid interval factor")
-        sec = rate_den // (rate_num * factor)
-        rem = rate_den % (rate_num * factor)
-        ns = cls.MAX_NANOSEC * rem // (rate_num * factor)
+
+        rate = Fraction(rate_num, rate_den)
+        sec = rate.denominator // (rate.numerator * factor)
+        rem = rate.denominator % (rate.numerator * factor)
+        ns = cls.MAX_NANOSEC * rem // (rate.numerator * factor)
         return cls(sec=sec, ns=ns)
 
     @classmethod
@@ -189,7 +198,7 @@ class TimeOffset(object):
             return cls.from_sec_nsec(toff_str)
 
     @classmethod
-    def from_count(cls, count: int, rate_num: int, rate_den: int = 1) -> "TimeOffset":
+    def from_count(cls, count: int, rate_num: RationalTypes, rate_den: RationalTypes = 1) -> "TimeOffset":
         """Returns a new TimeOffset derived from a count and a particular rate.
 
         :param count: The sample count
@@ -198,10 +207,11 @@ class TimeOffset(object):
         """
         if rate_num <= 0 or rate_den <= 0:
             raise TsValueError("invalid rate")
+        rate = Fraction(rate_num, rate_den)
         abs_count = abs(count)
-        sec = (abs_count * rate_den) // rate_num
-        rem = (abs_count * rate_den) % rate_num
-        ns = (rem * cls.MAX_NANOSEC) // rate_num
+        sec = (abs_count * rate.denominator) // rate.numerator
+        rem = (abs_count * rate.denominator) % rate.numerator
+        ns = (rem * cls.MAX_NANOSEC) // rate.numerator
         sign = 1
         if count < 0:
             sign = -1
@@ -259,7 +269,8 @@ class TimeOffset(object):
             self.sec,
             self._get_fractional_seconds(fixed_size=fixed_size))
 
-    def to_count(self, rate_num: int, rate_den: int = 1, rounding: "TimeOffset.Rounding" = ROUND_NEAREST) -> int:
+    def to_count(self, rate_num: RationalTypes, rate_den: RationalTypes = 1,
+                 rounding: "TimeOffset.Rounding" = ROUND_NEAREST) -> int:
         """Returns an integer such that if this TimeOffset is equal to an exact number of samples at the given rate
         then this is equal, and otherwise the value is rounded as indicated by the rounding parameter.
 
@@ -269,6 +280,7 @@ class TimeOffset(object):
         """
         if rate_num <= 0 or rate_den <= 0:
             raise TsValueError("invalid rate")
+        rate = Fraction(rate_num, rate_den)
         abs_off = self.__abs__()
         use_rounding = rounding
         if self.sign < 0:
@@ -277,9 +289,9 @@ class TimeOffset(object):
             elif use_rounding == self.ROUND_DOWN:
                 use_rounding = self.ROUND_UP
         if use_rounding == self.ROUND_NEAREST:
-            rnd_off = TimeOffset.get_interval_fraction(rate_num, rate_den, 2)
+            rnd_off = TimeOffset.get_interval_fraction(rate, factor=2)
         elif use_rounding == self.ROUND_UP:
-            rnd_off = TimeOffset.get_interval_fraction(rate_num, rate_den, 1) - TimeOffset(0, 1)
+            rnd_off = TimeOffset.get_interval_fraction(rate, factor=1) - TimeOffset(0, 1)
         else:
             rnd_off = TimeOffset()
         if rnd_off.sign > 0:
@@ -291,12 +303,12 @@ class TimeOffset(object):
         # reduce {f1} as follows: a*b/c = ((a/c)*c + a%c) * b) / c = (a/c)*b + (a%c)*b/c
         # then combine the f1 and f2 nanosecond values before division by rate_den to avoid loss of precision when
         # off_sec and off_nsec are not multiples of rate_den, but (off_sec + off_nsec) is
-        f1_whole = (abs_off.sec // rate_den) * rate_num
-        f1_dennsec = (abs_off.sec % rate_den) * rate_num * self.MAX_NANOSEC
-        f2_dennsec = abs_off.ns * rate_num
-        return self.sign * (f1_whole + (f1_dennsec + f2_dennsec) // (rate_den * self.MAX_NANOSEC))
+        f1_whole = (abs_off.sec // rate.denominator) * rate.numerator
+        f1_dennsec = (abs_off.sec % rate.denominator) * rate.numerator * self.MAX_NANOSEC
+        f2_dennsec = abs_off.ns * rate.numerator
+        return self.sign * (f1_whole + (f1_dennsec + f2_dennsec) // (rate.denominator * self.MAX_NANOSEC))
 
-    def to_phase_offset(self, rate_num: int, rate_den: int = 1) -> "TimeOffset":
+    def to_phase_offset(self, rate_num: RationalTypes, rate_den: RationalTypes = 1) -> "TimeOffset":
         """Return the smallest positive TimeOffset such that abs(self - returnval) represents an integer number of
         samples at the given rate"""
         return self - self.normalise(rate_num, rate_den, rounding=TimeOffset.ROUND_DOWN)
@@ -333,8 +345,8 @@ class TimeOffset(object):
         return self.sign * (self.sec*self.MAX_NANOSEC + self.ns)
 
     def normalise(self,
-                  rate_num: int,
-                  rate_den: int = 1,
+                  rate_num: RationalTypes,
+                  rate_den: RationalTypes = 1,
                   rounding: "TimeOffset.Rounding" = ROUND_NEAREST) -> "TimeOffset":
         """Return the nearest TimeOffset to self which represents an integer number of samples at the given rate.
 
@@ -604,7 +616,7 @@ class Timestamp(TimeOffset):
             return cast(Timestamp, super(Timestamp, cls).from_str(ts_str))
 
     @classmethod
-    def from_count(cls, count: int, rate_num: int, rate_den: int = 1) -> "Timestamp":
+    def from_count(cls, count: int, rate_num: RationalTypes, rate_den: RationalTypes = 1) -> "Timestamp":
         return cast(Timestamp, super(Timestamp, cls).from_count(count, rate_num, rate_den))
 
     @classmethod
@@ -675,13 +687,17 @@ class Timestamp(TimeOffset):
                                                       utc_bd.tm_sec + leap_sec,
                                                       frac_sec)
 
-    def to_smpte_timelabel(self, rate_num: int, rate_den: int = 1, utc_offset: Optional[int] = None) -> str:
+    def to_smpte_timelabel(self,
+                           rate_num: RationalTypes,
+                           rate_den: RationalTypes = 1,
+                           utc_offset: Optional[int] = None) -> str:
         if rate_num <= 0 or rate_den <= 0:
             raise TsValueError("invalid rate")
-        count = self.to_count(rate_num, rate_den)
-        normalised_ts = Timestamp.from_count(count, rate_num, rate_den)
+        rate = Fraction(rate_num, rate_den)
+        count = self.to_count(rate)
+        normalised_ts = Timestamp.from_count(count, rate)
         tai_seconds = normalised_ts.sec
-        count_on_or_after_second = Timestamp(tai_seconds, 0).to_count(rate_num, rate_den, self.ROUND_UP)
+        count_on_or_after_second = Timestamp(tai_seconds, 0).to_count(rate, rounding=self.ROUND_UP)
         count_within_second = count - count_on_or_after_second
 
         utc_sec, utc_ns, is_leap = normalised_ts.to_utc()
@@ -713,7 +729,7 @@ class Timestamp(TimeOffset):
                     utc_bd.tm_year, utc_bd.tm_mon, utc_bd.tm_mday,
                     utc_bd.tm_hour, utc_bd.tm_min, utc_bd.tm_sec + leap_sec,
                     count_within_second,
-                    rate_num, rate_den,
+                    rate.numerator, rate.denominator,
                     utc_sign_char, utc_offset_hour, utc_offset_min,
                     tai_sign_char, abs(tai_offset))
 
@@ -793,8 +809,8 @@ class TimeRange (object):
         return self.reversed_at_rate(MAX_NANOSEC)
 
     def at_rate(self,
-                numerator: int,
-                denominator: int = 1,
+                numerator: RationalTypes,
+                denominator: RationalTypes = 1,
                 phase_offset: TimeOffset = TimeOffset()) -> Iterator[Timestamp]:
         """Returns an iterable which yields Timestamp objects at the specified rate within the
         range starting at the beginning and moving later.
@@ -809,16 +825,16 @@ class TimeRange (object):
         :returns: an iterable that yields Timestamp objects
         """
         rate = Fraction(numerator, denominator)
-        if phase_offset >= TimeOffset.from_count(1, rate.numerator, rate.denominator):
+        if phase_offset >= TimeOffset.from_count(1, rate):
             raise ValueError("phase_offset of {} is too large for rate {}".format(phase_offset, rate))
 
         if self.start is None:
             raise ValueError("Cannot iterate over a timerange with no start")
 
-        count = (self.start - phase_offset).to_count(rate.numerator, rate.denominator)
+        count = (self.start - phase_offset).to_count(rate)
 
         while True:
-            ts = Timestamp.from_count(count, rate.numerator, rate.denominator) + phase_offset
+            ts = Timestamp.from_count(count, rate) + phase_offset
             count += 1
 
             if ts < self.start or ((self.inclusivity & TimeRange.INCLUDE_START) == 0 and ts == self.start):
@@ -830,8 +846,8 @@ class TimeRange (object):
                 yield ts
 
     def reversed_at_rate(self,
-                         numerator: int,
-                         denominator: int = 1,
+                         numerator: RationalTypes,
+                         denominator: RationalTypes = 1,
                          phase_offset: TimeOffset = TimeOffset()) -> Iterator[Timestamp]:
         """Returns an iterable which yields Timestamp objects at the specified rate within the
         range starting at the end and moving earlier.
@@ -846,16 +862,16 @@ class TimeRange (object):
         :returns: an iterable that yields Timestamp objects
         """
         rate = Fraction(numerator, denominator)
-        if phase_offset >= TimeOffset.from_count(1, rate.numerator, rate.denominator):
+        if phase_offset >= TimeOffset.from_count(1, rate):
             raise ValueError("phase_offset of {} is too large for rate {}".format(phase_offset, rate))
 
         if self.end is None:
             raise ValueError("Cannot reverse iterate over a timerange with no end")
 
-        count = (self.end - phase_offset).to_count(rate.numerator, rate.denominator)
+        count = (self.end - phase_offset).to_count(rate)
 
         while True:
-            ts = Timestamp.from_count(count, rate.numerator, rate.denominator) + phase_offset
+            ts = Timestamp.from_count(count, rate) + phase_offset
             count -= 1
 
             if ts > self.end or ((self.inclusivity & TimeRange.INCLUDE_END) == 0 and ts == self.end):
@@ -1282,7 +1298,10 @@ class TimeRange (object):
                 self.start == self.end and
                 self.inclusivity != TimeRange.INCLUSIVE)
 
-    def normalise(self, rate_num: int, rate_den: int = 1, rounding: Rounding = ROUND_NEAREST) -> "TimeRange":
+    def normalise(self,
+                  rate_num: RationalTypes,
+                  rate_den: RationalTypes = 1,
+                  rounding: Rounding = ROUND_NEAREST) -> "TimeRange":
         """Returns a normalised half-open TimeRange based on this timerange.
 
         The returned TimeRange will always have INCLUDE_START inclusivity.
@@ -1325,28 +1344,30 @@ class TimeRange (object):
             start_rounding = Timestamp.Rounding(rounding)
             end_rounding = Timestamp.Rounding(rounding)
 
+        rate = Fraction(rate_num, rate_den)
+
         start: Optional[int]
         if self.bounded_before():
-            start = cast(Timestamp, self.start).to_count(rate_num, rate_den, start_rounding)
+            start = cast(Timestamp, self.start).to_count(rate, rounding=start_rounding)
         else:
             start = None
 
         end: Optional[int]
         if self.bounded_after():
-            end = cast(Timestamp, self.end).to_count(rate_num, rate_den, end_rounding)
+            end = cast(Timestamp, self.end).to_count(rate, rounding=end_rounding)
         else:
             end = None
 
         if rounding == TimeRange.ROUND_START and self.bounded_before() and self.bounded_after():
-            if start == cast(Timestamp, self.start).to_count(rate_num, rate_den, Timestamp.ROUND_UP):
-                end = cast(Timestamp, self.end).to_count(rate_num, rate_den, Timestamp.ROUND_UP)
+            if start == cast(Timestamp, self.start).to_count(rate, rounding=Timestamp.ROUND_UP):
+                end = cast(Timestamp, self.end).to_count(rate, rounding=Timestamp.ROUND_UP)
             else:
-                end = cast(Timestamp, self.end).to_count(rate_num, rate_den, Timestamp.ROUND_DOWN)
+                end = cast(Timestamp, self.end).to_count(rate, rounding=Timestamp.ROUND_DOWN)
         elif rounding == TimeRange.ROUND_END and self.bounded_before() and self.bounded_after():
-            if end == cast(Timestamp, self.end).to_count(rate_num, rate_den, Timestamp.ROUND_UP):
-                start = cast(Timestamp, self.start).to_count(rate_num, rate_den, Timestamp.ROUND_UP)
+            if end == cast(Timestamp, self.end).to_count(rate, rounding=Timestamp.ROUND_UP):
+                start = cast(Timestamp, self.start).to_count(rate, rounding=Timestamp.ROUND_UP)
             else:
-                start = cast(Timestamp, self.start).to_count(rate_num, rate_den, Timestamp.ROUND_DOWN)
+                start = cast(Timestamp, self.start).to_count(rate, rounding=Timestamp.ROUND_DOWN)
 
         if start is not None and not self.includes_start():
             start += 1
@@ -1356,9 +1377,9 @@ class TimeRange (object):
         start_ts: Optional[Timestamp] = None
         end_ts: Optional[Timestamp] = None
         if start is not None:
-            start_ts = Timestamp.from_count(start, rate_num, rate_den)
+            start_ts = Timestamp.from_count(start, rate)
         if end is not None:
-            end_ts = Timestamp.from_count(end, rate_num, rate_den)
+            end_ts = Timestamp.from_count(end, rate)
 
         return TimeRange(start_ts,
                          end_ts,
