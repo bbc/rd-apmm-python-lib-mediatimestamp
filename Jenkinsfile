@@ -40,91 +40,88 @@ pipeline {
         https_proxy = "http://www-cache.rd.bbc.co.uk:8080"
     }
     stages {
-        stage ("Parallel Jobs") {
-            parallel {
-                stage ("Linting Check") {
-                    steps {
-                        script {
-                            env.lint_result = "FAILURE"
-                        }
-                        bbcGithubNotify(context: "lint/flake8", status: "PENDING")
-                        sh 'flake8'
-                        script {
-                            env.lint_result = "SUCCESS" // This will only run if the sh above succeeded
-                        }
-                    }
-                    post {
-                        always {
-                            bbcGithubNotify(context: "lint/flake8", status: env.lint_result)
-                        }
-                    }
+        stage ("Clean") {
+            steps {
+                sh 'git clean -dfx'
+                sh 'make clean'
+            }
+        }
+        stage ("Linting Check") {
+            steps {
+                script {
+                    env.lint_result = "FAILURE"
                 }
-                stage ("Build Docs") {
-                   steps {
-                       sh 'TOXDIR=/tmp/$(basename ${WORKSPACE})/tox-docs make docs'
-                   }
+                bbcGithubNotify(context: "lint/flake8", status: "PENDING")
+                sh 'make lint'
+                script {
+                    env.lint_result = "SUCCESS" // This will only run if the sh above succeeded
                 }
-                stage ("Unit Tests") {
-                    stages {
-                        stage ("Python 2.7 Unit Tests") {
-                            steps {
-                                script {
-                                    env.py27_result = "FAILURE"
-                                }
-                                bbcGithubNotify(context: "tests/py27", status: "PENDING")
-                                // Use a workdirectory in /tmp to avoid shebang length limitation
-                                sh 'tox -e py27 --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-py27'
-                                script {
-                                    env.py27_result = "SUCCESS" // This will only run if the sh above succeeded
-                                }
-                            }
-                            post {
-                                always {
-                                    bbcGithubNotify(context: "tests/py27", status: env.py27_result)
-                                }
-                            }
-                        }
-                        stage ("Python 3 Unit Tests") {
-                            steps {
-                                script {
-                                    env.py3_result = "FAILURE"
-                                }
-                                bbcGithubNotify(context: "tests/py3", status: "PENDING")
-                                // Use a workdirectory in /tmp to avoid shebang length limitation
-                                sh 'tox -e py3 --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-py3'
-                                script {
-                                    env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
-                                }
-                            }
-                            post {
-                                always {
-                                    bbcGithubNotify(context: "tests/py3", status: env.py3_result)
-                                }
-                            }
-                        }
-                    }
+            }
+            post {
+                always {
+                    bbcGithubNotify(context: "lint/flake8", status: env.lint_result)
                 }
-                stage ("Debian Source Build") {
-                    steps {
-                        script {
-                            env.debSourceBuild_result = "FAILURE"
-                        }
-                        bbcGithubNotify(context: "deb/sourceBuild", status: "PENDING")
+            }
+        }
+        stage ("Type Check") {
+            steps {
+                script {
+                    env.mypy_result = "FAILURE"
+                }
+                bbcGithubNotify(context: "type/mypy", status: "PENDING")
+                sh 'make mypy'
+                script {
+                    env.mypy_result = "SUCCESS" // This will only run if the sh above succeeded
+                }
+            }
+            post {
+                always {
+                    bbcGithubNotify(context: "type/mypy", status: env.mypy_result)
+                }
+            }
+        }
+        stage ("Build Docs") {
+            steps {
+                sh 'make docs'
+            }
+        }
+        stage ("Python 3 Unit Tests") {
+            steps {
+                script {
+                    env.py3_result = "FAILURE"
+                }
+                bbcGithubNotify(context: "tests/py3", status: "PENDING")
+                // Use a workdirectory in /tmp to avoid shebang length limitation
+                sh 'make test'
+                script {
+                    env.py3_result = "SUCCESS" // This will only run if the sh above succeeded
+                }
+            }
+            post {
+                always {
+                    bbcGithubNotify(context: "tests/py3", status: env.py3_result)
+                }
+            }
+        }
+        stage ("Debian Source Build") {
+            steps {
+                script {
+                    env.debSourceBuild_result = "FAILURE"
+                }
+                bbcGithubNotify(context: "deb/sourceBuild", status: "PENDING")
 
-                        sh 'rm -rf deb_dist'
-                        sh 'python ./setup.py sdist'
-                        sh 'make dsc'
-                        bbcPrepareDsc()
-                        stash(name: "deb_dist", includes: "deb_dist/*")
-                        script {
-                            env.debSourceBuild_result = "SUCCESS" // This will only run if the steps above succeeded
-                        }
-                    }
-                    post {
-                        always {
-                            bbcGithubNotify(context: "deb/sourceBuild", status: env.debSourceBuild_result)
-                        }
-                    }
+                sh 'rm -rf deb_dist'
+                sh 'python ./setup.py sdist'
+                sh 'make dsc'
+                bbcPrepareDsc()
+                stash(name: "deb_dist", includes: "deb_dist/*")
+                script {
+                    env.debSourceBuild_result = "SUCCESS" // This will only run if the steps above succeeded
+                }
+            }
+            post {
+                always {
+                    bbcGithubNotify(context: "deb/sourceBuild", status: env.debSourceBuild_result)
                 }
             }
         }
@@ -156,10 +153,10 @@ pipeline {
                     }
                 }
             }
-            parallel {
+            stages {
                 stage ("Upload Docs") {
                     when {
-		                    anyOf {
+                            anyOf {
                             expression { return params.FORCE_DOCSUPLOAD }
                             expression {
                                 bbcShouldUploadArtifacts(branches: ["master"])
@@ -185,9 +182,8 @@ pipeline {
                         }
                         bbcGithubNotify(context: "pypi/upload", status: "PENDING")
                         sh 'rm -rf dist/*'
-                        bbcMakeGlobalWheel("py27")
-                        bbcMakeGlobalWheel("py3")
-                        bbcTwineUpload(toxenv: "py3", pypi: true)
+                        bbcMakeGlobalWheel("py36")
+                        bbcTwineUpload(toxenv: "py36", pypi: true)
                         script {
                             env.pypiUpload_result = "SUCCESS" // This will only run if the steps above succeeded
                         }
@@ -231,11 +227,11 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        always {
-            bbcSlackNotify(channel: "#apmm-cloudfit")
+            post {
+                always {
+                    bbcSlackNotify(channel: "#apmm-cloudfit")
+                }
+            }
         }
     }
 }

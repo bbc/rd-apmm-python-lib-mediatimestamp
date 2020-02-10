@@ -1,5 +1,11 @@
 # mediatimestamp Changelog
 
+## 2.0.0 (under construction)
+- Dropped all support for python 2.7
+- Swapped the mutable and immutable defaults
+- Removed the inclusion of the constants at the top level
+- Removed all mutable timestamps
+
 ## 1.7.2
 - This is the final version of this library to support Python 2.7
 

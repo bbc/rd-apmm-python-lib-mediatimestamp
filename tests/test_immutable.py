@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from six import PY2
-
 import unittest
-import mock
-import contextlib
+from unittest import mock
 
 from datetime import datetime
 from dateutil import tz
@@ -27,22 +24,7 @@ from copy import deepcopy
 from mediatimestamp.immutable import Timestamp, TimeOffset, TsValueError, TimeRange
 
 
-@contextlib.contextmanager
-def dummysubtest(*args, **kwargs):
-    yield None
-
-
-if PY2:
-    BUILTINS = "__builtin__"
-else:
-    BUILTINS = "builtins"
-
-
 class TestTimeOffset(unittest.TestCase):
-    def setUp(self):
-        if PY2:
-            self.subTest = dummysubtest
-
     def test_MAX_NANOSEC(self):
         self.assertEqual(TimeOffset.MAX_NANOSEC, 1000000000)
 
@@ -451,7 +433,7 @@ class TestTimestamp(unittest.TestCase):
         for t in test_ts:
             with mock.patch("time.time") as time:
                 time.return_value = t[0]
-                gottime = Timestamp.get_time(force_pure_python=True)
+                gottime = Timestamp.get_time()
                 self.assertEqual(gottime, t[1], msg="Times not equal, expected: %r, got %r" % (t[1], gottime))
 
     def test_iaddsub(self):
@@ -858,7 +840,7 @@ class TestTimestamp(unittest.TestCase):
 
         for t in tests:
             with mock.patch("time.time", return_value=0.0):
-                self.assertEqual(Timestamp.from_str(t[0], force_pure_python=True), t[1])
+                self.assertEqual(Timestamp.from_str(t[0]), t[1])
 
     def test_get_leap_seconds(self):
         """get_leap_seconds should return the correct number of leap seconds at any point in history."""
@@ -881,10 +863,6 @@ class TestTimestamp(unittest.TestCase):
 
 
 class TestTimeRange (unittest.TestCase):
-    def setUp(self):
-        if PY2:
-            self.subTest = dummysubtest
-
     def test_never(self):
         rng = TimeRange.never()
 
@@ -1195,6 +1173,12 @@ class TestTimeRange (unittest.TestCase):
              [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(1, 51)]),
             (TimeRange.from_str("(10:0_11:0]"), 50, TimeOffset(0, 100),
              [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0)"), Fraction(50, 1), TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0)"), Fraction(50, 2), TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 25, 1) for n in range(0, 25)]),
+            (TimeRange.from_str("[10:0_11:0)"), Fraction(25, 2), TimeOffset(),
+             [Timestamp(10, 0) + TimeOffset.from_count(n, 25, 2) for n in range(0, 13)]),
         ]
 
         for (tr, rate, phase_offset, expected) in test_data:

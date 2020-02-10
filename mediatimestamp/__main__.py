@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
-from __future__ import absolute_import
-
-from .mutable import Timestamp
+from .immutable import Timestamp
 
 
 if __name__ == '__main__':  # pragma: no cover
