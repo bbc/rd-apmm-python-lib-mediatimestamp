@@ -58,8 +58,7 @@ In addition a submodule `mediatimestamp.hypothesis.strategies` is
 provided for those who wish to make use of these timestamps in code
 that is to be tested using the `hypothesis` library. The strategies
 provided in this module allow the creation of hypothesis based tests
-which make use of `Timestamp` and `TimeRange` objects. Versions
-generating timestamps are provided.
+which make use of `Timestamp` and `TimeRange` objects.
 
 ## Documentation
 
