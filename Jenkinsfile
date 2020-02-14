@@ -149,7 +149,7 @@ pipeline {
                     expression { return params.FORCE_DEBUPLOAD }
                     expression { return params.FORCE_DOCSUPLOAD }
                     expression {
-                        bbcShouldUploadArtifacts(branches: ["master"])
+                        bbcShouldUploadArtifacts(branches: ["master", "dev"])
                     }
                 }
             }
@@ -191,6 +191,33 @@ pipeline {
                     post {
                         always {
                             bbcGithubNotify(context: "pypi/upload", status: env.pypiUpload_result)
+                        }
+                    }
+                }
+                stage ("Upload to Artifactory") {
+                    when {
+                        anyOf {
+                            expression { return params.FORCE_PYUPLOAD }
+                            expression {
+                                bbcShouldUploadArtifacts(branches: ["dev"])
+                            }
+                        }
+                    }
+                    steps {
+                        script {
+                            env.artifactoryUpload_result = "FAILURE"
+                        }
+                        bbcGithubNotify(context: "artifactory/upload", status: "PENDING")
+                        sh 'rm -rf dist/*'
+                        bbcMakeGlobalWheel("py36")
+                        bbcTwineUpload(toxenv: "py36", pypi: false)
+                        script {
+                            env.artifactoryUpload_result = "SUCCESS" // This will only run if the steps above succeeded
+                        }
+                    }
+                    post {
+                        always {
+                            bbcGithubNotify(context: "artifactory/upload", status: env.artifactoryUpload_result)
                         }
                     }
                 }
