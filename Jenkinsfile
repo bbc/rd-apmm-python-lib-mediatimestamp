@@ -38,8 +38,15 @@ pipeline {
     environment {
         http_proxy = "http://www-cache.rd.bbc.co.uk:8080"
         https_proxy = "http://www-cache.rd.bbc.co.uk:8080"
+        PATH = "$HOME/.pyenv/bin:$PATH"
     }
     stages {
+        stage("Ensure pyenv has python3.6.8") {
+            steps {
+                sh "pyenv install -s 3.6.8"
+                sh "pyenv local 3.6.8"
+            }
+        }
         stage ("Parallel Jobs") {
             parallel {
                 stage ("Linting Check") {
