@@ -720,6 +720,17 @@ class TimeRange (BaseTimeRange):
         :param start: A Timestamp or None
         :param end: A Timestamp or None
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END"""
+        # Normalise the 'never' cases
+        if start is not None and end is not None:
+            if start > end or (start == end and inclusivity != TimeRange.INCLUSIVE):
+                start = Timestamp()
+                end = Timestamp()
+                inclusivity = TimeRange.EXCLUSIVE
+
+        # Normalise the 'eternity' cases
+        if start is None and end is None:
+            inclusivity = TimeRange.INCLUSIVE
+
         super(TimeRange, self).__init__(start, end, inclusivity)
 
     def __setattr__(self, name, value):
