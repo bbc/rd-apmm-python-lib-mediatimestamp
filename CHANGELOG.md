@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 1.7.2
+- Require Python version 3.6 rather than 3.
+
 ## 1.7.1
 - Correct inclusivity names in `timerange_between` method.
 
