@@ -6,6 +6,10 @@
 - Removed the inclusion of the constants at the top level
 - Removed all mutable timestamps
 
+## 1.7.3
+- Normalise time ranges where start > end to equal TimeRange.never().
+- Normalise inclusivity for unbounded time ranges to equal TimeRange.eternity().
+
 ## 1.7.2
 - This is the final version of this library to support Python 2.7
 

@@ -795,6 +795,17 @@ class TimeRange (object):
         self.end: Optional[Timestamp]
         self.inclusivity: TimeRange.Inclusivity
 
+        # Normalise the 'never' cases
+        if start is not None and end is not None:
+            if start > end or (start == end and inclusivity != TimeRange.INCLUSIVE):
+                start = Timestamp()
+                end = Timestamp()
+                inclusivity = TimeRange.EXCLUSIVE
+
+        # Normalise the 'eternity' cases
+        if start is None and end is None:
+            inclusivity = TimeRange.INCLUSIVE
+
         self.__dict__['start'] = start
         self.__dict__['end'] = end
         self.__dict__['inclusivity'] = inclusivity

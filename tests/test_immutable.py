@@ -1583,3 +1583,22 @@ class TestTimeRange (unittest.TestCase):
             with self.subTest(first=first, second=second):
                 with self.assertRaises(ValueError):
                     first.union_with_timerange(second)
+
+    def test_never_normalise(self):
+        """Check 'never' (empty) normalisation"""
+        test_data = [
+            TimeRange.from_str("[100:0_0:0]"),
+            TimeRange.from_str("[10:0_10:0)"),
+            TimeRange.from_str("(10:0_10:0]"),
+        ]
+
+        for tr in test_data:
+            with self.subTest(tr=tr):
+                self.assertEqual(tr.start, TimeRange.never().start)
+                self.assertEqual(tr.end, TimeRange.never().end)
+                self.assertEqual(tr.inclusivity, TimeRange.never().inclusivity)
+
+    def test_eternity_normalise(self):
+        """Check 'eternity' normalisation"""
+        tr = TimeRange(None, None, TimeRange.EXCLUSIVE)
+        self.assertEqual(tr.inclusivity, TimeRange.INCLUSIVE)
