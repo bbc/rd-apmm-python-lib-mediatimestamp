@@ -733,6 +733,19 @@ class Timestamp(TimeOffset):
                     utc_sign_char, utc_offset_hour, utc_offset_min,
                     tai_sign_char, abs(tai_offset))
 
+    def normalise(self,
+                  rate_num: RationalTypes,
+                  rate_den: RationalTypes = 1,
+                  rounding: "TimeOffset.Rounding" = TimeOffset.ROUND_NEAREST) -> "Timestamp":
+        """Return the nearest Timestamp to self which represents an integer number of samples at the given rate.
+
+        :param rate_num: Rate numerator
+        :param rate_den: Rate denominator
+        :param rounding: How to round, if set to TimeOffset.ROUND_DOWN (resp. TimeOffset.ROUND_UP) this method will only
+                         return a TimeOffset less than or equal to this one (resp. greater than or equal to).
+        """
+        return self.from_count(self.to_count(rate_num, rate_den, rounding), rate_num, rate_den)
+
     def __add__(self, other_in: TimeOffsetConstructionType) -> "Timestamp":
         return cast(Timestamp, super().__add__(other_in))
 
