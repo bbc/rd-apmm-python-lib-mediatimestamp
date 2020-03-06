@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
-
 # THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PUBLIC INTERFACE
 # The same values are made available by methods that are, such as
 #

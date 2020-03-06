@@ -1,4 +1,4 @@
-Copyright (c) BBC 2017
+Copyright (c) BBC 2017-2020
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this Specification except in compliance with the License.
