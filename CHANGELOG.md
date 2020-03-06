@@ -1,6 +1,6 @@
 # mediatimestamp Changelog
 
-## 2.0.0 (under construction)
+## 2.0.0
 - Dropped all support for python 2.7
 - Swapped the mutable and immutable defaults
 - Removed the inclusion of the constants at the top level
