@@ -136,7 +136,9 @@ pipeline {
             steps {
                 bbcGithubNotify(context: "deb/packageBuild", status: "PENDING")
                 // Build for all supported platforms and extract results into workspace
-                bbcParallelPbuild(stashname: "deb_dist", dists: bbcGetSupportedUbuntuVersions(), arch: "amd64")
+                bbcParallelPbuild(stashname: "deb_dist",
+                                    dists: bbcGetSupportedUbuntuVersions(exclude: ["xenial"]),
+                                    arch: "amd64")
             }
             post {
                 success {
