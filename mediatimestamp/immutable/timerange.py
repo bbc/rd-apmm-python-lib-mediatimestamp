@@ -14,17 +14,60 @@
 
 import re
 from fractions import Fraction
-
-from typing import Tuple, Union, Optional, cast, Iterator
+from abc import ABCMeta, abstractmethod
+from typing import Tuple, Union, Optional, cast, Iterator, Type, TYPE_CHECKING
+from typing_extensions import Protocol, runtime_checkable
 
 from ..constants import MAX_NANOSEC
 from ..exceptions import TsValueError
 
 from ._types import RationalTypes
-from .timeoffset import TimeOffset
-from .timestamp import Timestamp
+from .timeoffset import TimeOffset, SupportsMediaTimeOffset, mediatimeoffset
+from .timestamp import Timestamp, SupportsMediaTimestamp, mediatimestamp
 
-__all__ = ["TimeRange"]
+__all__ = ["TimeRange", "SupportsMediaTimeRange", "mediatimerange"]
+
+
+if TYPE_CHECKING:
+    @runtime_checkable
+    class SupportsMediaTimeRange (Protocol):
+        def __mediatimerange__(self) -> "TimeRange":
+            ...
+else:
+    class SupportsMediaTimeRange (metaclass=ABCMeta):
+        """This is an abstract base class for any class that can be automagically converted into a TimeRange.
+
+        To implement this simply implement the __mediatimerange__ magic method. No need to inherit from this
+        class explicitly.
+        """
+        @classmethod
+        def __subclasshook__(cls, subclass: Type) -> bool:
+            if (
+                issubclass(subclass, TimeRange) or
+                hasattr(subclass, "__mediatimerange__") or
+                issubclass(subclass, SupportsMediaTimestamp)
+            ):
+                return True
+            else:
+                return False
+
+        @abstractmethod
+        def __mediatimerange__(self) -> "TimeRange":
+            ...
+
+
+def mediatimerange(v: SupportsMediaTimeRange) -> "TimeRange":
+    """This method can be called on any object which supports the __mediatimerange__ magic method
+    and also on a TimeRange. It will always return a TimeRange or raise a ValueError.
+    """
+    if isinstance(v, TimeRange):
+        return v
+    elif hasattr(v, "__mediatimerange__"):
+        return v.__mediatimerange__()
+    elif isinstance(v, SupportsMediaTimestamp):
+        return mediatimerange(mediatimestamp(v))
+    else:
+        raise ValueError("{!r} cannot be converted to a mediatimestamp.TimeRange".format(v))
 
 
 class TimeRange (object):
@@ -60,8 +103,8 @@ class TimeRange (object):
     ROUND_END = Rounding(6)
 
     def __init__(self,
-                 start: Optional[Timestamp],
-                 end: Optional[Timestamp],
+                 start: Optional[SupportsMediaTimestamp],
+                 end: Optional[SupportsMediaTimestamp],
                  inclusivity: "TimeRange.Inclusivity" = INCLUSIVE):
         """Construct a time range starting at start and ending at end
 
@@ -72,6 +115,12 @@ class TimeRange (object):
         self.start: Optional[Timestamp]
         self.end: Optional[Timestamp]
         self.inclusivity: TimeRange.Inclusivity
+
+        # Convert convertible inputs
+        if start is not None:
+            start = mediatimestamp(start)
+        if end is not None:
+            end = mediatimestamp(end)
 
         # Normalise the 'never' cases
         if start is not None and end is not None:
@@ -91,6 +140,9 @@ class TimeRange (object):
     def __setattr__(self, name: str, value: object) -> None:
         raise TsValueError("Cannot assign to an immutable TimeRange")
 
+    def __mediatimerange__(self) -> "TimeRange":
+        return self
+
     def __iter__(self) -> Iterator[Timestamp]:
         return self.at_rate(MAX_NANOSEC)
 
@@ -100,7 +152,7 @@ class TimeRange (object):
     def at_rate(self,
                 numerator: RationalTypes,
                 denominator: RationalTypes = 1,
-                phase_offset: TimeOffset = TimeOffset()) -> Iterator[Timestamp]:
+                phase_offset: SupportsMediaTimeOffset = TimeOffset()) -> Iterator[Timestamp]:
         """Returns an iterable which yields Timestamp objects at the specified rate within the
         range starting at the beginning and moving later.
 
@@ -114,6 +166,7 @@ class TimeRange (object):
         :returns: an iterable that yields Timestamp objects
         """
         rate = Fraction(numerator, denominator)
+        phase_offset = mediatimeoffset(phase_offset)
         if phase_offset >= TimeOffset.from_count(1, rate):
             raise ValueError("phase_offset of {} is too large for rate {}".format(phase_offset, rate))
 
@@ -137,7 +190,7 @@ class TimeRange (object):
     def reversed_at_rate(self,
                          numerator: RationalTypes,
                          denominator: RationalTypes = 1,
-                         phase_offset: TimeOffset = TimeOffset()) -> Iterator[Timestamp]:
+                         phase_offset: SupportsMediaTimeOffset = TimeOffset()) -> Iterator[Timestamp]:
         """Returns an iterable which yields Timestamp objects at the specified rate within the
         range starting at the end and moving earlier.
 
@@ -150,6 +203,7 @@ class TimeRange (object):
 
         :returns: an iterable that yields Timestamp objects
         """
+        phase_offset = mediatimeoffset(phase_offset)
         rate = Fraction(numerator, denominator)
         if phase_offset >= TimeOffset.from_count(1, rate):
             raise ValueError("phase_offset of {} is too large for rate {}".format(phase_offset, rate))
@@ -172,8 +226,10 @@ class TimeRange (object):
                 yield ts
 
     @classmethod
-    def from_timerange(cls, other: "TimeRange") -> "TimeRange":
-        """Construct an immutable timerange from another timerange (which might be mutable)"""
+    def from_timerange(cls, other: SupportsMediaTimeRange) -> "TimeRange":
+        """Construct an immutable timerange from another timerange"""
+        other = mediatimerange(other)
+
         start: Optional[Timestamp] = None
         if other.start is not None:
             start = Timestamp.from_timeoffset(other.start)
@@ -187,7 +243,7 @@ class TimeRange (object):
                          other.inclusivity)
 
     @classmethod
-    def from_start(cls, start: Timestamp, inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
+    def from_start(cls, start: SupportsMediaTimestamp, inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
         """Construct a time range starting at start with no end
 
         :param start: A Timestamp
@@ -195,7 +251,7 @@ class TimeRange (object):
         return cls(start, None, inclusivity)
 
     @classmethod
-    def from_end(cls, end: Timestamp, inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
+    def from_end(cls, end: SupportsMediaTimestamp, inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
         """Construct a time range ending at end with no start
 
         :param end: A Timestamp
@@ -204,8 +260,8 @@ class TimeRange (object):
 
     @classmethod
     def from_start_length(cls,
-                          start: Timestamp,
-                          length: TimeOffset,
+                          start: SupportsMediaTimestamp,
+                          length: SupportsMediaTimeOffset,
                           inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
         """Construct a time range starting at start and ending at (start + length)
 
@@ -214,6 +270,8 @@ class TimeRange (object):
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END
 
         :raises: TsValueError if the length is negative"""
+        length = mediatimeoffset(length)
+        start = mediatimestamp(start)
         if length < TimeOffset():
             raise TsValueError("Length must be non-negative")
         return cls(start, start + length, inclusivity)
@@ -229,10 +287,11 @@ class TimeRange (object):
         return cls(Timestamp(), Timestamp(), TimeRange.EXCLUSIVE)
 
     @classmethod
-    def from_single_timestamp(cls, ts: Timestamp) -> "TimeRange":
+    def from_single_timestamp(cls, ts: SupportsMediaTimestamp) -> "TimeRange":
         """Construct a time range containing only a single timestamp
 
         :param ts: A Timestamp"""
+        ts = mediatimestamp(ts)
         return cls(ts, ts, TimeRange.INCLUSIVE)
 
     @classmethod
@@ -321,18 +380,22 @@ class TimeRange (object):
 
     def __contains__(self, ts: object) -> bool:
         """Returns true if the timestamp is within this range."""
-        return ((isinstance(ts, TimeOffset)) and
-                (self.start is None or ts >= self.start) and
-                (self.end is None or ts <= self.end) and
+        return ((isinstance(ts, SupportsMediaTimeOffset)) and
+                (self.start is None or mediatimeoffset(ts) >= self.start) and
+                (self.end is None or mediatimeoffset(ts) <= self.end) and
                 (not ((self.start is not None) and
-                      (ts == self.start) and
+                      (mediatimeoffset(ts) == self.start) and
                       (self.inclusivity & TimeRange.INCLUDE_START == 0))) and
                 (not ((self.end is not None) and
-                      (ts == self.end) and
+                      (mediatimeoffset(ts) == self.end) and
                       (self.inclusivity & TimeRange.INCLUDE_END == 0))))
 
     def __eq__(self, other: object) -> bool:
-        return (isinstance(other, TimeRange) and
+        if not isinstance(other, SupportsMediaTimeRange):
+            return False
+
+        other = mediatimerange(other)
+        return (isinstance(other, SupportsMediaTimeRange) and
                 ((self.is_empty() and other.is_empty()) or
                 (((self.start is None and other.start is None) or
                   (self.start == other.start and
@@ -344,8 +407,9 @@ class TimeRange (object):
     def __repr__(self) -> str:
         return "{}.{}.from_str('{}')".format("mediatimestamp.immutable", type(self).__name__, self.to_sec_nsec_range())
 
-    def contains_subrange(self, tr: "TimeRange") -> bool:
+    def contains_subrange(self, tr: SupportsMediaTimeRange) -> bool:
         """Returns True if the timerange supplied lies entirely inside this timerange"""
+        tr = mediatimerange(tr)
         return ((not self.is_empty()) and
                 (tr.is_empty() or
                  (self.start is None or (tr.start is not None and self.start <= tr.start)) and
@@ -388,8 +452,9 @@ class TimeRange (object):
             (self.end.to_tai_sec_nsec() + brackets[1]) if self.end is not None else ''
             ])
 
-    def intersect_with(self, tr: "TimeRange") -> "TimeRange":
+    def intersect_with(self, tr: SupportsMediaTimeRange) -> "TimeRange":
         """Return a range which represents the intersection of this range with another"""
+        tr = mediatimerange(tr)
         if self.is_empty() or tr.is_empty():
             return TimeRange.never()
 
@@ -411,8 +476,9 @@ class TimeRange (object):
 
         return TimeRange(start, end, inclusivity)
 
-    def starts_inside_timerange(self, other: "TimeRange") -> bool:
+    def starts_inside_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if the start of this timerange is located inside the other."""
+        other = mediatimerange(other)
         return (not self.is_empty() and
                 not other.is_empty() and
                 ((self.bounded_before() and self.start in other and
@@ -421,8 +487,9 @@ class TimeRange (object):
                   (not (self.includes_start() and not other.includes_start()))) or
                  (not self.bounded_before() and not other.bounded_before())))
 
-    def ends_inside_timerange(self, other: "TimeRange") -> bool:
+    def ends_inside_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if the end of this timerange is located inside the other."""
+        other = mediatimerange(other)
         return (not self.is_empty() and
                 not other.is_empty() and
                 ((self.bounded_after() and self.end in other and
@@ -431,8 +498,9 @@ class TimeRange (object):
                   (not (self.includes_end() and not other.includes_end()))) or
                  (not self.bounded_after() and not other.bounded_after())))
 
-    def is_earlier_than_timerange(self, other: "TimeRange") -> bool:
+    def is_earlier_than_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if this timerange ends earlier than the start of the other."""
+        other = mediatimerange(other)
         return (not self.is_empty() and
                 not other.is_empty() and
                 other.bounded_before() and
@@ -441,8 +509,9 @@ class TimeRange (object):
                  (cast(Timestamp, self.end) == cast(Timestamp, other.start) and
                   not (self.includes_end() and other.includes_start()))))
 
-    def is_later_than_timerange(self, other: "TimeRange") -> bool:
+    def is_later_than_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if this timerange starts later than the end of the other."""
+        other = mediatimerange(other)
         return (not self.is_empty() and
                 not other.is_empty() and
                 other.bounded_after() and
@@ -451,8 +520,9 @@ class TimeRange (object):
                  (cast(Timestamp, self.start) == cast(Timestamp, other.end) and
                   not (self.includes_start() and other.includes_end()))))
 
-    def starts_earlier_than_timerange(self, other: "TimeRange") -> bool:
+    def starts_earlier_than_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if this timerange starts earlier than the start of the other."""
+        other = mediatimerange(other)
         return (not self.is_empty() and
                 not other.is_empty() and
                 other.bounded_before() and
@@ -462,8 +532,9 @@ class TimeRange (object):
                    self.includes_start() and
                    not other.includes_start()))))
 
-    def starts_later_than_timerange(self, other: "TimeRange") -> bool:
+    def starts_later_than_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if this timerange starts later than the start of the other."""
+        other = mediatimerange(other)
         return (not self.is_empty() and
                 not other.is_empty() and
                 self.bounded_before() and
@@ -472,8 +543,9 @@ class TimeRange (object):
                   (cast(Timestamp, self.start) == cast(Timestamp, other.start) and
                    (not self.includes_start() and other.includes_start())))))
 
-    def ends_earlier_than_timerange(self, other: "TimeRange") -> bool:
+    def ends_earlier_than_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if this timerange ends earlier than the end of the other."""
+        other = mediatimerange(other)
         return (not self.is_empty() and
                 not other.is_empty() and
                 self.bounded_after() and
@@ -482,8 +554,9 @@ class TimeRange (object):
                   (cast(Timestamp, self.end) == cast(Timestamp, other.end) and
                    (not self.includes_end() and other.includes_end())))))
 
-    def ends_later_than_timerange(self, other: "TimeRange") -> bool:
+    def ends_later_than_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if this timerange ends later than the end of the other."""
+        other = mediatimerange(other)
         return (not self.is_empty() and
                 not other.is_empty() and
                 other.bounded_after() and
@@ -493,12 +566,14 @@ class TimeRange (object):
                    self.includes_end() and
                    not other.includes_end()))))
 
-    def overlaps_with_timerange(self, other: "TimeRange") -> bool:
+    def overlaps_with_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if this timerange and the other overlap."""
+        other = mediatimerange(other)
         return (not self.is_earlier_than_timerange(other) and not self.is_later_than_timerange(other))
 
-    def is_contiguous_with_timerange(self, other: "TimeRange") -> bool:
+    def is_contiguous_with_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if the union of this timerange and the other would be a valid timerange"""
+        other = mediatimerange(other)
         return (self.overlaps_with_timerange(other) or
                 (self.is_earlier_than_timerange(other) and
                  self.end == other.start and
@@ -507,16 +582,18 @@ class TimeRange (object):
                  self.start == other.end and
                  (self.includes_start() or other.includes_end())))
 
-    def union_with_timerange(self, other: "TimeRange") -> "TimeRange":
+    def union_with_timerange(self, other: SupportsMediaTimeRange) -> "TimeRange":
         """Returns the union of this timerange and the other.
         :raises: ValueError if the ranges are not contiguous."""
+        other = mediatimerange(other)
         if not self.is_contiguous_with_timerange(other):
             raise ValueError("Timeranges {} and {} are not contiguous, so cannot take the union.".format(self, other))
 
         return self.extend_to_encompass_timerange(other)
 
-    def extend_to_encompass_timerange(self, other: "TimeRange") -> "TimeRange":
+    def extend_to_encompass_timerange(self, other: SupportsMediaTimeRange) -> "TimeRange":
         """Returns the timerange that encompasses this and the other timerange."""
+        other = mediatimerange(other)
         if self.is_empty():
             return other
 
@@ -546,7 +623,7 @@ class TimeRange (object):
 
         return TimeRange(start, end, inclusivity)
 
-    def split_at(self, timestamp: Timestamp) -> Tuple["TimeRange", "TimeRange"]:
+    def split_at(self, timestamp: SupportsMediaTimestamp) -> Tuple["TimeRange", "TimeRange"]:
         """Splits a timerange at a specified timestamp.
 
         It is guaranteed that the splitting point will be in the *second* TimeRange returned, and not in the first.
@@ -555,14 +632,18 @@ class TimeRange (object):
         :returns: A pair of TimeRange objects
         :raises: ValueError if timestamp not in self"""
 
+        timestamp = mediatimestamp(timestamp)
+
         if timestamp not in self:
             raise ValueError("Cannot split range {} at {}".format(self, timestamp))
 
         return (TimeRange(self.start, timestamp, (self.inclusivity & TimeRange.INCLUDE_START)),
                 TimeRange(timestamp, self.end, TimeRange.INCLUDE_START | (self.inclusivity & TimeRange.INCLUDE_END)))
 
-    def timerange_between(self, other: "TimeRange") -> "TimeRange":
+    def timerange_between(self, other: SupportsMediaTimeRange) -> "TimeRange":
         """Returns the time range between the end of the earlier timerange and the start of the later one"""
+        other = mediatimerange(other)
+
         if self.is_contiguous_with_timerange(other):
             return TimeRange.never()
         elif self.is_earlier_than_timerange(other):

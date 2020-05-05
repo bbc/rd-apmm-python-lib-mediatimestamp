@@ -18,17 +18,38 @@ import re
 from datetime import datetime
 from dateutil import tz
 from fractions import Fraction
-
-from typing import Tuple, Optional, cast
+from typing import Tuple, Optional, cast, TYPE_CHECKING
+from typing_extensions import Protocol, runtime_checkable
 
 from ..constants import UTC_LEAP
 from ..exceptions import TsValueError
 
 from ._parse import _parse_iso8601
 from ._types import RationalTypes
-from .timeoffset import TimeOffset, TimeOffsetConstructionType
+from .timeoffset import TimeOffset, TimeOffsetConstructionType, mediatimeoffset
 
-__all__ = ["Timestamp"]
+if TYPE_CHECKING:
+    from .timerange import TimeRange  # noqa: F401
+
+__all__ = ["Timestamp", "SupportsMediaTimestamp", "mediatimestamp"]
+
+
+@runtime_checkable
+class SupportsMediaTimestamp (Protocol):
+    def __mediatimestamp__(self) -> "Timestamp":
+        ...
+
+
+def mediatimestamp(v: SupportsMediaTimestamp) -> "Timestamp":
+    """This method can be called on any object which supports the __mediatimestamp__ magic method
+    and also on a Timestamp. It will always return a Timestamp or raise a ValueError.
+    """
+    if isinstance(v, Timestamp):
+        return v
+    elif hasattr(v, "__mediatimestamp__"):
+        return v.__mediatimestamp__()
+    else:
+        raise ValueError("{!r} cannot be converted to a mediatimestamp.Timestamp".format(v))
 
 
 class Timestamp(TimeOffset):
@@ -39,6 +60,17 @@ class Timestamp(TimeOffset):
     def __setattr__(self, name: str, value: object) -> None:
         raise TsValueError("Cannot assign to an immutable Timestamp")
 
+    def __mediatimeoffset__(self) -> TimeOffset:
+        return self
+
+    def __mediatimestamp__(self) -> "Timestamp":
+        return self
+
+    def __mediatimerange__(self) -> "TimeRange":
+        from .timerange import TimeRange  # noqa: F811
+
+        return TimeRange.from_single_timestamp(self)
+
     @classmethod
     def get_time(cls, *, force_pure_python=False) -> "Timestamp":
         """The force_pure_python keyword only argument is ignored."""
@@ -46,7 +78,8 @@ class Timestamp(TimeOffset):
         return cls.from_utc(int(utc_time), int(utc_time*cls.MAX_NANOSEC) - int(utc_time)*cls.MAX_NANOSEC)
 
     @classmethod
-    def from_timeoffset(cls, toff: TimeOffset) -> "Timestamp":
+    def from_timeoffset(cls, toff: TimeOffsetConstructionType) -> "Timestamp":
+        toff = mediatimeoffset(toff)
         return cls(sec=toff.sec, ns=toff.ns, sign=toff.sign)
 
     @classmethod

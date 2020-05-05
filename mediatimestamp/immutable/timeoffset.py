@@ -13,8 +13,9 @@
 # limitations under the License.
 
 from fractions import Fraction
-
-from typing import Tuple, Union
+from typing import Tuple, Union, Type, TYPE_CHECKING
+from typing_extensions import Protocol, runtime_checkable
+from abc import ABCMeta, abstractmethod
 
 from ..constants import MAX_NANOSEC, MAX_SECONDS
 from ..exceptions import TsValueError
@@ -22,10 +23,53 @@ from ..exceptions import TsValueError
 from ._parse import _parse_seconds_fraction
 from ._types import RationalTypes
 
-__all__ = ["TimeOffset", "TimeOffsetConstructionType"]
+__all__ = ["TimeOffset", "TimeOffsetConstructionType", "SupportsMediaTimeOffset", "mediatimeoffset"]
 
 
-TimeOffsetConstructionType = Union["TimeOffset", int, float]
+TimeOffsetConstructionType = Union["TimeOffset", "SupportsMediaTimeOffset", int, float]
+
+
+if TYPE_CHECKING:
+    @runtime_checkable
+    class SupportsMediaTimeOffset (Protocol):
+        def __mediatimeoffset__(self) -> "TimeOffset":
+            ...
+else:
+    class SupportsMediaTimeOffset (metaclass=ABCMeta):
+        """This is an abstract base class for any class that can be automagically converted into a TimeOffset.
+
+        To implement this simply implement the __mediatimeoffset__ magic method. No need to inherit from this
+        class explicitly.
+        """
+        @classmethod
+        def __subclasshook__(cls, subclass: Type) -> bool:
+            if hasattr(subclass, "__mediatimeoffset__") or hasattr(subclass, "__mediatimestamp__"):
+                return True
+            else:
+                return False
+
+        @abstractmethod
+        def __mediatimeoffset__(self) -> "TimeOffset":
+            ...
+
+
+def mediatimeoffset(v: TimeOffsetConstructionType) -> "TimeOffset":
+    """This method can be called on any object which supports the __mediatimeoffset__ magic method
+    and also on a TimeOffset, an int or a float. It will always return a TimeOffset or raise a ValueError.
+    """
+    if isinstance(v, TimeOffset):
+        return v
+    elif isinstance(v, int):
+        return TimeOffset(v)
+    elif isinstance(v, float):
+        return TimeOffset.from_sec_frac(str(v))
+    elif hasattr(v, "__mediatimeoffset__"):
+        return v.__mediatimeoffset__()
+    elif hasattr(v, "__mediatimestamp__"):
+        # Since a Timestamp is a TimeOffset we can fall back to this if available
+        return v.__mediatimestamp__()  # type: ignore
+    else:
+        raise ValueError("{!r} cannot be converted to a mediatimestamp.TimeOffset".format(v))
 
 
 class TimeOffset(object):
@@ -59,8 +103,12 @@ class TimeOffset(object):
     def __setattr__(self, name: str, value: object) -> None:
         raise TsValueError("Cannot assign to an immutable TimeOffset")
 
+    def __mediatimeoffset__(self) -> "TimeOffset":
+        return self
+
     @classmethod
-    def from_timeoffset(cls, toff: "TimeOffset") -> "TimeOffset":
+    def from_timeoffset(cls, toff: TimeOffsetConstructionType) -> "TimeOffset":
+        toff = mediatimeoffset(toff)
         return cls(sec=toff.sec, ns=toff.ns, sign=toff.sign)
 
     @classmethod
@@ -281,7 +329,7 @@ class TimeOffset(object):
         return self.from_count(self.to_count(rate_num, rate_den, rounding), rate_num, rate_den)
 
     def compare(self, other_in: TimeOffsetConstructionType) -> int:
-        other = self._cast_arg(other_in)
+        other = mediatimeoffset(other_in)
         if self.sign != other.sign:
             return self.sign
         elif self.sec < other.sec:
@@ -328,7 +376,7 @@ class TimeOffset(object):
     def __add__(self, other_in: TimeOffsetConstructionType) -> "TimeOffset":
         from .timestamp import Timestamp
 
-        other = self._cast_arg(other_in)
+        other = mediatimeoffset(other_in)
         sec = self.sign*self.sec + other.sign*other.sec
         ns = self.sign*self.ns + other.sign*other.ns
 
@@ -340,7 +388,7 @@ class TimeOffset(object):
     def __sub__(self, other_in: TimeOffsetConstructionType) -> "TimeOffset":
         from .timestamp import Timestamp
 
-        other = self._cast_arg(other_in)
+        other = mediatimeoffset(other_in)
         sec = self.sign*self.sec - other.sign*other.sec
         ns = self.sign*self.ns - other.sign*other.ns
 
@@ -350,12 +398,12 @@ class TimeOffset(object):
             return TimeOffset(sec, ns)
 
     def __iadd__(self, other_in: TimeOffsetConstructionType) -> "TimeOffset":
-        other = self._cast_arg(other_in)
+        other = mediatimeoffset(other_in)
         tmp = self + other
         return self.__class__(tmp.sec, tmp.ns, tmp.sign)
 
     def __isub__(self, other_in: TimeOffsetConstructionType) -> "TimeOffset":
-        other = self._cast_arg(other_in)
+        other = mediatimeoffset(other_in)
         tmp = self - other
         return self.__class__(tmp.sec, tmp.ns, tmp.sign)
 
@@ -409,16 +457,6 @@ class TimeOffset(object):
             div //= 10
 
         return sec_frac
-
-    def _cast_arg(self, other: TimeOffsetConstructionType) -> "TimeOffset":
-        if isinstance(other, int):
-            return TimeOffset(other)
-        elif isinstance(other, float):
-            return TimeOffset.from_sec_frac(str(other))
-        elif isinstance(other, TimeOffset) and not isinstance(other, TimeOffset):
-            return TimeOffset.from_timeoffset(other)
-        else:
-            return other
 
     def _make_valid(self, sec: int, ns: int, sign: int) -> Tuple[int, int, int]:
         if sign > 0 or (sec == 0 and ns == 0):

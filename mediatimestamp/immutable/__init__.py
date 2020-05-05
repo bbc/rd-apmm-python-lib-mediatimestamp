@@ -48,10 +48,14 @@ another TimeOffset as a result.
 An instance of Timestamp multiplied by integers or floats will be treated as an instance of TimeOffset
 """
 
-from .timeoffset import TimeOffset
-from .timestamp import Timestamp
-from .timerange import TimeRange
+from .timeoffset import TimeOffset, SupportsMediaTimeOffset, mediatimeoffset
+from .timestamp import Timestamp, SupportsMediaTimestamp, mediatimestamp
+from .timerange import TimeRange, SupportsMediaTimeRange, mediatimerange
 from ..exceptions import TsValueError
 
 
-__all__ = ["TimeOffset", "Timestamp", "TimeRange", "TsValueError"]
+__all__ = [
+    "TimeOffset", "SupportsMediaTimeOffset", "mediatimeoffset",
+    "Timestamp", "SupportsMediaTimestamp", "mediatimestamp",
+    "TimeRange", "SupportsMediaTimeRange", "mediatimerange",
+    "TsValueError"]
