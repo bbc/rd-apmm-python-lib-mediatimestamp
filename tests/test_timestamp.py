@@ -18,10 +18,36 @@ from unittest import mock
 from datetime import datetime
 from dateutil import tz
 
-from mediatimestamp.immutable import Timestamp, TimeOffset, TsValueError
+from mediatimestamp.immutable import (
+    Timestamp,
+    TimeOffset,
+    TsValueError,
+    mediatimestamp,
+    SupportsMediaTimestamp,
+    SupportsMediaTimeOffset,
+    mediatimeoffset)
 
 
 class TestTimestamp(unittest.TestCase):
+    def test_mediatimestamp(self):
+        ts = Timestamp()
+        self.assertIsInstance(ts, SupportsMediaTimestamp)
+        self.assertIsInstance(ts, SupportsMediaTimeOffset)
+
+        self.assertEqual(ts, mediatimestamp(ts))
+        self.assertEqual(ts, mediatimeoffset(ts))
+
+        class _convertable (object):
+            def __mediatimestamp__(self) -> Timestamp:
+                return Timestamp()
+
+        c = _convertable()
+        self.assertIsInstance(c, SupportsMediaTimestamp)
+        self.assertIsInstance(c, SupportsMediaTimeOffset)
+
+        self.assertEqual(ts, mediatimestamp(c))
+        self.assertEqual(ts, mediatimeoffset(c))
+
     def test_MAX_NANOSEC(self):
         self.assertEqual(Timestamp.MAX_NANOSEC, 1000000000)
 

@@ -16,10 +16,43 @@ import unittest
 
 from fractions import Fraction
 
-from mediatimestamp.immutable import Timestamp, TimeOffset, TsValueError, TimeRange
+from mediatimestamp.immutable import (
+    Timestamp,
+    TimeOffset,
+    TsValueError,
+    TimeRange,
+    SupportsMediaTimeRange,
+    mediatimerange)
 
 
 class TestTimeRange (unittest.TestCase):
+    def test_mediatimerange(self):
+        tr = TimeRange.never()
+        self.assertIsInstance(tr, SupportsMediaTimeRange)
+
+        ts = Timestamp()
+        self.assertIsInstance(ts, SupportsMediaTimeRange)
+
+        self.assertEqual(tr, mediatimerange(tr))
+        self.assertEqual(TimeRange.from_single_timestamp(ts), mediatimerange(ts))
+
+        class _convertible(object):
+            def __mediatimerange__(self) -> TimeRange:
+                return TimeRange.eternity()
+
+        c = _convertible()
+        self.assertIsInstance(c, SupportsMediaTimeRange)
+        self.assertEqual(TimeRange.eternity(), mediatimerange(c))
+
+        class _ts_convertible (object):
+            def __mediatimestamp__(self) -> Timestamp:
+                return Timestamp()
+
+        tsc = _ts_convertible()
+
+        self.assertIsInstance(tsc, SupportsMediaTimeRange)
+        self.assertEqual(TimeRange.from_single_timestamp(Timestamp()), mediatimerange(tsc))
+
     def test_never(self):
         rng = TimeRange.never()
 
@@ -197,6 +230,8 @@ class TestTimeRange (unittest.TestCase):
         c = Timestamp(1530711653, 999999999)
         d = Timestamp(49391596800, 999999)
 
+        self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(b))
+
         self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.INCLUSIVE)))
         self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.INCLUSIVE)))
         self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.EXCLUSIVE)))
@@ -222,6 +257,8 @@ class TestTimeRange (unittest.TestCase):
         b = Timestamp(417799799, 999999999)
         c = Timestamp(1530711653, 999999999)
         d = Timestamp(49391596800, 999999)
+
+        self.assertEqual(TimeRange(a, c, TimeRange.INCLUDE_START).intersect_with(b), mediatimerange(b))
 
         self.assertEqual(TimeRange(a, b, TimeRange.INCLUSIVE).intersect_with(TimeRange(c, d, TimeRange.INCLUSIVE)),
                          TimeRange.never())

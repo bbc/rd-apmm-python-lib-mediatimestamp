@@ -17,10 +17,24 @@ from fractions import Fraction
 
 from copy import deepcopy
 
-from mediatimestamp.immutable import TimeOffset, TsValueError
+from mediatimestamp.immutable import TimeOffset, TsValueError, SupportsMediaTimeOffset, mediatimeoffset
 
 
 class TestTimeOffset(unittest.TestCase):
+    def test_supportsmediatimeoffset(self):
+        to = TimeOffset()
+        self.assertIsInstance(to, SupportsMediaTimeOffset)
+
+        class _convertable(object):
+            def __mediatimeoffset__(self) -> TimeOffset:
+                return TimeOffset()
+
+        c = _convertable()
+        self.assertIsInstance(c, SupportsMediaTimeOffset)
+
+        self.assertEqual(to, mediatimeoffset(to))
+        self.assertEqual(to, mediatimeoffset(c))
+
     def test_MAX_NANOSEC(self):
         self.assertEqual(TimeOffset.MAX_NANOSEC, 1000000000)
 
