@@ -9,4 +9,5 @@ include ICLA.pdf
 include LICENSE.md
 include NOTICE.md
 include mediatimestamp/py.typed
-unclude mediatimestamp/hypothesis/py.typed
+include mediatimestamp/immutable/py.typed
+include mediatimestamp/hypothesis/py.typed

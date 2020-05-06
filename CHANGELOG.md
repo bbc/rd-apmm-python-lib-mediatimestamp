@@ -1,5 +1,9 @@
 # mediatimestamp Changelog
 
+## 2.1.0
+- Added support for magic methods `__mediatimeoffset__`, `__mediatimestamp__`, and `__mediatimerange__`,
+  and associated methods `mediatimeoffset`, `mediatimestamp`, and `mediatimerange` to aid in type conversion.
+
 ## 2.0.0
 - Dropped all support for python 2.7
 - Swapped the mutable and immutable defaults

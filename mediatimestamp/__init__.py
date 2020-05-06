@@ -22,6 +22,13 @@ are normally stored in this fashion.
 """
 
 from .exceptions import TsValueError
-from .immutable import TimeOffset, Timestamp, TimeRange
+from .immutable import (
+    TimeOffset, SupportsMediaTimeOffset, mediatimeoffset,
+    Timestamp, SupportsMediaTimestamp, mediatimestamp,
+    TimeRange, SupportsMediaTimeRange, mediatimerange)
 
-__all__ = ["TsValueError", "TimeOffset", "Timestamp", "TimeRange"]
+__all__ = [
+    "TsValueError",
+    "TimeOffset", "SupportsMediaTimeOffset", "mediatimeoffset",
+    "Timestamp", "SupportsMediaTimestamp", "mediatimestamp",
+    "TimeRange", "SupportsMediaTimeRange", "mediatimerange"]
