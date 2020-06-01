@@ -1,5 +1,11 @@
 # mediatimestamp Changelog
 
+## 2.2.0
+- Added the `TimeValue`, `CountRange`, and `TimeValueRange` classes which were previously part of the
+  time addressable media api repository. These classes unify a representation of a point in time in terms
+  of timestamp and/or a pair of a count and a rate, allowing conversion back and forth between the two
+  representations where possible.
+
 ## 2.1.0
 - Added support for magic methods `__mediatimeoffset__`, `__mediatimestamp__`, and `__mediatimerange__`,
   and associated methods `mediatimeoffset`, `mediatimestamp`, and `mediatimerange` to aid in type conversion.

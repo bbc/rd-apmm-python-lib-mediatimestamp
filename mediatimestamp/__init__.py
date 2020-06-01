@@ -27,8 +27,15 @@ from .immutable import (
     Timestamp, SupportsMediaTimestamp, mediatimestamp,
     TimeRange, SupportsMediaTimeRange, mediatimerange)
 
+from .count_range import CountRange
+from .time_value import TimeValue, TimeValueConstructTypes
+from .time_value_range import TimeValueRange, RangeConstructionTypes, RangeTypes
+
 __all__ = [
     "TsValueError",
     "TimeOffset", "SupportsMediaTimeOffset", "mediatimeoffset",
     "Timestamp", "SupportsMediaTimestamp", "mediatimestamp",
-    "TimeRange", "SupportsMediaTimeRange", "mediatimerange"]
+    "TimeRange", "SupportsMediaTimeRange", "mediatimerange",
+    "CountRange",
+    "TimeValue", "TimeValueConstructTypes",
+    "TimeValueRange", "RangeConstructionTypes", "RangeTypes"]
