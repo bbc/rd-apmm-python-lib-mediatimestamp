@@ -49,8 +49,7 @@ pipeline {
         }
         stage("Ensure pyenv has python3.6.8") {
             steps {
-                sh "pyenv install -s 3.6.8"
-                sh "pyenv local 3.6.8"
+                bbcSetPythonVersions(versions: "3.6.8")
             }
         }
         stage ("Linting Check") {
