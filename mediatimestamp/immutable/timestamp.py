@@ -195,8 +195,12 @@ class Timestamp(TimeOffset):
 
     def to_datetime(self) -> datetime:
         sec, nsec, leap = self.to_utc()
+        microsecond = int(round(nsec/1000))
+        if microsecond > 999999:
+            sec += 1
+            microsecond = 0
         dt = datetime.fromtimestamp(sec, tz.gettz('UTC'))
-        dt = dt.replace(microsecond=int(round(nsec/1000)))
+        dt = dt.replace(microsecond=microsecond)
 
         return dt
 

@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 2.2.1
+- Clamp microseconds used when converting a Timestamp to a datetime.
+
 ## 2.2.0
 - Added the `TimeValue`, `CountRange`, and `TimeValueRange` classes which were previously part of the
   time addressable media api repository. These classes unify a representation of a point in time in terms
