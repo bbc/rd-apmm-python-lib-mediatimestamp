@@ -455,6 +455,7 @@ class TestTimestamp(unittest.TestCase):
             (datetime(1970, 1, 1, 0, 0, 0, 0, tz.gettz('UTC')), Timestamp(0, 0)),
             (datetime(1983, 3, 29, 15, 45, 0, 0, tz.gettz('UTC')), Timestamp(417800721, 0)),
             (datetime(2017, 12, 5, 16, 33, 12, 196, tz.gettz('UTC')), Timestamp(1512491629, 196000)),
+            (datetime(2017, 12, 5, 16, 33, 13, 0, tz.gettz('UTC')), Timestamp(1512491629, 999999999)),
         ]
 
         for t in tests:
