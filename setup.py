@@ -54,7 +54,7 @@ package_names = packages.keys()
 
 # This is where you list packages which are required
 packages_required = [
-    "python-dateutil>=2.1,<2.8.1"
+    "python-dateutil>=2.1"
 ]
 
 # This is where you list locations for packages not
