@@ -765,9 +765,9 @@ class TestTimeRange (unittest.TestCase):
             with self.subTest(tr=tr, rate=rate, expected=expected):
                 result = tr.is_normalised(rate.numerator, rate.denominator, rounding=rounding)
                 if tr == expected:
-                    self.assertEqual(result, True)
+                    self.assertTrue(result)
                 else:
-                    self.assertEqual(result, False)
+                    self.assertFalse(result)
 
     def test_extend_to_encompass(self):
         test_data = [
