@@ -716,7 +716,7 @@ class TestTimeRange (unittest.TestCase):
                                  msg=("{!r}.normalise({}, {}, rounding={}) == {!r}, expected {!r}"
                                       .format(tr, rate.numerator, rate.denominator, rounding, result, expected)))
 
-    def test_is_normalise(self):
+    def test_is_normalised(self):
         tests_tr = [
             (TimeRange.from_str("[0:0_1:0)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
              TimeRange.from_str("[0:0_1:0)")),
@@ -763,7 +763,7 @@ class TestTimeRange (unittest.TestCase):
         ]
         for (tr, rate, rounding, expected) in tests_tr:
             with self.subTest(tr=tr, rate=rate, expected=expected):
-                result = tr.is_normalise(rate.numerator, rate.denominator, rounding=rounding)
+                result = tr.is_normalised(rate.numerator, rate.denominator, rounding=rounding)
                 if tr == expected:
                     self.assertEqual(result, True)
                 else:

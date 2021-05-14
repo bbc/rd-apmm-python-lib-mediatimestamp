@@ -668,7 +668,7 @@ class TimeRange (object):
                 self.start == self.end and
                 self.inclusivity != TimeRange.INCLUSIVE)
 
-    def is_normalise(self,
+    def is_normalised(self,
                      rate_num: RationalTypes,
                      rate_den: RationalTypes = 1,
                      rounding: Rounding = ROUND_NEAREST) -> bool:
