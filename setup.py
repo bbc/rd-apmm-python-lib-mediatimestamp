@@ -18,7 +18,7 @@ import os
 
 # Basic metadata
 name = 'mediatimestamp'
-version = '2.2.1'
+version = '2.3.0'
 description = 'A timestamp library for high precision nanosecond timestamps'
 url = 'https://github.com/bbc/rd-apmm-python-lib-mediatimestamp'
 author = 'James P. Weaver'

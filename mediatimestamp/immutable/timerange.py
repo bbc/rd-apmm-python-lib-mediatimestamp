@@ -668,6 +668,17 @@ class TimeRange (object):
                 self.start == self.end and
                 self.inclusivity != TimeRange.INCLUSIVE)
 
+    def is_normalised(self,
+                      rate_num: RationalTypes,
+                      rate_den: RationalTypes = 1,
+                      rounding: Rounding = ROUND_NEAREST) -> bool:
+        """Checks if timerange is normalised"""
+        normalised_timerange = self.normalise(rate_num, rate_den, rounding)
+        if normalised_timerange == self:
+            return True
+        else:
+            return False
+
     def normalise(self,
                   rate_num: RationalTypes,
                   rate_den: RationalTypes = 1,

@@ -716,6 +716,59 @@ class TestTimeRange (unittest.TestCase):
                                  msg=("{!r}.normalise({}, {}, rounding={}) == {!r}, expected {!r}"
                                       .format(tr, rate.numerator, rate.denominator, rounding, result, expected)))
 
+    def test_is_normalised(self):
+        tests_tr = [
+            (TimeRange.from_str("[0:0_1:0)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[0:0_1:0)")),
+            (TimeRange.from_str("[0:0_1:0]"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[0:0_1:40000000)")),
+            (TimeRange.from_str("(0:0_1:0)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[0:40000000_1:0)")),
+            (TimeRange.from_str("(0:0_1:0]"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[0:40000000_1:40000000)")),
+            (TimeRange.from_str("[0:10000000_0:999999999)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[0:0_1:0)")),
+            (TimeRange.from_str("[0:10000000_0:999999999)"), Fraction(25, 1), TimeRange.ROUND_DOWN,
+             TimeRange.from_str("[0:0_0:960000000)")),
+            (TimeRange.from_str("[0:10000000_0:999999999)"), Fraction(25, 1), TimeRange.ROUND_UP,
+             TimeRange.from_str("[0:40000000_1:0)")),
+            (TimeRange.from_str("[0:10000000_0:999999999)"), Fraction(25, 1), TimeRange.ROUND_IN,
+             TimeRange.from_str("[0:40000000_0:960000000)")),
+            (TimeRange.from_str("[0:10000000_0:999999999)"), Fraction(25, 1), TimeRange.ROUND_OUT,
+             TimeRange.from_str("[0:0_1:0)")),
+            (TimeRange.from_str("[0:10000000_0:999999999)"), Fraction(25, 1), TimeRange.ROUND_START,
+             TimeRange.from_str("[0:0_0:960000000)")),
+            (TimeRange.from_str("[0:10000000_0:999999999)"), Fraction(25, 1), TimeRange.ROUND_END,
+             TimeRange.from_str("[0:40000000_1:0)")),
+            (TimeRange.from_str("(0:10000000_0:999999999]"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[0:40000000_1:40000000)")),
+            (TimeRange.from_str("[0:39999999_1:10000000)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[0:40000000_1:0)")),
+            (TimeRange.from_str("[0:39999999_1:10000000)"), Fraction(25, 1), TimeRange.ROUND_UP,
+             TimeRange.from_str("[0:40000000_1:40000000)")),
+            (TimeRange.from_str("[0:39999999_1:10000000)"), Fraction(25, 1), TimeRange.ROUND_DOWN,
+             TimeRange.from_str("[0:0_1:0)")),
+            (TimeRange.from_str("[0:39999999_1:10000000)"), Fraction(25, 1), TimeRange.ROUND_IN,
+             TimeRange.from_str("[0:40000000_1:0)")),
+            (TimeRange.from_str("[0:39999999_1:10000000)"), Fraction(25, 1), TimeRange.ROUND_OUT,
+             TimeRange.from_str("[0:0_1:40000000)")),
+            (TimeRange.from_str("[0:39999999_1:10000000)"), Fraction(25, 1), TimeRange.ROUND_START,
+             TimeRange.from_str("[0:40000000_1:40000000)")),
+            (TimeRange.from_str("[0:39999999_1:10000000)"), Fraction(25, 1), TimeRange.ROUND_END,
+             TimeRange.from_str("[0:0_1:0)")),
+            (TimeRange.from_str("[0:39999999_"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[0:40000000_")),
+            (TimeRange.from_str("_1:10000000)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("_1:0)")),
+        ]
+        for (tr, rate, rounding, expected) in tests_tr:
+            with self.subTest(tr=tr, rate=rate, expected=expected):
+                result = tr.is_normalised(rate.numerator, rate.denominator, rounding=rounding)
+                if tr == expected:
+                    self.assertTrue(result)
+                else:
+                    self.assertFalse(result)
+
     def test_extend_to_encompass(self):
         test_data = [
             (TimeRange.from_str("()"), TimeRange.from_str("()"),
