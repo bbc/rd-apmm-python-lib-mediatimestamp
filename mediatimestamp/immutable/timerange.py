@@ -149,6 +149,9 @@ class TimeRange (object):
     def __reversed__(self) -> Iterator[Timestamp]:
         return self.reversed_at_rate(MAX_NANOSEC)
 
+    def __hash__(self) -> int:
+        return hash(self.to_sec_nsec_range())
+
     def at_rate(self,
                 numerator: RationalTypes,
                 denominator: RationalTypes = 1,

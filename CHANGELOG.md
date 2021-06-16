@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+
+# 2.4.0
+- Allow hashing of TimeRanges
 ## 2.2.1
 - Clamp microseconds used when converting a Timestamp to a datetime.
 
