@@ -251,6 +251,7 @@ class TestTimestamp(unittest.TestCase):
                 ts_str,
                 t[2],
                 msg="Called with {} {} {}".format(t[0], t[1], t[2]))
+            self.assertEqual(ts_str, str(ts))
 
     def test_ts_convert_tai_sec_nsec(self):
         """This tests that the conversion to and from TAI second:nanosecond pairs works as expected."""
@@ -279,6 +280,7 @@ class TestTimestamp(unittest.TestCase):
                 ts_str,
                 t[2],
                 msg="{!r}.to_sec_nsec() == {!r}, expected {!r}".format(ts, ts_str, t[2]))
+            self.assertEqual(ts_str, str(ts))
 
     def test_convert_sec_frac(self):
         """This tests that the conversion to and from TAI seconds with fractional parts works as expected."""

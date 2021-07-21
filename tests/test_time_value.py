@@ -201,6 +201,7 @@ class TestTimeValue(unittest.TestCase):
         for case in cases:
             with self.subTest(case=case):
                 self.assertEqual(case[0], case[1].to_str(include_rate=case[2]))
+                self.assertEqual(case[1].to_str(), str(case[1]))
 
     def test_compare(self):
         self.assertEqual(TimeValue(1), TimeValue(1))

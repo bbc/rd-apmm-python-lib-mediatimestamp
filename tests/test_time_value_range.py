@@ -90,6 +90,7 @@ class TestTimeValueRange(unittest.TestCase):
 
         self.assertTrue(rng.is_empty())
         self.assertEqual(rng.to_str(), "()")
+        self.assertEqual(str(rng), "()")
 
     def test_eternity(self):
         alltime = TimeValueRange.eternity()
@@ -99,6 +100,7 @@ class TestTimeValueRange(unittest.TestCase):
         self.assertIn(1, alltime)
 
         self.assertEqual(alltime.to_str(), "_")
+        self.assertEqual(str(alltime), "_")
 
     def test_bounded_on_right_inclusive(self):
         rng = TimeValueRange.from_end(100)
@@ -110,6 +112,7 @@ class TestTimeValueRange(unittest.TestCase):
         self.assertNotIn(101, rng)
 
         self.assertEqual(rng.to_str(), "_101)")
+        self.assertEqual(str(rng), "_101)")
 
     def test_bounded_on_right_exclusive(self):
         rng = TimeValueRange.from_end(100, inclusivity=TimeValueRange.EXCLUSIVE)
@@ -121,6 +124,7 @@ class TestTimeValueRange(unittest.TestCase):
         self.assertNotIn(101, rng)
 
         self.assertEqual(rng.to_str(), "_100)")
+        self.assertEqual(str(rng), "_100)")
 
     def test_bounded_on_left_inclusive(self):
         rng = TimeValueRange.from_start(100)
@@ -132,6 +136,7 @@ class TestTimeValueRange(unittest.TestCase):
         self.assertIn(101, rng)
 
         self.assertEqual(rng.to_str(), "[100_")
+        self.assertEqual(str(rng), "[100_")
 
     def test_bounded_on_left_exclusive(self):
         rng = TimeValueRange.from_start(100, inclusivity=TimeValueRange.EXCLUSIVE)
@@ -143,6 +148,7 @@ class TestTimeValueRange(unittest.TestCase):
         self.assertIn(101, rng)
 
         self.assertEqual(rng.to_str(), "[101_")
+        self.assertEqual(str(rng), "[101_")
 
     def test_bounded_inclusive(self):
         rng = TimeValueRange(100, 200)
@@ -157,6 +163,7 @@ class TestTimeValueRange(unittest.TestCase):
         self.assertNotIn(201, rng)
 
         self.assertEqual(rng.to_str(), "[100_201)")
+        self.assertEqual(str(rng), "[100_201)")
 
     def test_bounded_exclusive(self):
         rng = TimeValueRange(100, 200, inclusivity=TimeValueRange.EXCLUSIVE)
@@ -171,6 +178,7 @@ class TestTimeValueRange(unittest.TestCase):
         self.assertNotIn(201, rng)
 
         self.assertEqual(rng.to_str(), "[101_200)")
+        self.assertEqual(str(rng), "[101_200)")
 
     def test_single_value(self):
         rng = TimeValueRange.from_single_value(100)
@@ -182,6 +190,7 @@ class TestTimeValueRange(unittest.TestCase):
         self.assertNotIn(101, rng)
 
         self.assertEqual(rng.to_str(), "[100_101)")
+        self.assertEqual(str(rng), "[100_101)")
 
     def test_from_str(self):
         tests = [
@@ -230,6 +239,7 @@ class TestTimeValueRange(unittest.TestCase):
         for case in cases:
             with self.subTest(case=case):
                 self.assertEqual(case[0], case[1].to_str(include_rate=case[2]))
+                self.assertEqual(str(case[1]), case[1].to_str())
 
     def test_subrange(self):
         a = 50

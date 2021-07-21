@@ -410,6 +410,9 @@ class TimeRange (object):
     def __repr__(self) -> str:
         return "{}.{}.from_str('{}')".format("mediatimestamp.immutable", type(self).__name__, self.to_sec_nsec_range())
 
+    def __str__(self) -> str:
+        return self.to_sec_nsec_range()
+
     def contains_subrange(self, tr: SupportsMediaTimeRange) -> bool:
         """Returns True if the timerange supplied lies entirely inside this timerange"""
         tr = mediatimerange(tr)
