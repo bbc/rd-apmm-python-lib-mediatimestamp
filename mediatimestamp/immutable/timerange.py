@@ -667,6 +667,30 @@ class TimeRange (object):
                 inclusivity |= TimeRange.INCLUDE_START
             return TimeRange(other.end, self.start, inclusivity)
 
+    def timerange_before(self) -> "TimeRange":
+        """Returns the time range before the start of the this one"""
+        if self.start is None:
+            return TimeRange.never()
+
+        if self.includes_start():
+            inclusivity = TimeRange.EXCLUSIVE
+        else:
+            inclusivity = TimeRange.INCLUDE_END
+
+        return TimeRange.from_end(self.start, inclusivity=inclusivity)
+
+    def timerange_after(self) -> "TimeRange":
+        """Returns the time range after the end of the this one"""
+        if self.end is None:
+            return TimeRange.never()
+
+        if self.includes_end():
+            inclusivity = TimeRange.EXCLUSIVE
+        else:
+            inclusivity = TimeRange.INCLUDE_START
+
+        return TimeRange.from_start(self.end, inclusivity=inclusivity)
+
     def is_empty(self) -> bool:
         """Returns true on any empty range."""
         return (self.start is not None and

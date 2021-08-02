@@ -671,6 +671,32 @@ class TestTimeRange (unittest.TestCase):
                 self.assertEqual(left.timerange_between(right), expected)
                 self.assertEqual(right.timerange_between(left), expected)
 
+    def test_timerange_before(self):
+        test_data = [
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("_0:0)")),
+            (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("_0:0]")),
+            (TimeRange.from_str("_10:0]"), TimeRange.never()),
+            (TimeRange.from_str("_"), TimeRange.never()),
+        ]
+
+        for (tr, expected) in test_data:
+            with self.subTest(tr=tr, expected=expected):
+                self.assertEqual(tr.timerange_before(), expected)
+                self.assertEqual(tr.timerange_before(), expected)
+
+    def test_timerange_after(self):
+        test_data = [
+            (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[10:0_")),
+            (TimeRange.from_str("[0:0_10:0]"), TimeRange.from_str("(10:0_")),
+            (TimeRange.from_str("[0:0_"), TimeRange.never()),
+            (TimeRange.from_str("_"), TimeRange.never()),
+        ]
+
+        for (tr, expected) in test_data:
+            with self.subTest(tr=tr, expected=expected):
+                self.assertEqual(tr.timerange_after(), expected)
+                self.assertEqual(tr.timerange_after(), expected)
+
     def test_normalise(self):
         tests_tr = [
             (TimeRange.from_str("[0:0_1:0)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,

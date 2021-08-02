@@ -1,5 +1,7 @@
 # mediatimestamp Changelog
 
+# 2.5.0
+- Add `timerange_before` and `timerange_after` methods to TimeRange.
 
 # 2.4.0
 - Allow hashing of TimeRanges
