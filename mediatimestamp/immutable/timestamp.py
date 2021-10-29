@@ -74,8 +74,8 @@ class Timestamp(TimeOffset):
     @classmethod
     def get_time(cls, *, force_pure_python=False) -> "Timestamp":
         """The force_pure_python keyword only argument is ignored."""
-        utc_time = time.time()
-        return cls.from_utc(int(utc_time), int(utc_time*cls.MAX_NANOSEC) - int(utc_time)*cls.MAX_NANOSEC)
+        unix_time = time.time()
+        return cls.from_unix(int(unix_time), int(unix_time*cls.MAX_NANOSEC) - int(unix_time)*cls.MAX_NANOSEC)
 
     @classmethod
     def from_timeoffset(cls, toff: TimeOffsetConstructionType) -> "Timestamp":
@@ -105,7 +105,7 @@ class Timestamp(TimeOffset):
         seconds = int((utcdt - minTs).total_seconds())
         nanoseconds = utcdt.microsecond * 1000
 
-        return cls.from_utc(seconds, nanoseconds, False)
+        return cls.from_unix(seconds, nanoseconds, False)
 
     @classmethod
     def from_iso8601_utc(cls, iso8601utc: str) -> "Timestamp":
@@ -114,7 +114,7 @@ class Timestamp(TimeOffset):
         year, month, day, hour, minute, second, ns = _parse_iso8601(iso8601utc[:-1])
         gmtuple = (year, month, day, hour, minute, second - (second == 60))
         secs_since_epoch = calendar.timegm(gmtuple)
-        return cls.from_utc(secs_since_epoch, ns, (second == 60))
+        return cls.from_unix(secs_since_epoch, ns, (second == 60))
 
     @classmethod
     def from_smpte_timelabel(cls, timelabel: str) -> "Timestamp":
@@ -166,13 +166,19 @@ class Timestamp(TimeOffset):
         return cast(Timestamp, super(Timestamp, cls).from_count(count, rate_num, rate_den))
 
     @classmethod
-    def from_utc(cls, utc_sec: int, utc_ns: int, is_leap: bool = False) -> "Timestamp":
+    def from_unix(cls, unix_sec: int, unix_ns: int, is_leap: bool = False) -> "Timestamp":
         leap_sec = 0
         for tbl_sec, tbl_tai_sec_minus_1 in UTC_LEAP:
-            if utc_sec >= tbl_sec:
+            if unix_sec >= tbl_sec:
                 leap_sec = (tbl_tai_sec_minus_1 + 1) - tbl_sec
                 break
-        return cls(sec=utc_sec+leap_sec+is_leap, ns=utc_ns)
+        return cls(sec=unix_sec+leap_sec+is_leap, ns=unix_ns)
+
+    @classmethod
+    def from_utc(cls, utc_sec: int, utc_ns: int, is_leap: bool = False) -> "Timestamp":
+        """ Wrapper of from_unix for back-compatibility.
+        """
+        return cls.from_unix(utc_sec, utc_ns, is_leap)
 
     def get_leap_seconds(self) -> int:
         """ Get the UTC leaps seconds.
@@ -180,9 +186,9 @@ class Timestamp(TimeOffset):
         converting to UTC.
         """
         leap_sec = 0
-        for utc_sec, tai_sec_minus_1 in UTC_LEAP:
+        for unix_sec, tai_sec_minus_1 in UTC_LEAP:
             if self.sec >= tai_sec_minus_1:
-                leap_sec = (tai_sec_minus_1 + 1) - utc_sec
+                leap_sec = (tai_sec_minus_1 + 1) - unix_sec
                 break
 
         return leap_sec
@@ -194,7 +200,7 @@ class Timestamp(TimeOffset):
         return self.to_sec_frac(fixed_size=fixed_size)
 
     def to_datetime(self) -> datetime:
-        sec, nsec, leap = self.to_utc()
+        sec, nsec, leap = self.to_unix()
         microsecond = int(round(nsec/1000))
         if microsecond > 999999:
             sec += 1
@@ -204,29 +210,34 @@ class Timestamp(TimeOffset):
 
         return dt
 
-    def to_utc(self) -> Tuple[int, int, bool]:
-        """ Convert to UTC.
+    def to_unix(self) -> Tuple[int, int, bool]:
+        """ Convert to unix seconds.
         Returns a tuple of (seconds, nanoseconds, is_leap), where `is_leap` is
         `True` when the input time corresponds exactly to a UTC leap second.
         Note that this deliberately returns a tuple, to try and avoid confusion.
         """
         leap_sec = 0
         is_leap = False
-        for utc_sec, tai_sec_minus_1 in UTC_LEAP:
+        for unix_sec, tai_sec_minus_1 in UTC_LEAP:
             if self.sec >= tai_sec_minus_1:
-                leap_sec = (tai_sec_minus_1 + 1) - utc_sec
+                leap_sec = (tai_sec_minus_1 + 1) - unix_sec
                 is_leap = self.sec == tai_sec_minus_1
                 break
 
         return (self.sec - leap_sec, self.ns, is_leap)
+
+    def to_utc(self) -> Tuple[int, int, bool]:
+        """ Wrapper of to_unix for back-compatibility.
+        """
+        return self.to_unix()
 
     def to_iso8601_utc(self) -> str:
         """ Get printed representation in ISO8601 format (UTC)
         YYYY-MM-DDThh:mm:ss.s
         where `s` is fractional seconds at nanosecond precision (always 9-chars wide)
         """
-        utc_s, utc_ns, is_leap = self.to_utc()
-        utc_bd = time.gmtime(utc_s)
+        unix_s, unix_ns, is_leap = self.to_unix()
+        utc_bd = time.gmtime(unix_s)
         frac_sec = self._get_fractional_seconds(fixed_size=True)
         leap_sec = int(is_leap)
         return '%04d-%02d-%02dT%02d:%02d:%02d.%sZ' % (utc_bd.tm_year,
@@ -250,13 +261,13 @@ class Timestamp(TimeOffset):
         count_on_or_after_second = Timestamp(tai_seconds, 0).to_count(rate, rounding=self.ROUND_UP)
         count_within_second = count - count_on_or_after_second
 
-        utc_sec, utc_ns, is_leap = normalised_ts.to_utc()
+        unix_sec, unix_ns, is_leap = normalised_ts.to_unix()
         leap_sec = int(is_leap)
 
         if utc_offset is None:
             # calculate local time offset
             utc_offset_sec = time.timezone
-            lt = time.localtime(utc_sec)
+            lt = time.localtime(unix_sec)
             if lt.tm_isdst > 0:
                 utc_offset_sec += 60*60
         else:
@@ -268,9 +279,9 @@ class Timestamp(TimeOffset):
         if utc_offset_sec < 0:
             utc_sign_char = '-'
 
-        utc_bd = time.gmtime(utc_sec + utc_offset_sec)
+        utc_bd = time.gmtime(unix_sec + utc_offset_sec)
 
-        tai_offset = utc_sec + leap_sec - tai_seconds
+        tai_offset = unix_sec + leap_sec - tai_seconds
         tai_sign_char = '+'
         if tai_offset < 0:
             tai_sign_char = '-'
