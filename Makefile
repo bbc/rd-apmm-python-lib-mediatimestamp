@@ -7,8 +7,8 @@ topdir := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 topbuilddir := $(realpath .)
 
 DESTDIR=/
-PROJECT=$(shell python $(topdir)/setup.py --name)
-VERSION=$(shell python $(topdir)/setup.py --version)
+PROJECT=$(shell $(PYTHON) $(topdir)/setup.py --name)
+VERSION=$(shell $(PYTHON) $(topdir)/setup.py --version)
 MODNAME=$(PROJECT)
 
 # The rules for names and versions in python, rpm, and deb are different
@@ -93,7 +93,7 @@ deb: source deb_dist $(DEBIANOVERRIDES)
 $(RPM_PREFIX)/$(MODNAME).spec: rpm_spec
 
 rpm_spec: $(topdir)/setup.py
-	$(PYTHON3) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX) --python=python3.6
+	$(PYTHON) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX) --python=python3.6
 # END OF RPM SPEC RULES
 
 $(RPMBUILDDIRS):
@@ -132,6 +132,6 @@ lint: $(TOX_ACTIVATE)
 	. $(TOX_ACTIVATE) && flake8 $(MODNAME) tests
 
 mypy: $(TOX_ACTIVATE)
-	. $(TOX_ACTIVATE) && python -m mypy -p $(MODNAME)
+	. $(TOX_ACTIVATE) && $(PYTHON) -m mypy -p $(MODNAME)
 
 .PHONY: test testenv clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec docs lint mypy
