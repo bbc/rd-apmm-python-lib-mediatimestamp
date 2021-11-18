@@ -16,11 +16,11 @@ from setuptools import setup
 
 # Basic metadata
 name = 'mediatimestamp'
-version = '2.5.0'
+version = '3.0.0'
 description = 'A timestamp library for high precision nanosecond timestamps'
 url = 'https://github.com/bbc/rd-apmm-python-lib-mediatimestamp'
-author = 'James P. Weaver'
-author_email = 'james.barrett@bbc.co.uk'
+author = 'James Sandford'
+author_email = 'james.sandford@bbc.co.uk'
 license = 'Apache 2'
 long_description = description
 
@@ -38,7 +38,7 @@ packages_required = [
 ]
 
 setup(name=name,
-      python_requires='>=3.6.0',
+      python_requires='>=3.10.0',
       version=version,
       description=description,
       url=url,

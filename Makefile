@@ -28,7 +28,7 @@ RPMDIRS=BUILD BUILDROOT RPMS SOURCES SPECS SRPMS
 RPMBUILDDIRS=$(patsubst %, $(RPM_PREFIX)/%, $(RPMDIRS))
 
 TOXDIR?=$(topbuilddir)/.tox/
-TOXENV?=py36
+TOXENV?=py310
 TOX_ACTIVATE=$(TOXDIR)/$(TOXENV)/bin/activate
 
 all:
@@ -93,7 +93,7 @@ deb: source deb_dist $(DEBIANOVERRIDES)
 $(RPM_PREFIX)/$(MODNAME).spec: rpm_spec
 
 rpm_spec: $(topdir)/setup.py
-	$(PYTHON) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX) --python=python3.6
+	$(PYTHON) $(topdir)/setup.py bdist_rpm $(RPM_PARAMS) --spec-only --dist-dir=$(RPM_PREFIX) --python=python3.10
 # END OF RPM SPEC RULES
 
 $(RPMBUILDDIRS):
@@ -132,6 +132,6 @@ lint: $(TOX_ACTIVATE)
 	. $(TOX_ACTIVATE) && flake8 $(MODNAME) tests
 
 mypy: $(TOX_ACTIVATE)
-	. $(TOX_ACTIVATE) && $(PYTHON) -m mypy -p $(MODNAME)
+	. $(TOX_ACTIVATE) && $(PYTHON) -m mypy --install-types --non-interactive -p $(MODNAME)
 
 .PHONY: test testenv clean install source deb dsc rpm wheel egg all rpm_dirs rpm_spec docs lint mypy

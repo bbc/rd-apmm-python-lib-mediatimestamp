@@ -7,11 +7,11 @@
  - Run Pythin 3 unit tests in tox
  - Build Debian packages for supported Ubuntu versions
 
- If these steps succeed and the master branch is being built, wheels and debs are uploaded to Artifactory and the
+ If these steps succeed and the main branch is being built, wheels and debs are uploaded to Artifactory and the
  R&D Debian mirrors.
 
  Optionally you can set FORCE_PYUPLOAD to force upload to Artifactory, and FORCE_DEBUPLOAD to force Debian package
- upload on non-master branches.
+ upload on non-main branches.
 
 
  This file makes use of custom steps defined in a BBC internal library for use on our own Jenkins instances. As
@@ -28,7 +28,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10')) // Discard old builds
     }
     triggers {
-        cron(env.BRANCH_NAME == 'master' ? 'H H(0-8) * * *' : '') // Build master some time every morning
+        cron(env.BRANCH_NAME == 'main' ? 'H H(0-8) * * *' : '') // Build main some time every morning
     }
     parameters {
         booleanParam(name: "FORCE_PYUPLOAD", defaultValue: false, description: "Force Python artifact upload")
@@ -47,9 +47,9 @@ pipeline {
                 sh 'make clean'
             }
         }
-        stage("Ensure pyenv has python3.6.8") {
+        stage("Ensure pyenv has python3.10.0") {
             steps {
-                bbcSetPythonVersions(versions: "3.6.8")
+                bbcSetPythonVersions(versions: "3.10.0")
             }
         }
         stage ("Linting Check") {
@@ -157,7 +157,7 @@ pipeline {
                     expression { return params.FORCE_DEBUPLOAD }
                     expression { return params.FORCE_DOCSUPLOAD }
                     expression {
-                        bbcShouldUploadArtifacts(branches: ["master", "dev"])
+                        bbcShouldUploadArtifacts(branches: ["main", "dev"])
                     }
                 }
             }
@@ -167,7 +167,7 @@ pipeline {
                             anyOf {
                             expression { return params.FORCE_DOCSUPLOAD }
                             expression {
-                                bbcShouldUploadArtifacts(branches: ["master"])
+                                bbcShouldUploadArtifacts(branches: ["main"])
                             }
                         }
                     }
@@ -180,7 +180,7 @@ pipeline {
                         anyOf {
                             expression { return params.FORCE_PYUPLOAD }
                             expression {
-                                bbcShouldUploadArtifacts(branches: ["master"])
+                                bbcShouldUploadArtifacts(branches: ["main"])
                             }
                         }
                     }
@@ -190,8 +190,8 @@ pipeline {
                         }
                         bbcGithubNotify(context: "pypi/upload", status: "PENDING")
                         sh 'rm -rf dist/*'
-                        bbcMakeGlobalWheel("py36")
-                        bbcTwineUpload(toxenv: "py36", pypi: true)
+                        bbcMakeGlobalWheel("py310")
+                        bbcTwineUpload(toxenv: "py310", pypi: true)
                         script {
                             env.pypiUpload_result = "SUCCESS" // This will only run if the steps above succeeded
                         }
@@ -217,8 +217,8 @@ pipeline {
                         }
                         bbcGithubNotify(context: "artifactory/upload", status: "PENDING")
                         sh 'rm -rf dist/*'
-                        bbcMakeGlobalWheel("py36")
-                        bbcTwineUpload(toxenv: "py36", pypi: false)
+                        bbcMakeGlobalWheel("py310")
+                        bbcTwineUpload(toxenv: "py310", pypi: false)
                         script {
                             env.artifactoryUpload_result = "SUCCESS" // This will only run if the steps above succeeded
                         }
@@ -234,7 +234,7 @@ pipeline {
                         anyOf {
                             expression { return params.FORCE_DEBUPLOAD }
                             expression {
-                                bbcShouldUploadArtifacts(branches: ["master"])
+                                bbcShouldUploadArtifacts(branches: ["main"])
                             }
                         }
                     }
