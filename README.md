@@ -12,7 +12,7 @@ distributed via the PTP protocol (IEEE 1588).
 
 ### Requirements
 
-* A working Python 3.6+ installation
+* A working Python 3.10+ installation
 * BBC R&D's internal deb repository set up as a source for apt (if installing via apt-get)
 * The tool [tox](https://tox.readthedocs.io/en/latest/) is needed to run the unittests, but not required to use the library.
 
@@ -115,7 +115,7 @@ Please ensure you have run the test suite before submitting a Pull Request, and 
 
 ## Authors
 
-* James Weaver (james.barrett@bbc.co.uk)
+* James Weaver
 * Philip deNier (philip.denier@bbc.co.uk)
 * Sam Nicholson (sam.nicholson@bbc.co.uk)
 * James Sandford (james.sandford@bbc.co.uk

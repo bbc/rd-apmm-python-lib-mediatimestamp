@@ -1,10 +1,14 @@
 # mediatimestamp Changelog
 
-# 2.5.0
+## 3.0.0
+- Support for python <3.10 dropped
+
+## 2.5.0
 - Add `timerange_before` and `timerange_after` methods to TimeRange.
 
-# 2.4.0
+## 2.4.0
 - Allow hashing of TimeRanges
+
 ## 2.2.1
 - Clamp microseconds used when converting a Timestamp to a datetime.
 
