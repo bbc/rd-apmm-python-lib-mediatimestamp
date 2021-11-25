@@ -1,5 +1,8 @@
 # mediatimestamp Changelog
 
+## 3.0.1
+- Add 'from_float()' methods to TimeValue and TimeOffset
+
 ## 3.0.0
 - Support for python <3.10 dropped
 

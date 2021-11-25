@@ -183,6 +183,20 @@ class TestTimeValue(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     TimeValue.from_str(case)
 
+    def test_from_float(self):
+        cases = [
+            (float(100), None, TimeValue(Timestamp.from_str("100:0"))),
+            (float(100), Fraction(25), TimeValue.from_str("2500@25")),
+            (float(4), None, TimeValue(100, rate=Fraction(25))),
+            (float(2.5), Fraction(50), TimeValue.from_str("125@50")),
+            (float(7.6), None, TimeValue(TimeOffset.from_str("7:600000000"))),
+            (float(3.6), Fraction(100), TimeValue(TimeOffset.from_str("3:600000000"), rate=Fraction(100)))
+        ]
+
+        for case in cases:
+            with self.subTest(case=case):
+                self.assertEqual(TimeValue.from_float(case[0], rate=case[1]), case[2])
+
     def test_to_str(self):
         cases = [
             ("-100", TimeValue(-100), True),
