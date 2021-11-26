@@ -280,7 +280,7 @@ class TestTimeOffset(unittest.TestCase):
             with self.subTest(case=case):
                 r = TimeOffset.from_float(case[0])
                 self.assertEqual(r, case[1],
-                                msg="TimeOffset.from_float{!r} == {!r}, expected {!r}".format(case[0], r, case[1]))
+                                 msg="TimeOffset.from_float{!r} == {!r}, expected {!r}".format(case[0], r, case[1]))
 
     def test_set_value(self):
         """This tests that time offsets cannot have their value set."""
