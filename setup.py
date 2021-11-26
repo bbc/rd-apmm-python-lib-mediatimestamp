@@ -16,7 +16,7 @@ from setuptools import setup
 
 # Basic metadata
 name = 'mediatimestamp'
-version = '3.0.0'
+version = '3.0.1'
 description = 'A timestamp library for high precision nanosecond timestamps'
 url = 'https://github.com/bbc/rd-apmm-python-lib-mediatimestamp'
 author = 'James Sandford'

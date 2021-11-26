@@ -266,6 +266,22 @@ class TestTimeOffset(unittest.TestCase):
             self.assertEqual(r, t[1],
                              msg="TimeOffset.from_nanosec{!r} == {!r}, expected {!r}".format(t[0], r, t[1]))
 
+    def test_from_float(self):
+        """This tests that time offsets can be created from a float."""
+        cases = [
+            ((float(1.0)), TimeOffset(1, 0)),
+            ((float(1_000_000_000)), TimeOffset(1_000_000_000, 0)),
+            ((float(2.76)), TimeOffset(2, 760_000_000)),
+            ((float(-3.14)), TimeOffset(3, 140_000_000, -1)),
+            ((float(0.02)), TimeOffset(0, 20_000_000))
+        ]
+
+        for case in cases:
+            with self.subTest(case=case):
+                r = TimeOffset.from_float(case[0])
+                self.assertEqual(r, case[1],
+                                msg="TimeOffset.from_float{!r} == {!r}, expected {!r}".format(case[0], r, case[1]))
+
     def test_set_value(self):
         """This tests that time offsets cannot have their value set."""
         tests_ts = [

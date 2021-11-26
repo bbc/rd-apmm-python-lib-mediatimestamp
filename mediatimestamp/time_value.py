@@ -119,6 +119,15 @@ class TimeValue(object):
             # Assuming that it represents a TimeOffset rather than a Timestamp
             return cls(TimeOffset.from_str(s_val), rate=rate)
 
+    @classmethod
+    def from_float(cls, f: float, rate: Optional[Fraction] = None) -> "TimeValue":
+        """Parse a time value from a float
+
+        :param f: The float to convert from.
+        :param rate: The default media unit rate.
+        """
+        return cls(TimeOffset.from_float(f), rate=rate)
+
     def as_timeoffset(self) -> TimeOffset:
         """Returns a TimeOffset representation."""
         if isinstance(self._value, Timestamp):

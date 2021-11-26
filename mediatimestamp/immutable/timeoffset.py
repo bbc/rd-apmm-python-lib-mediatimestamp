@@ -169,6 +169,19 @@ class TimeOffset(object):
             return cls.from_sec_nsec(toff_str)
 
     @classmethod
+    def from_float(cls, toff_float: float) -> "TimeOffset":
+        """Parse a float as a TimeOffset
+        """
+        sign = 1
+        if toff_float < 0:
+            toff_float = -toff_float
+            sign = -1
+        nanoseconds = toff_float*1_000_000_000
+        seconds, nanoseconds = divmod(nanoseconds, 1_000_000_000)
+
+        return cls(sec=int(seconds), ns=int(nanoseconds), sign=sign)
+
+    @classmethod
     def from_count(cls, count: int, rate_num: RationalTypes, rate_den: RationalTypes = 1) -> "TimeOffset":
         """Returns a new TimeOffset derived from a count and a particular rate.
 
