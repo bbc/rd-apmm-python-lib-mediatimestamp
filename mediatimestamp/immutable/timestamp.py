@@ -18,8 +18,7 @@ import re
 from datetime import datetime
 from dateutil import tz
 from fractions import Fraction
-from typing import Tuple, Optional, cast, TYPE_CHECKING
-from typing_extensions import Protocol, runtime_checkable
+from typing import Tuple, Optional, cast, TYPE_CHECKING, Protocol, runtime_checkable
 
 from ..constants import UTC_LEAP
 from ..exceptions import TsValueError

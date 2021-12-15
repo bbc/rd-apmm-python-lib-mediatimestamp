@@ -1,0 +1,21 @@
+{%- set modname = "mediatimestamp" -%}
+{%- import 'static-commontooling/docker/Dockerfile_multi_macros.j2' as macros -%}
+
+{{ macros.preamble() }}
+
+{{ macros.layer(modname, entrypoint=False) }}
+
+{{ macros.testdeps(modname) }}
+
+{{ macros.tests(modname) }}
+
+{{ macros.unittest(modname) }}
+
+{{ macros.flake8(modname) }}
+
+{{ macros.mypy(modname) }}
+
+{{ macros.wheel(modname) }}
+
+{{ macros.docs(modname) }}
+CMD ["--html", "--force", "--skip-errors", "--output-dir", ".", "{{ modname }}"]

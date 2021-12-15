@@ -13,8 +13,7 @@
 # limitations under the License.
 
 from fractions import Fraction
-from typing import Tuple, Union, Type, TYPE_CHECKING
-from typing_extensions import Protocol, runtime_checkable
+from typing import Tuple, Union, Type, TYPE_CHECKING, Protocol, runtime_checkable
 from abc import ABCMeta, abstractmethod
 
 from ..constants import MAX_NANOSEC, MAX_SECONDS
