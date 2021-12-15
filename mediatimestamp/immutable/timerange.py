@@ -15,8 +15,7 @@
 import re
 from fractions import Fraction
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Union, Optional, cast, Iterator, Type, TYPE_CHECKING
-from typing_extensions import Protocol, runtime_checkable
+from typing import Tuple, Union, Optional, cast, Iterator, Type, TYPE_CHECKING, Protocol, runtime_checkable
 
 from ..constants import MAX_NANOSEC
 from ..exceptions import TsValueError

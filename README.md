@@ -13,8 +13,7 @@ distributed via the PTP protocol (IEEE 1588).
 ### Requirements
 
 * A working Python 3.10+ installation
-* BBC R&D's internal deb repository set up as a source for apt (if installing via apt-get)
-* The tool [tox](https://tox.readthedocs.io/en/latest/) is needed to run the unittests, but not required to use the library.
+* The tool [Docker](https://docs.docker.com/engine/install/) is needed to run the tests, but not required to use the library.
 
 ### Steps
 
@@ -22,13 +21,10 @@ distributed via the PTP protocol (IEEE 1588).
 # Install from pip
 $ pip install mediatimestamp
 
-# Install via apt-get
-$ apt-get install python-mediatimestamp python3-mediatimestamp
-
 # Install directly from source repo
 $ git clone git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git
 $ cd rd-apmm-python-lib-mediatimestamp
-$ pip install -e .
+$ make install
 ```
 
 ## Usage
@@ -65,29 +61,27 @@ which make use of `Timestamp` and `TimeRange` objects.
 The API is well documented in the docstrings of the module mediatimestamp, to view:
 
 ```bash
-pydoc mediatimestamp
+make docs
 ```
+This command will render documentation as HTML in the `/docs` directory.
 
 ## Development
+### Commontooling
+
+This repository uses a library of makefiles, templates, and other tools for development tooling and CI workflows. To discover operations that may be run against this repo, run the following in the top level of the repo:
+
+```bash
+$ make
+```
+
 ### Testing
 
-To run the unittests for this package in a virtual environment follow these steps:
+To run the unittests for this package in a docker container follow these steps:
 
 ```bash
 $ git clone git@github.com:bbc/rd-apmm-python-lib-mediatimestamp.git
 $ cd rd-apmm-python-lib-mediatimestamp
 $ make test
-```
-### Packaging
-
-Debian and RPM packages can be built using:
-
-```bash
-# Debian packaging
-$ make deb
-
-# RPM packageing
-$ make rpm
 ```
 
 ### Continuous Integration
@@ -101,15 +95,11 @@ for this package.
 
 We use [Semantic Versioning](https://semver.org/) for this repository
 
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md)
-
 ## Contributing
 
 The code in this repository was previously released as part of the
 nmos-common library (<https://github.com/bbc/nmos-common/>). For
-contributing wok please see the file [CONTRIBUTING.md](./CONTRIBUTING.md) in this repository.
+contributing work please see the file [CONTRIBUTING.md](./CONTRIBUTING.md) in this repository.
 
 Please ensure you have run the test suite before submitting a Pull Request, and include a version bump in line with our [Versioning](#versioning) policy.
 

@@ -16,7 +16,6 @@ from setuptools import setup
 
 # Basic metadata
 name = 'mediatimestamp'
-version = '3.0.1'
 description = 'A timestamp library for high precision nanosecond timestamps'
 url = 'https://github.com/bbc/rd-apmm-python-lib-mediatimestamp'
 author = 'James Sandford'
@@ -25,12 +24,22 @@ license = 'Apache 2'
 long_description = description
 
 
+# Execute version file to set version variable
+try:
+    with open(("{}/_version.py".format(name)), "r") as fp:
+        exec(fp.read())
+except IOError:
+    # Version file doesn't exist, fake it for now
+    __version__ = "0.0.0"
+
+package_names = [
+    'mediatimestamp',
+    'mediatimestamp.hypothesis',
+    'mediatimestamp.immutable'
+]
 packages = {
-    name: name,
-    name + ".hypothesis": name + "/hypothesis",
-    name + ".immutable": name + "/immutable",
+    pkg: pkg.replace('.', '/') for pkg in package_names
 }
-package_names = packages.keys()
 
 # This is where you list packages which are required
 packages_required = [
@@ -39,7 +48,7 @@ packages_required = [
 
 setup(name=name,
       python_requires='>=3.10.0',
-      version=version,
+      version=__version__,
       description=description,
       url=url,
       author=author,
@@ -47,7 +56,7 @@ setup(name=name,
       license=license,
       packages=package_names,
       package_dir=packages,
-      package_data={name: ['py.typed'] for name in package_names},
+      package_data={package_name: ['py.typed'] for package_name in package_names},
       install_requires=packages_required,
       scripts=[],
       data_files=[],
