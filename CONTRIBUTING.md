@@ -23,7 +23,7 @@ You can submit changes through a GitHub pull request as follows:
 
 ### Contributor Licence Agreement
 
-We desire that contributors of pull requests have signed, and submitted via email, an [Individual Contributor Licence Agreement][ICLA] (ICLA) (PDF version [here][ICLA-pdf]), which is based on the [Apache ICLA][Apache-ICLA].
+We desire that contributors of pull requests have signed, and submitted via email, an [Individual Contributor Licence Agreement][ICLA] (ICLA), which is based on the [Apache ICLA][Apache-ICLA].
 
 The purpose of this agreement is to clearly define the terms under which intellectual property has been contributed to the BBC and thereby allow us to defend the project should there be a legal dispute regarding the software at some future time.
 
