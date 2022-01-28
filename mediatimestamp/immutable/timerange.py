@@ -15,7 +15,7 @@
 import re
 from fractions import Fraction
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Union, Optional, cast, Iterator, Type, TYPE_CHECKING, Protocol, runtime_checkable
+from typing import Generator, Tuple, Union, Optional, cast, Iterator, Type, TYPE_CHECKING, Protocol, runtime_checkable
 
 from ..constants import MAX_NANOSEC
 from ..exceptions import TsValueError
@@ -794,3 +794,61 @@ class TimeRange (object):
         return TimeRange(start_ts,
                          end_ts,
                          TimeRange.INCLUDE_START)
+
+    def into_chunks(
+        self,
+        time_duration: TimeOffset
+    ) -> Generator["TimeRange", None, None]:
+        """Returns a generator of TimeRanges of the length specified in time_duration based on this TimeRange.
+
+        If this TimeRange has an infinite length, then this will generate chunks of time_duration infinitely.
+
+        The first chunk will have the start inclusivity of this TimeRange, and will have an exclusive end.
+        The last chunk (if this TimeRange is not infinite) will have the end inclusivity of this TimeRange, and an
+        inclusive start.
+        All other chunks will have an inclusive start and exclusive end.
+
+        If the time_duration does not divide exactly into the length of this TimeRange, the last chunk returned will
+        be of the 'remainder' length.
+
+        If the time_duration is the same length or longer than this TimeRange, then a copy of this TimeRange will be
+        returned.
+
+        :param time_duration: A TimeOffset representing the requested chunk length
+        :returns: A TimeRange generator that generates chunks.
+        """
+
+        last_tr = None
+        if self.start is None:
+            raise ValueError("This TimeRange object has no 'start' value and so cannot be chunked!")
+        remaining_length: int = cast(TimeOffset, self.length).to_nanosec() - time_duration.to_nanosec()
+        # If the input time range never ends we simply have a never-ending generator -- if self.end is None this
+        # will run forever.
+        while self.end is None or remaining_length > 0:
+            if last_tr is None:  # This is the first and not the last
+                # The first must always have the same start inclusivity as the timerange, and an exclusive ) end.
+                # The four possibilities for inclusivity are defined in this file as binary integers 0-3.
+                # The first bit is the end inclusivity - for exclusive ends the first bit must be zero, therefore
+                # we only need to use the last bit which indicates the start inclusivity.
+                last_tr = self.from_start_length(self.start, time_duration, self.Inclusivity(self.includes_start()))
+            else:  # this is not the first and not the last; it must have inclusive start and exclusive end
+                # We can also continue on from the end of the last timerange for our start timestamp.
+                if last_tr.end is not None:
+                    last_tr = self.from_start_length(last_tr.end, time_duration, self.INCLUDE_START)
+                else:
+                    raise ValueError("Something has gone badly wrong, the last chunk had no end value set!")
+            remaining_length -= time_duration.to_nanosec()
+            yield last_tr
+
+        # The final chunk.
+        # The sum of the requested duration and time remaining will determine the length of the final chunk.
+        if last_tr is None:  # There is only one chunk, and it's an exact fit OR shorter than the requested dur.
+            yield self.from_timerange(self)
+        else:
+            if last_tr.end is not None:
+                yield self.from_start_length(
+                    last_tr.end, self.end - last_tr.end,
+                    self.Inclusivity((self.includes_end() << 1) + 1))
+            else:
+                raise ValueError("Something has gone badly wrong, the last chunk had no end value set!")
+        return
