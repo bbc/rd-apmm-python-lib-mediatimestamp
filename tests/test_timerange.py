@@ -883,3 +883,62 @@ class TestTimeRange (unittest.TestCase):
         """Check 'eternity' normalisation"""
         tr = TimeRange(None, None, TimeRange.EXCLUSIVE)
         self.assertEqual(tr.inclusivity, TimeRange.INCLUSIVE)
+
+    # For TimeRange::into_chunks There are several cases we need to test:
+    # 1. Where the sub-chunks are shorter than the main timerange and line up perfectly.
+    # 2. Where the sub-chunks are shorter but not an exact division (i.e. there will be one short chunk at the end).
+    # 3. Where the sub-chunk is exactly the length of the main timerange.
+    # 4. Where the sub-chunk is longer than the timerange.
+    # All of which will need to follow the inclusivity rules.
+    def test_into_chunks__shorter_line_up(self):
+        """Test into_chunks when the sub-chunks are shorter than the main timerange and line up perfectly."""
+        chunking_timerange = TimeRange.from_str("[0:0_20:0]")
+        tc1_chunk = TimeOffset.from_str("5:0")
+        tc1_expected = [
+            TimeRange.from_str("[0:0_5:0)"),
+            TimeRange.from_str("[5:0_10:0)"),
+            TimeRange.from_str("[10:0_15:0)"),
+            TimeRange.from_str("[15:0_20:0]")
+        ]
+
+        tc1 = chunking_timerange.into_chunks(tc1_chunk)
+        tc1_results = [time_range for time_range in tc1]
+        self.assertEqual(tc1_expected, tc1_results)
+
+    def test_into_chunks__shorter_no_line_up(self):
+        """Test into_chunks when the sub-chunks are shorter but not an exact division
+        (i.e. there will be one short chunk at the end)."""
+        chunking_timerange = TimeRange.from_str("[0:0_20:0]")
+        tc2_chunk = TimeOffset.from_str("6:300000000")
+        tc2_expected = [
+            TimeRange.from_str("[0:0_6:300000000)"),
+            TimeRange.from_str("[6:300000000_12:600000000)"),
+            TimeRange.from_str("[12:600000000_18:900000000)"),
+            TimeRange.from_str("[18:900000000_20:0]")
+        ]
+
+        tc2 = chunking_timerange.into_chunks(tc2_chunk)
+        tc2_results = [time_range for time_range in tc2]
+        self.assertEqual(tc2_expected, tc2_results)
+
+    def test_into_chunks__exact_length(self):
+        """Test into_chunks when the sub-chunk is exactly the length of the main timerange."""
+        chunking_timerange = TimeRange.from_str("(0:0_20:0]")
+        tc3_chunk = TimeOffset.from_str("20:0")
+        tc3_4_expected = [
+            TimeRange.from_str("(0:0_20:0]")
+        ]
+        tc3 = chunking_timerange.into_chunks(tc3_chunk)
+        tc3_results = [time_range for time_range in tc3]
+        self.assertEqual(tc3_4_expected, tc3_results)
+
+    def test_into_chunks__longer(self):
+        """Test into_chunks when the sub-chunk is longer than the timerange."""
+        chunking_timerange = TimeRange.from_str("[0:0_20:0]")
+        tc4_chunk = TimeOffset.from_str("30:0")
+        tc3_4_expected = [
+            TimeRange.from_str("[0:0_20:0]")
+        ]
+        tc4 = chunking_timerange.into_chunks(tc4_chunk)
+        tc4_results = [time_range for time_range in tc4]
+        self.assertEqual(tc3_4_expected, tc4_results)
