@@ -817,38 +817,24 @@ class TimeRange (object):
         :param time_duration: A TimeOffset representing the requested chunk length
         :returns: A TimeRange generator that generates chunks.
         """
+        if not self.bounded_before():
+            raise ValueError("The timerange to be chunked has no start time!")
+        remainder = self  # this is a timerange from the end of the last one to the end of self
+        while not remainder.is_empty():
+            next_timerange = TimeRange.from_start_length(
+                cast(Timestamp, remainder.start),
+                time_duration,
+                TimeRange.INCLUDE_START)
+            next_timerange = next_timerange.intersect_with(remainder)
 
-        last_tr = None
-        if self.start is None:
-            raise ValueError("This TimeRange object has no 'start' value and so cannot be chunked!")
-        remaining_length: int = cast(TimeOffset, self.length).to_nanosec() - time_duration.to_nanosec()
-        # If the input time range never ends we simply have a never-ending generator -- if self.end is None this
-        # will run forever.
-        while self.end is None or remaining_length > 0:
-            if last_tr is None:  # This is the first and not the last
-                # The first must always have the same start inclusivity as the timerange, and an exclusive ) end.
-                # The four possibilities for inclusivity are defined in this file as binary integers 0-3.
-                # The first bit is the end inclusivity - for exclusive ends the first bit must be zero, therefore
-                # we only need to use the last bit which indicates the start inclusivity.
-                last_tr = self.from_start_length(self.start, time_duration, self.Inclusivity(self.includes_start()))
-            else:  # this is not the first and not the last; it must have inclusive start and exclusive end
-                # We can also continue on from the end of the last timerange for our start timestamp.
-                if last_tr.end is not None:
-                    last_tr = self.from_start_length(last_tr.end, time_duration, self.INCLUDE_START)
-                else:
-                    raise ValueError("Something has gone badly wrong, the last chunk had no end value set!")
-            remaining_length -= time_duration.to_nanosec()
-            yield last_tr
+            if next_timerange.end == remainder.end and remainder.includes_end():
+                next_timerange = TimeRange.from_start_length(
+                    cast(Timestamp, next_timerange.start),
+                    cast(Timestamp, next_timerange.length),
+                    next_timerange.inclusivity | TimeRange.INCLUDE_END
+                )
 
-        # The final chunk.
-        # The sum of the requested duration and time remaining will determine the length of the final chunk.
-        if last_tr is None:  # There is only one chunk, and it's an exact fit OR shorter than the requested dur.
-            yield self.from_timerange(self)
-        else:
-            if last_tr.end is not None:
-                yield self.from_start_length(
-                    last_tr.end, self.end - last_tr.end,
-                    self.Inclusivity((self.includes_end() << 1) + 1))
-            else:
-                raise ValueError("Something has gone badly wrong, the last chunk had no end value set!")
+            yield next_timerange
+            # If we have just yielded the final chunk, then this will produce an empty timerange.
+            remainder = remainder.intersect_with(next_timerange.timerange_after())
         return

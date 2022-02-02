@@ -889,6 +889,7 @@ class TestTimeRange (unittest.TestCase):
     # 2. Where the sub-chunks are shorter but not an exact division (i.e. there will be one short chunk at the end).
     # 3. Where the sub-chunk is exactly the length of the main timerange.
     # 4. Where the sub-chunk is longer than the timerange.
+    # 5. Where the timerange is infinite, our generator works.
     # All of which will need to follow the inclusivity rules.
     def test_into_chunks__shorter_line_up(self):
         """Test into_chunks when the sub-chunks are shorter than the main timerange and line up perfectly."""
@@ -942,3 +943,19 @@ class TestTimeRange (unittest.TestCase):
         tc4 = chunking_timerange.into_chunks(tc4_chunk)
         tc4_results = [time_range for time_range in tc4]
         self.assertEqual(tc3_4_expected, tc4_results)
+
+    def test_into_chunks__infinity(self):
+        """Test into_chunks when the timerange has no end."""
+        chunking_timerange = TimeRange.from_start(Timestamp.from_nanosec(0))
+        tc5_chunk = TimeOffset.from_str("30:0")
+        tc5_expected = [
+            TimeRange.from_str("[0:0_30:0)"),
+            TimeRange.from_str("[30:0_60:0)"),
+            TimeRange.from_str("[60:0_90:0)"),
+            TimeRange.from_str("[90:0_120:0)"),
+        ]
+        tc5 = chunking_timerange.into_chunks(tc5_chunk)
+        tc5_results = []
+        for i in range(4):
+            tc5_results.append(next(tc5))
+        self.assertEqual(tc5_expected, tc5_results)
