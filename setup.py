@@ -18,8 +18,8 @@ from setuptools import setup
 name = 'mediatimestamp'
 description = 'A timestamp library for high precision nanosecond timestamps'
 url = 'https://github.com/bbc/rd-apmm-python-lib-mediatimestamp'
-author = 'James Sandford'
-author_email = 'james.sandford@bbc.co.uk'
+author = 'BBC R&D'
+author_email = 'cloudfit-opensource@rd.bbc.co.uk'
 license = 'Apache 2'
 long_description = description
 
