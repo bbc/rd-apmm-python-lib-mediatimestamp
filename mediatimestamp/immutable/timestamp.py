@@ -86,6 +86,10 @@ class Timestamp(TimeOffset):
         return cast(Timestamp, super(Timestamp, cls).from_sec_frac(ts_str))
 
     @classmethod
+    def from_nanosec(cls, nanosec: int) -> "Timestamp":
+        return cast(Timestamp, super(Timestamp, cls).from_nanosec(nanosec))
+
+    @classmethod
     def from_tai_sec_frac(cls, ts_str: str) -> "Timestamp":
         return cls.from_sec_frac(ts_str)
 
