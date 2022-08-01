@@ -677,7 +677,7 @@ class TimeValueRange(Reversible[TimeValue]):
         elif not other.bounded_before() or cast(TimeValue, other.start) not in self:
             return TimeValueRange.never()
         else:
-            assert(isinstance(other.start, TimeValue))
+            assert (isinstance(other.start, TimeValue))
             if other.includes_start():
                 return self.split_at(other.start)[0]
             else:
