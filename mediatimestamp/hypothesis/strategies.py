@@ -76,7 +76,7 @@ def immutabletimeranges(in_range=ImmutableTimeRange.eternity(),
     # This is a tad more complex: each time a range is drawn from this we generate a timestamp to use as a length and
     # then generate a timerange of that length
     return (immutabletimestamps(min_value=MIN_IMMUTABLETIMESTAMP, max_value=max_length)
-            .flatmap(lambda l: immutabletimeranges_of_length(l, in_range=in_range, inclusivity=inclusivity)))
+            .flatmap(lambda k: immutabletimeranges_of_length(k, in_range=in_range, inclusivity=inclusivity)))
 
 
 def disjoint_immutabletimeranges(in_range=ImmutableTimeRange.eternity(), min_size=0, max_size=None):
@@ -98,10 +98,10 @@ def disjoint_immutabletimeranges(in_range=ImmutableTimeRange.eternity(), min_siz
                 min_size=2*n,
                 max_size=2*n
             )).map(sorted).map(
-                lambda l: [ImmutableTimeRange(l[2*x+0], l[2*x+1], ImmutableTimeRange.INCLUSIVE)
-                           for x in range(0, len(l)//2)]
+                lambda k: [ImmutableTimeRange(k[2*x+0], k[2*x+1], ImmutableTimeRange.INCLUSIVE)
+                           for x in range(0, len(k)//2)]
             ).filter(
-                lambda l: all(l[x].end != l[x+1].start for x in range(0, len(l) - 1))
+                lambda k: all(k[x].end != k[x+1].start for x in range(0, len(k) - 1))
             ))
 
 
