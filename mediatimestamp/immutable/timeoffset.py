@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from fractions import Fraction
-from typing import Tuple, Union, Type, TYPE_CHECKING, Protocol, runtime_checkable
+from typing import Union, Type, TYPE_CHECKING, Protocol, runtime_checkable
 from abc import ABCMeta, abstractmethod
 
 from ..constants import MAX_NANOSEC, MAX_SECONDS
@@ -89,15 +89,36 @@ class TimeOffset(object):
     MAX_SECONDS = MAX_SECONDS
 
     def __init__(self, sec: int = 0, ns: int = 0, sign: int = 1):
-        (sec, ns, sign) = self._make_valid(int(sec), int(ns), int(sign))
+        if sign < 0:
+            sign = -1
+        else:
+            sign = 1
+        value = sign * int(sec * self.MAX_NANOSEC + ns)
 
-        self.sec: int
-        self.ns: int
-        self.sign: int
+        value_limit = self.MAX_SECONDS * self.MAX_NANOSEC - 1
+        value = max(-value_limit, min(value_limit, value))
 
-        self.__dict__['sec'] = int(sec)
-        self.__dict__['ns'] = int(ns)
-        self.__dict__['sign'] = int(sign)
+        self._value: int
+
+        self.__dict__['_value'] = value
+
+    @property
+    def sec(self) -> int:
+        """Returns the whole number of seconds"""
+        return int(abs(self._value) // self.MAX_NANOSEC)
+
+    @property
+    def ns(self) -> int:
+        """Returns the nanoseconds remainder after subtrating the whole number of seconds"""
+        return abs(self._value) - self.sec * self.MAX_NANOSEC
+
+    @property
+    def sign(self) -> int:
+        """Returns 1 if the timeoffset is positive, -1 if negative"""
+        if self._value < 0:
+            return -1
+        else:
+            return 1
 
     def __setattr__(self, name: str, value: object) -> None:
         raise TsValueError("Cannot assign to an immutable TimeOffset")
@@ -121,10 +142,8 @@ class TimeOffset(object):
             raise TsValueError("invalid interval factor")
 
         rate = Fraction(rate_num, rate_den)
-        sec = rate.denominator // (rate.numerator * factor)
-        rem = rate.denominator % (rate.numerator * factor)
-        ns = cls.MAX_NANOSEC * rem // (rate.numerator * factor)
-        return cls(sec=sec, ns=ns)
+        ns = int((cls.MAX_NANOSEC * rate.denominator) // (rate.numerator * factor))
+        return cls(ns=ns)
 
     @classmethod
     def from_sec_frac(cls, toff_str: str) -> "TimeOffset":
@@ -173,12 +192,9 @@ class TimeOffset(object):
         """
         sign = 1
         if toff_float < 0:
-            toff_float = -toff_float
             sign = -1
-        nanoseconds = toff_float*1_000_000_000
-        seconds, nanoseconds = divmod(nanoseconds, 1_000_000_000)
-
-        return cls(sec=int(seconds), ns=int(nanoseconds), sign=sign)
+        ns = int(abs(toff_float) * cls.MAX_NANOSEC)
+        return cls(ns=ns, sign=sign)
 
     @classmethod
     def from_count(cls, count: int, rate_num: RationalTypes, rate_den: RationalTypes = 1) -> "TimeOffset":
@@ -190,48 +206,29 @@ class TimeOffset(object):
         """
         if rate_num <= 0 or rate_den <= 0:
             raise TsValueError("invalid rate")
-        rate = Fraction(rate_num, rate_den)
-        abs_count = abs(count)
-        sec = (abs_count * rate.denominator) // rate.numerator
-        rem = (abs_count * rate.denominator) % rate.numerator
-        ns = (rem * cls.MAX_NANOSEC) // rate.numerator
         sign = 1
         if count < 0:
             sign = -1
-        return cls(sec=sec, ns=ns, sign=sign)
+        rate = Fraction(rate_num, rate_den)
+        ns = (cls.MAX_NANOSEC * abs(count) * rate.denominator) // rate.numerator
+        return cls(ns=ns, sign=sign)
 
     @classmethod
     def from_millisec(cls, millisec: int) -> "TimeOffset":
-        abs_millisec = abs(millisec)
-        sec = abs_millisec // 1000
-        ns = (abs_millisec % 1000) * 1000000
-        sign = 1
-        if millisec < 0:
-            sign = -1
-        return cls(sec=sec, ns=ns, sign=sign)
+        ns = millisec * 1000**2
+        return cls(ns=ns)
 
     @classmethod
     def from_microsec(cls, microsec: int) -> "TimeOffset":
-        abs_microsec = abs(microsec)
-        sec = abs_microsec // 1000000
-        ns = (abs_microsec % 1000000) * 1000
-        sign = 1
-        if microsec < 0:
-            sign = -1
-        return cls(sec=sec, ns=ns, sign=sign)
+        ns = microsec * 1000
+        return cls(ns=ns)
 
     @classmethod
     def from_nanosec(cls, nanosec: int) -> "TimeOffset":
-        abs_nanosec = abs(nanosec)
-        sec = abs_nanosec // cls.MAX_NANOSEC
-        ns = abs_nanosec % cls.MAX_NANOSEC
-        sign = 1
-        if nanosec < 0:
-            sign = -1
-        return cls(sec=sec, ns=ns, sign=sign)
+        return cls(ns=nanosec)
 
     def is_null(self) -> bool:
-        return self.sec == 0 and self.ns == 0
+        return self._value == 0
 
     def to_sec_nsec(self) -> str:
         """ Convert to <seconds>:<nanoseconds>
@@ -263,8 +260,8 @@ class TimeOffset(object):
         """
         if rate_num <= 0 or rate_den <= 0:
             raise TsValueError("invalid rate")
+
         rate = Fraction(rate_num, rate_den)
-        abs_off = self.__abs__()
         use_rounding = rounding
         if self.sign < 0:
             if use_rounding == self.ROUND_UP:
@@ -272,24 +269,15 @@ class TimeOffset(object):
             elif use_rounding == self.ROUND_DOWN:
                 use_rounding = self.ROUND_UP
         if use_rounding == self.ROUND_NEAREST:
-            rnd_off = TimeOffset.get_interval_fraction(rate, factor=2)
+            round_ns = TimeOffset.get_interval_fraction(rate, factor=2).to_nanosec()
         elif use_rounding == self.ROUND_UP:
-            rnd_off = TimeOffset.get_interval_fraction(rate, factor=1) - TimeOffset(0, 1)
+            round_ns = TimeOffset.get_interval_fraction(rate, factor=1).to_nanosec() - 1
         else:
-            rnd_off = TimeOffset()
-        if rnd_off.sign > 0:
-            abs_off += rnd_off
+            round_ns = 0
 
-        # off_at_rate = (off_sec + off_nsec) / (rate_den / rate_num)
-        #             = (off_sec x rate_num / rate_den) + (off_nsec x rate_num) / rate_den)
-        #             = {f1} + {f2}
-        # reduce {f1} as follows: a*b/c = ((a/c)*c + a%c) * b) / c = (a/c)*b + (a%c)*b/c
-        # then combine the f1 and f2 nanosecond values before division by rate_den to avoid loss of precision when
-        # off_sec and off_nsec are not multiples of rate_den, but (off_sec + off_nsec) is
-        f1_whole = (abs_off.sec // rate.denominator) * rate.numerator
-        f1_dennsec = (abs_off.sec % rate.denominator) * rate.numerator * self.MAX_NANOSEC
-        f2_dennsec = abs_off.ns * rate.numerator
-        return self.sign * (f1_whole + (f1_dennsec + f2_dennsec) // (rate.denominator * self.MAX_NANOSEC))
+        return int(self.sign * (
+                    ((abs(self._value) + round_ns) * rate.numerator) // (
+                        self.MAX_NANOSEC * rate.denominator)))
 
     def to_phase_offset(self, rate_num: RationalTypes, rate_den: RationalTypes = 1) -> "TimeOffset":
         """Return the smallest positive TimeOffset such that abs(self - returnval) represents an integer number of
@@ -305,10 +293,10 @@ class TimeOffset(object):
                 use_rounding = self.ROUND_UP
         round_ns = 0
         if use_rounding == self.ROUND_NEAREST:
-            round_ns = 1000000 // 2
+            round_ns = 1000**2 // 2
         elif use_rounding == self.ROUND_UP:
-            round_ns = 1000000 - 1
-        return self.sign * (self.sec*1000 + (self.ns + round_ns)//1000000)
+            round_ns = 1000**2 - 1
+        return int(self.sign * ((abs(self._value) + round_ns) // 1000**2))
 
     def to_microsec(self, rounding: "TimeOffset.Rounding" = ROUND_NEAREST) -> int:
         use_rounding = rounding
@@ -322,10 +310,10 @@ class TimeOffset(object):
             round_ns = 1000 // 2
         elif use_rounding == self.ROUND_UP:
             round_ns = 1000 - 1
-        return self.sign * (self.sec*1000000 + (self.ns + round_ns)//1000)
+        return int(self.sign * ((abs(self._value) + round_ns) // 1000))
 
     def to_nanosec(self) -> int:
-        return self.sign * (self.sec*self.MAX_NANOSEC + self.ns)
+        return self._value
 
     def normalise(self,
                   rate_num: RationalTypes,
@@ -342,16 +330,10 @@ class TimeOffset(object):
 
     def compare(self, other_in: TimeOffsetConstructionType) -> int:
         other = mediatimeoffset(other_in)
-        if self.sign != other.sign:
-            return self.sign
-        elif self.sec < other.sec:
-            return -self.sign
-        elif self.sec > other.sec:
-            return self.sign
-        elif self.ns < other.ns:
-            return -self.sign
-        elif self.ns > other.ns:
-            return self.sign
+        if self._value > other._value:
+            return 1
+        elif self._value < other._value:
+            return -1
         else:
             return 0
 
@@ -389,50 +371,37 @@ class TimeOffset(object):
         from .timestamp import Timestamp
 
         other = mediatimeoffset(other_in)
-        sec = self.sign*self.sec + other.sign*other.sec
-        ns = self.sign*self.ns + other.sign*other.ns
+        ns = self._value + other._value
 
         if not isinstance(self, Timestamp) and not isinstance(other, Timestamp):
-            return TimeOffset(sec, ns)
+            return TimeOffset(ns=ns)
         else:
-            return Timestamp(sec, ns)
+            return Timestamp(ns=ns)
 
     def __sub__(self, other_in: TimeOffsetConstructionType) -> "TimeOffset":
         from .timestamp import Timestamp
 
         other = mediatimeoffset(other_in)
-        sec = self.sign*self.sec - other.sign*other.sec
-        ns = self.sign*self.ns - other.sign*other.ns
+        ns = self._value - other._value
 
         if isinstance(self, Timestamp) and not isinstance(other, Timestamp):
-            return Timestamp(sec, ns)
+            return Timestamp(ns=ns)
         else:
-            return TimeOffset(sec, ns)
+            return TimeOffset(ns=ns)
 
     def __iadd__(self, other_in: TimeOffsetConstructionType) -> "TimeOffset":
         other = mediatimeoffset(other_in)
         tmp = self + other
-        return self.__class__(tmp.sec, tmp.ns, tmp.sign)
+        return self.__class__(ns=tmp._value)
 
     def __isub__(self, other_in: TimeOffsetConstructionType) -> "TimeOffset":
         other = mediatimeoffset(other_in)
         tmp = self - other
-        return self.__class__(tmp.sec, tmp.ns, tmp.sign)
+        return self.__class__(ns=tmp._value)
 
     def __mul__(self, anint: int) -> "TimeOffset":
-        sec = self.sec * abs(anint)
-        ns = self.ns * abs(anint)
-
-        if anint < 0:
-            sign = self.sign * -1
-        else:
-            sign = self.sign
-
-        if ns >= self.MAX_NANOSEC:
-            sec += (ns // self.MAX_NANOSEC)
-            ns %= self.MAX_NANOSEC
-
-        return TimeOffset(sec, ns, sign)
+        ns = self._value * anint
+        return TimeOffset(ns=ns)
 
     def __rmul__(self, anint: int) -> "TimeOffset":
         return (self * anint)
@@ -444,16 +413,8 @@ class TimeOffset(object):
         return (self // anint)
 
     def __floordiv__(self, anint: int) -> "TimeOffset":
-        (sec, ns, sign) = (self.sec, self.ns, self.sign)
-        abs_anint = abs(anint)
-        sec = sec // abs_anint
-        ns = int((self.ns + (self.sec % abs_anint) * self.MAX_NANOSEC) / abs_anint + 5e-10)
-
-        sec = sec + ns // self.MAX_NANOSEC
-        ns = ns % self.MAX_NANOSEC
-        if anint < 0:
-            sign *= -1
-        return TimeOffset(sec, ns, sign)
+        ns = self._value // anint
+        return TimeOffset(ns=ns)
 
     def _get_fractional_seconds(self, fixed_size: bool = False) -> str:
         div = self.MAX_NANOSEC // 10
@@ -469,27 +430,3 @@ class TimeOffset(object):
             div //= 10
 
         return sec_frac
-
-    def _make_valid(self, sec: int, ns: int, sign: int) -> Tuple[int, int, int]:
-        if sign > 0 or (sec == 0 and ns == 0):
-            sign = 1
-        else:
-            sign = -1
-
-        sec += (ns // self.MAX_NANOSEC)
-        ns %= self.MAX_NANOSEC
-
-        if sec < 0 or (sec == 0 and ns < 0):
-            sec *= -1
-            ns *= -1
-            sign *= -1
-
-        if ns < 0:
-            sec -= 1
-            ns += self.MAX_NANOSEC
-
-        if sec >= self.MAX_SECONDS:
-            sec = self.MAX_SECONDS - 1
-            ns = self.MAX_NANOSEC - 1
-
-        return (sec, ns, sign)
