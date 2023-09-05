@@ -142,8 +142,7 @@ class Timestamp(object):
         return TimeRange.from_single_timestamp(self)
 
     @classmethod
-    def get_time(cls, *, force_pure_python=False) -> "Timestamp":
-        """The force_pure_python keyword only argument is ignored."""
+    def get_time(cls) -> "Timestamp":
         unix_time = time.time()
         return cls.from_unix(int(unix_time), int(unix_time*cls.MAX_NANOSEC) - int(unix_time)*cls.MAX_NANOSEC)
 
@@ -275,7 +274,7 @@ class Timestamp(object):
         return cls.from_count(count, rate_num, rate_den)
 
     @classmethod
-    def from_str(cls, ts_str: str, *, force_pure_python=False) -> "Timestamp":
+    def from_str(cls, ts_str: str,) -> "Timestamp":
         """Parse a string as a TimeStamp
 
         Accepts:
@@ -284,8 +283,6 @@ class Timestamp(object):
         * second:nanosecond
         * second.fraction formats
         * "now" to mean the current time.
-
-        The force_pure_python keyword only argument is ignored.
         """
         if 'F' in ts_str:
             return cls.from_smpte_timelabel(ts_str)
