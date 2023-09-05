@@ -31,7 +31,8 @@ from mediatimestamp.immutable import (
 class TestTimestamp(unittest.TestCase):
     def test_mediatimestamp(self):
         to = TimeOffset()
-        self.assertNotIsInstance(to, SupportsMediaTimestamp)
+        self.assertIsInstance(to, SupportsMediaTimestamp)
+        self.assertIsInstance(to, SupportsMediaTimeOffset)
 
         ts = Timestamp()
         self.assertIsInstance(ts, SupportsMediaTimestamp)

@@ -12,57 +12,128 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Tuple, Optional, Type, TYPE_CHECKING, Protocol, runtime_checkable, Union
+from abc import ABCMeta, abstractmethod
 import calendar
 import time
 import re
 from datetime import datetime
 from dateutil import tz
 from fractions import Fraction
-from typing import Tuple, Optional, cast, TYPE_CHECKING, Protocol, runtime_checkable
 
-from ..constants import UTC_LEAP
+from ..constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
 from ..exceptions import TsValueError
 
-from ._parse import _parse_iso8601
+from ._parse import _parse_seconds_fraction, _parse_iso8601
 from ._types import RationalTypes
-from .timeoffset import TimeOffset, TimeOffsetConstructionType, mediatimeoffset
 
 if TYPE_CHECKING:
     from .timerange import TimeRange  # noqa: F401
 
-__all__ = ["Timestamp", "SupportsMediaTimestamp", "mediatimestamp"]
+__all__ = ["Timestamp", "SupportsMediaTimestamp", "mediatimestamp", "TimestampConstructionType"]
 
 
-@runtime_checkable
-class SupportsMediaTimestamp (Protocol):
-    def __mediatimestamp__(self) -> "Timestamp":
-        ...
+TimestampConstructionType = Union["Timestamp", "SupportsMediaTimestamp", int, float]
 
 
-def mediatimestamp(v: SupportsMediaTimestamp) -> "Timestamp":
+if TYPE_CHECKING:
+    @runtime_checkable
+    class SupportsMediaTimestamp (Protocol):
+        def __mediatimestamp__(self) -> "Timestamp":
+            ...
+else:
+    class SupportsMediaTimestamp (metaclass=ABCMeta):
+        """This is an abstract base class for any class that can be automagically converted into a Timestamp.
+
+        To implement this simply implement the __mediatimestamp__ magic method. No need to inherit from this
+        class explicitly.
+        """
+        @classmethod
+        def __subclasshook__(cls, subclass: Type) -> bool:
+            if hasattr(subclass, "__mediatimestamp__"):
+                return True
+            else:
+                return False
+
+        @abstractmethod
+        def __mediatimestamp__(self) -> "Timestamp":
+            ...
+
+
+def mediatimestamp(v: TimestampConstructionType) -> "Timestamp":
     """This method can be called on any object which supports the __mediatimestamp__ magic method
-    and also on a Timestamp. It will always return a Timestamp or raise a ValueError.
+    and also on a Timestamp, an int or a float.
+    It will always return a Timestamp or raise a ValueError.
     """
     if isinstance(v, Timestamp):
         return v
+    elif isinstance(v, int):
+        return Timestamp(v)
+    elif isinstance(v, float):
+        return Timestamp.from_float(v)
     elif hasattr(v, "__mediatimestamp__"):
         return v.__mediatimestamp__()
     else:
         raise ValueError("{!r} cannot be converted to a mediatimestamp.Timestamp".format(v))
 
 
-class Timestamp(TimeOffset):
-    """A nanosecond precision immutable timestamp."""
+class Timestamp(object):
+    """A nanosecond precision immutable timestamp.
+
+    Note that the canonical representation of a Timestamp is seconds:nanoseconds, e.g. "4:500000000".
+    Timestamp in seconds.fractions format (e.g. "4.5") can be parsed, but should not be used for serialization or
+    storage due to difficulty disambiguating them from floats.
+    """
+    class Rounding (int):
+        pass
+
+    ROUND_DOWN = Rounding(0)
+    ROUND_NEAREST = Rounding(1)
+    ROUND_UP = Rounding(2)
+
+    MAX_NANOSEC = MAX_NANOSEC
+    MAX_SECONDS = MAX_SECONDS
+
     def __init__(self, sec: int = 0, ns: int = 0, sign: int = 1):
-        super(Timestamp, self).__init__(sec, ns, sign)
+        if sign < 0:
+            sign = -1
+        else:
+            sign = 1
+        value = sign * int(sec * self.MAX_NANOSEC + ns)
+
+        value_limit = self.MAX_SECONDS * self.MAX_NANOSEC - 1
+        value = max(-value_limit, min(value_limit, value))
+
+        self._value: int
+
+        self.__dict__['_value'] = value
+
+    @property
+    def sec(self) -> int:
+        """Returns the whole number of seconds"""
+        return int(abs(self._value) // self.MAX_NANOSEC)
+
+    @property
+    def ns(self) -> int:
+        """Returns the nanoseconds remainder after subtrating the whole number of seconds"""
+        return abs(self._value) - self.sec * self.MAX_NANOSEC
+
+    @property
+    def sign(self) -> int:
+        """Returns 1 if the timeoffset is positive, -1 if negative"""
+        if self._value < 0:
+            return -1
+        else:
+            return 1
 
     def __setattr__(self, name: str, value: object) -> None:
         raise TsValueError("Cannot assign to an immutable Timestamp")
 
-    def __mediatimeoffset__(self) -> TimeOffset:
+    def __mediatimestamp__(self) -> "Timestamp":
         return self
 
-    def __mediatimestamp__(self) -> "Timestamp":
+    def __mediatimeoffset__(self) -> "Timestamp":
+        """Legacy method for TimeOffset"""
         return self
 
     def __mediatimerange__(self) -> "TimeRange":
@@ -77,29 +148,86 @@ class Timestamp(TimeOffset):
         return cls.from_unix(int(unix_time), int(unix_time*cls.MAX_NANOSEC) - int(unix_time)*cls.MAX_NANOSEC)
 
     @classmethod
-    def from_timeoffset(cls, toff: TimeOffsetConstructionType) -> "Timestamp":
-        toff = mediatimeoffset(toff)
+    def from_timeoffset(cls, toff: TimestampConstructionType) -> "Timestamp":
+        """Legacy method that converted a TimeOffset to a Timestamp"""
+        toff = mediatimestamp(toff)
         return cls(sec=toff.sec, ns=toff.ns, sign=toff.sign)
 
     @classmethod
-    def from_sec_frac(cls, ts_str: str) -> "Timestamp":
-        return cast(Timestamp, super(Timestamp, cls).from_sec_frac(ts_str))
+    def get_interval_fraction(cls,
+                              rate_num: RationalTypes,
+                              rate_den: RationalTypes = 1,
+                              factor: int = 1) -> "Timestamp":
+        if rate_num <= 0 or rate_den <= 0:
+            raise TsValueError("invalid rate")
+        if factor < 1:
+            raise TsValueError("invalid interval factor")
+
+        rate = Fraction(rate_num, rate_den)
+        ns = int((cls.MAX_NANOSEC * rate.denominator) // (rate.numerator * factor))
+        return cls(ns=ns)
+
+    @classmethod
+    def from_millisec(cls, millisec: int) -> "Timestamp":
+        ns = millisec * 1000**2
+        return cls(ns=ns)
+
+    @classmethod
+    def from_microsec(cls, microsec: int) -> "Timestamp":
+        ns = microsec * 1000
+        return cls(ns=ns)
 
     @classmethod
     def from_nanosec(cls, nanosec: int) -> "Timestamp":
-        return cast(Timestamp, super(Timestamp, cls).from_nanosec(nanosec))
+        return cls(ns=nanosec)
+
+    @classmethod
+    def from_sec_frac(cls, toff_str: str) -> "Timestamp":
+        sec_frac = toff_str.split(".")
+        if len(sec_frac) != 1 and len(sec_frac) != 2:
+            raise TsValueError("invalid second.fraction format")
+        sec = int(sec_frac[0])
+        sign = 1
+        if sec_frac[0].startswith("-"):
+            sign = -1
+            sec = abs(sec)
+        ns = 0
+        if len(sec_frac) > 1:
+            ns = _parse_seconds_fraction(sec_frac[1])
+        return cls(sec=sec, ns=ns, sign=sign)
 
     @classmethod
     def from_tai_sec_frac(cls, ts_str: str) -> "Timestamp":
         return cls.from_sec_frac(ts_str)
 
     @classmethod
-    def from_sec_nsec(cls, ts_str: str) -> "Timestamp":
-        return cast(Timestamp, super(Timestamp, cls).from_sec_nsec(ts_str))
+    def from_sec_nsec(cls, toff_str: str) -> "Timestamp":
+        sec_frac = toff_str.split(":")
+        if len(sec_frac) != 1 and len(sec_frac) != 2:
+            raise TsValueError("invalid second:nanosecond format")
+        sec = int(sec_frac[0])
+        sign = 1
+        if sec_frac[0].startswith("-"):
+            sign = -1
+            sec = abs(sec)
+        ns = 0
+        if len(sec_frac) > 1:
+            ns = int(sec_frac[1])
+        return cls(sec=sec, ns=ns, sign=sign)
 
     @classmethod
     def from_tai_sec_nsec(cls, ts_str: str) -> "Timestamp":
         return cls.from_sec_nsec(ts_str)
+
+    @classmethod
+    def from_float(cls, toff_float: float) -> "Timestamp":
+        """Parse a float as a Timestamp
+        """
+        sign = 1
+        if toff_float < 0:
+            sign = -1
+        ns = int(abs(toff_float) * cls.MAX_NANOSEC)
+        return cls(ns=ns, sign=sign)
 
     @classmethod
     def from_datetime(cls, dt: datetime) -> "Timestamp":
@@ -150,8 +278,12 @@ class Timestamp(TimeOffset):
     def from_str(cls, ts_str: str, *, force_pure_python=False) -> "Timestamp":
         """Parse a string as a TimeStamp
 
-        Accepts SMPTE timelabel, ISO 8601 UTC, second:nanosecond and second.fraction formats, along with "now" to mean
-        the current time.
+        Accepts:
+        * SMPTE timelabel
+        * ISO 8601 UTC
+        * second:nanosecond
+        * second.fraction formats
+        * "now" to mean the current time.
 
         The force_pure_python keyword only argument is ignored.
         """
@@ -161,12 +293,27 @@ class Timestamp(TimeOffset):
             return cls.from_iso8601_utc(ts_str)
         elif ts_str.strip() == 'now':
             return cls.get_time()
+        elif '.' in ts_str:
+            return cls.from_sec_frac(ts_str)
         else:
-            return cast(Timestamp, super(Timestamp, cls).from_str(ts_str))
+            return cls.from_sec_nsec(ts_str)
 
     @classmethod
     def from_count(cls, count: int, rate_num: RationalTypes, rate_den: RationalTypes = 1) -> "Timestamp":
-        return cast(Timestamp, super(Timestamp, cls).from_count(count, rate_num, rate_den))
+        """Returns a new Timestamp derived from a count and a particular rate.
+
+        :param count: The sample count
+        :param rate_num: The numerator of the rate, in Hz
+        :param rate_den: The denominator of the rate in Hz
+        """
+        if rate_num <= 0 or rate_den <= 0:
+            raise TsValueError("invalid rate")
+        sign = 1
+        if count < 0:
+            sign = -1
+        rate = Fraction(rate_num, rate_den)
+        ns = (cls.MAX_NANOSEC * abs(count) * rate.denominator) // rate.numerator
+        return cls(ns=ns, sign=sign)
 
     @classmethod
     def from_unix(cls, unix_sec: int, unix_ns: int, is_leap: bool = False) -> "Timestamp":
@@ -183,6 +330,9 @@ class Timestamp(TimeOffset):
         """
         return cls.from_unix(utc_sec, utc_ns, is_leap)
 
+    def is_null(self) -> bool:
+        return self._value == 0
+
     def get_leap_seconds(self) -> int:
         """ Get the UTC leaps seconds.
         Returns the number of leap seconds that the timestamp is adjusted by when
@@ -195,6 +345,56 @@ class Timestamp(TimeOffset):
                 break
 
         return leap_sec
+
+    def to_millisec(self, rounding: "Timestamp.Rounding" = ROUND_NEAREST) -> int:
+        use_rounding = rounding
+        if self.sign < 0:
+            if use_rounding == self.ROUND_UP:
+                use_rounding = self.ROUND_DOWN
+            elif use_rounding == self.ROUND_DOWN:
+                use_rounding = self.ROUND_UP
+        round_ns = 0
+        if use_rounding == self.ROUND_NEAREST:
+            round_ns = 1000**2 // 2
+        elif use_rounding == self.ROUND_UP:
+            round_ns = 1000**2 - 1
+        return int(self.sign * ((abs(self._value) + round_ns) // 1000**2))
+
+    def to_microsec(self, rounding: "Timestamp.Rounding" = ROUND_NEAREST) -> int:
+        use_rounding = rounding
+        if self.sign < 0:
+            if use_rounding == self.ROUND_UP:
+                use_rounding = self.ROUND_DOWN
+            elif use_rounding == self.ROUND_DOWN:
+                use_rounding = self.ROUND_UP
+        round_ns = 0
+        if use_rounding == self.ROUND_NEAREST:
+            round_ns = 1000 // 2
+        elif use_rounding == self.ROUND_UP:
+            round_ns = 1000 - 1
+        return int(self.sign * ((abs(self._value) + round_ns) // 1000))
+
+    def to_nanosec(self) -> int:
+        return self._value
+
+    def to_sec_nsec(self) -> str:
+        """ Convert to <seconds>:<nanoseconds>
+        """
+        strSign = ""
+        if self.sign < 0:
+            strSign = "-"
+        return u"{}{}:{}".format(strSign, self.sec, self.ns)
+
+    def to_sec_frac(self, fixed_size: bool = False) -> str:
+        """ Convert to <seconds>.<fraction>
+        """
+        strSign = ""
+        if self.sign < 0:
+            strSign = "-"
+        return u"{}{}.{}".format(
+            strSign,
+            self.sec,
+            self._get_fractional_seconds(fixed_size=fixed_size))
 
     def to_tai_sec_nsec(self) -> str:
         return self.to_sec_nsec()
@@ -297,30 +497,141 @@ class Timestamp(TimeOffset):
                     utc_sign_char, utc_offset_hour, utc_offset_min,
                     tai_sign_char, abs(tai_offset))
 
+    def to_count(self, rate_num: RationalTypes, rate_den: RationalTypes = 1,
+                 rounding: "Timestamp.Rounding" = ROUND_NEAREST) -> int:
+        """Returns an integer such that if this Timestamp is equal to an exact number of samples at the given rate
+        then this is equal, and otherwise the value is rounded as indicated by the rounding parameter.
+
+        :param rate_num: numerator of rate
+        :param rate_den: denominator of rate
+        :param rounding: One of Timestamp.ROUND_NEAREST, Timestamp.ROUND_UP, or Timestamp.ROUND_DOWN
+        """
+        if rate_num <= 0 or rate_den <= 0:
+            raise TsValueError("invalid rate")
+
+        rate = Fraction(rate_num, rate_den)
+        use_rounding = rounding
+        if self.sign < 0:
+            if use_rounding == self.ROUND_UP:
+                use_rounding = self.ROUND_DOWN
+            elif use_rounding == self.ROUND_DOWN:
+                use_rounding = self.ROUND_UP
+        if use_rounding == self.ROUND_NEAREST:
+            round_ns = Timestamp.get_interval_fraction(rate, factor=2).to_nanosec()
+        elif use_rounding == self.ROUND_UP:
+            round_ns = Timestamp.get_interval_fraction(rate, factor=1).to_nanosec() - 1
+        else:
+            round_ns = 0
+
+        return int(self.sign * (
+                    ((abs(self._value) + round_ns) * rate.numerator) // (
+                        self.MAX_NANOSEC * rate.denominator)))
+
+    def to_phase_offset(self, rate_num: RationalTypes, rate_den: RationalTypes = 1) -> "Timestamp":
+        """Return the smallest positive Timestamp such that abs(self - returnval) represents an integer number of
+        samples at the given rate"""
+        return self - self.normalise(rate_num, rate_den, rounding=Timestamp.ROUND_DOWN)
+
     def normalise(self,
                   rate_num: RationalTypes,
                   rate_den: RationalTypes = 1,
-                  rounding: "TimeOffset.Rounding" = TimeOffset.ROUND_NEAREST) -> "Timestamp":
+                  rounding: "Timestamp.Rounding" = ROUND_NEAREST) -> "Timestamp":
         """Return the nearest Timestamp to self which represents an integer number of samples at the given rate.
 
         :param rate_num: Rate numerator
         :param rate_den: Rate denominator
-        :param rounding: How to round, if set to TimeOffset.ROUND_DOWN (resp. TimeOffset.ROUND_UP) this method will only
-                         return a TimeOffset less than or equal to this one (resp. greater than or equal to).
+        :param rounding: How to round, if set to Timestamp.ROUND_DOWN (resp. Timestamp.ROUND_UP) this method will only
+                         return a Timestamp less than or equal to this one (resp. greater than or equal to).
         """
         return self.from_count(self.to_count(rate_num, rate_den, rounding), rate_num, rate_den)
 
-    def __add__(self, other_in: TimeOffsetConstructionType) -> "Timestamp":
-        return cast(Timestamp, super().__add__(other_in))
+    def compare(self, other_in: TimestampConstructionType) -> int:
+        other = mediatimestamp(other_in)
+        if self._value > other._value:
+            return 1
+        elif self._value < other._value:
+            return -1
+        else:
+            return 0
 
-    def __iadd__(self, other_in: TimeOffsetConstructionType) -> "Timestamp":
-        return cast(Timestamp, super().__add__(other_in))
+    def __str__(self) -> str:
+        return self.to_sec_nsec()
 
-    def __isub__(self, other_in: TimeOffsetConstructionType) -> "Timestamp":
-        return cast(Timestamp, super().__isub__(other_in))
+    def __repr__(self) -> str:
+        return "{}.from_sec_nsec({!r})".format("mediatimestamp.immutable." + type(self).__name__, self.to_sec_nsec())
+
+    def __abs__(self) -> "Timestamp":
+        return Timestamp(self.sec, self.ns, 1)
+
+    def __hash__(self) -> int:
+        return self.to_nanosec()
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, (int, float, Timestamp)) and self.compare(other) == 0
+
+    def __ne__(self, other: object) -> bool:
+        return not (self == other)
+
+    def __lt__(self, other: TimestampConstructionType) -> bool:
+        return self.compare(other) < 0
+
+    def __le__(self, other: TimestampConstructionType) -> bool:
+        return self.compare(other) <= 0
+
+    def __gt__(self, other: TimestampConstructionType) -> bool:
+        return self.compare(other) > 0
+
+    def __ge__(self, other: TimestampConstructionType) -> bool:
+        return self.compare(other) >= 0
+
+    def __add__(self, other_in: TimestampConstructionType) -> "Timestamp":
+        other = mediatimestamp(other_in)
+        ns = self._value + other._value
+        return Timestamp(ns=ns)
+
+    def __sub__(self, other_in: TimestampConstructionType) -> "Timestamp":
+        other = mediatimestamp(other_in)
+        ns = self._value - other._value
+        return Timestamp(ns=ns)
+
+    def __iadd__(self, other_in: TimestampConstructionType) -> "Timestamp":
+        other = mediatimestamp(other_in)
+        tmp = self + other
+        return self.__class__(ns=tmp._value)
+
+    def __isub__(self, other_in: TimestampConstructionType) -> "Timestamp":
+        other = mediatimestamp(other_in)
+        tmp = self - other
+        return self.__class__(ns=tmp._value)
 
     def __mul__(self, anint: int) -> "Timestamp":
-        return cast(Timestamp, super().__mul__(anint))
+        ns = self._value * anint
+        return Timestamp(ns=ns)
 
     def __rmul__(self, anint: int) -> "Timestamp":
-        return cast(Timestamp, super().__rmul__(anint))
+        return (self * anint)
+
+    def __div__(self, anint: int) -> "Timestamp":
+        return (self // anint)
+
+    def __truediv__(self, anint: int) -> "Timestamp":
+        return (self // anint)
+
+    def __floordiv__(self, anint: int) -> "Timestamp":
+        ns = self._value // anint
+        return Timestamp(ns=ns)
+
+    def _get_fractional_seconds(self, fixed_size: bool = False) -> str:
+        div = self.MAX_NANOSEC // 10
+        rem = self.ns
+        sec_frac = ""
+
+        for i in range(0, 9):
+            if not fixed_size and i > 0 and rem == 0:
+                break
+
+            sec_frac += '%i' % (rem / div)
+            rem %= div
+            div //= 10
+
+        return sec_frac

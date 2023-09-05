@@ -21,7 +21,6 @@ from ..constants import MAX_NANOSEC
 from ..exceptions import TsValueError
 
 from ._types import RationalTypes
-from .timeoffset import TimeOffset, SupportsMediaTimeOffset, mediatimeoffset
 from .timestamp import Timestamp, SupportsMediaTimestamp, mediatimestamp
 
 __all__ = ["TimeRange", "SupportsMediaTimeRange", "mediatimerange"]
@@ -154,13 +153,13 @@ class TimeRange (object):
     def at_rate(self,
                 numerator: RationalTypes,
                 denominator: RationalTypes = 1,
-                phase_offset: SupportsMediaTimeOffset = TimeOffset()) -> Iterator[Timestamp]:
+                phase_offset: SupportsMediaTimestamp = Timestamp()) -> Iterator[Timestamp]:
         """Returns an iterable which yields Timestamp objects at the specified rate within the
         range starting at the beginning and moving later.
 
         :param numerator: The numerator for the rate in Hz (or the exact rate as a Fraction or float)
         :param denominator: The denominator for the rate in Hz
-        :param phase_offset: A TimeOffset object which sets the phase offset of the first timestamp
+        :param phase_offset: A Timestamp object which sets the phase offset of the first timestamp
                              drawn from the iterable.
 
         :raises: ValueError If a phase_offset is specified which is larger than the reciprocal of the rate
@@ -168,8 +167,8 @@ class TimeRange (object):
         :returns: an iterable that yields Timestamp objects
         """
         rate = Fraction(numerator, denominator)
-        phase_offset = mediatimeoffset(phase_offset)
-        if phase_offset >= TimeOffset.from_count(1, rate):
+        phase_offset = mediatimestamp(phase_offset)
+        if phase_offset >= Timestamp.from_count(1, rate):
             raise ValueError("phase_offset of {} is too large for rate {}".format(phase_offset, rate))
 
         if self.start is None:
@@ -192,22 +191,22 @@ class TimeRange (object):
     def reversed_at_rate(self,
                          numerator: RationalTypes,
                          denominator: RationalTypes = 1,
-                         phase_offset: SupportsMediaTimeOffset = TimeOffset()) -> Iterator[Timestamp]:
+                         phase_offset: SupportsMediaTimestamp = Timestamp()) -> Iterator[Timestamp]:
         """Returns an iterable which yields Timestamp objects at the specified rate within the
         range starting at the end and moving earlier.
 
         :param numerator: The numerator for the rate in Hz (or the exact rate as a Fraction or float)
         :param denominator: The denominator for the rate in Hz
-        :param phase_offset: A TimeOffset object which sets the phase offset of the first timestamp
+        :param phase_offset: A Timestamp object which sets the phase offset of the first timestamp
                              drawn from the iterable.
 
         :raises: ValueError If a phase_offset is specified which is larger than the reciprocal of the rate
 
         :returns: an iterable that yields Timestamp objects
         """
-        phase_offset = mediatimeoffset(phase_offset)
+        phase_offset = mediatimestamp(phase_offset)
         rate = Fraction(numerator, denominator)
-        if phase_offset >= TimeOffset.from_count(1, rate):
+        if phase_offset >= Timestamp.from_count(1, rate):
             raise ValueError("phase_offset of {} is too large for rate {}".format(phase_offset, rate))
 
         if self.end is None:
@@ -231,17 +230,8 @@ class TimeRange (object):
     def from_timerange(cls, other: SupportsMediaTimeRange) -> "TimeRange":
         """Construct an immutable timerange from another timerange"""
         other = mediatimerange(other)
-
-        start: Optional[Timestamp] = None
-        if other.start is not None:
-            start = Timestamp.from_timeoffset(other.start)
-
-        end: Optional[Timestamp] = None
-        if other.end is not None:
-            end = Timestamp.from_timeoffset(other.end)
-
-        return TimeRange(start,
-                         end,
+        return TimeRange(other.start,
+                         other.end,
                          other.inclusivity)
 
     @classmethod
@@ -263,18 +253,18 @@ class TimeRange (object):
     @classmethod
     def from_start_length(cls,
                           start: SupportsMediaTimestamp,
-                          length: SupportsMediaTimeOffset,
+                          length: SupportsMediaTimestamp,
                           inclusivity: "TimeRange.Inclusivity" = INCLUSIVE) -> "TimeRange":
         """Construct a time range starting at start and ending at (start + length)
 
         :param start: A Timestamp
-        :param length: A TimeOffset, which must be non-negative
+        :param length: A Timestamp, which must be non-negative
         :param inclusivity: a combination of flags INCLUDE_START and INCLUDE_END
 
         :raises: TsValueError if the length is negative"""
-        length = mediatimeoffset(length)
+        length = mediatimestamp(length)
         start = mediatimestamp(start)
-        if length < TimeOffset():
+        if length < Timestamp():
             raise TsValueError("Length must be non-negative")
         return cls(start, start + length, inclusivity)
 
@@ -357,7 +347,7 @@ class TimeRange (object):
             return cls(start, end, inc)
 
     @property
-    def length(self) -> Union[TimeOffset, float]:
+    def length(self) -> Union[Timestamp, float]:
         if self.end is None or self.start is None:
             return float("inf")
         return self.end - self.start
@@ -382,14 +372,14 @@ class TimeRange (object):
 
     def __contains__(self, ts: object) -> bool:
         """Returns true if the timestamp is within this range."""
-        return ((isinstance(ts, SupportsMediaTimeOffset)) and
-                (self.start is None or mediatimeoffset(ts) >= self.start) and
-                (self.end is None or mediatimeoffset(ts) <= self.end) and
+        return ((isinstance(ts, SupportsMediaTimestamp)) and
+                (self.start is None or mediatimestamp(ts) >= self.start) and
+                (self.end is None or mediatimestamp(ts) <= self.end) and
                 (not ((self.start is not None) and
-                      (mediatimeoffset(ts) == self.start) and
+                      (mediatimestamp(ts) == self.start) and
                       (self.inclusivity & TimeRange.INCLUDE_START == 0))) and
                 (not ((self.end is not None) and
-                      (mediatimeoffset(ts) == self.end) and
+                      (mediatimestamp(ts) == self.end) and
                       (self.inclusivity & TimeRange.INCLUDE_END == 0))))
 
     def __eq__(self, other: object) -> bool:
@@ -797,7 +787,7 @@ class TimeRange (object):
 
     def into_chunks(
         self,
-        time_duration: TimeOffset
+        time_duration: Timestamp
     ) -> Generator["TimeRange", None, None]:
         """Returns a generator of TimeRanges of the length specified in time_duration based on this TimeRange.
 
@@ -814,7 +804,7 @@ class TimeRange (object):
         If the time_duration is the same length or longer than this TimeRange, then a copy of this TimeRange will be
         returned.
 
-        :param time_duration: A TimeOffset representing the requested chunk length
+        :param time_duration: A Timestamp representing the requested chunk length
         :returns: A TimeRange generator that generates chunks.
         """
         if not self.bounded_before():
