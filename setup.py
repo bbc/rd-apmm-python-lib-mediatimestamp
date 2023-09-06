@@ -43,7 +43,8 @@ packages = {
 
 # This is where you list packages which are required
 packages_required = [
-    "python-dateutil>=2.1"
+    "python-dateutil>=2.1",
+    "deprecated"
 ]
 
 setup(name=name,

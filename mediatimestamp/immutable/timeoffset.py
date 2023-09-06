@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TimeOffset is a legacy class
+# TimeOffset has been deprecated
 
 from .timestamp import Timestamp, mediatimestamp, SupportsMediaTimestamp, TimestampConstructionType
 

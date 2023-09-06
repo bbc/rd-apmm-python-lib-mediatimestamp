@@ -21,6 +21,8 @@ from datetime import datetime
 from dateutil import tz
 from fractions import Fraction
 
+from deprecated import deprecated
+
 from ..constants import MAX_NANOSEC, MAX_SECONDS, UTC_LEAP
 from ..exceptions import TsValueError
 
@@ -132,8 +134,10 @@ class Timestamp(object):
     def __mediatimestamp__(self) -> "Timestamp":
         return self
 
+    @deprecated(version="4.0.0",
+                reason="This method is deprecated. TimeOffset has been merged into Timestamp.")
     def __mediatimeoffset__(self) -> "Timestamp":
-        """Legacy method for TimeOffset"""
+        """Legacy method for getting a TimeOffset"""
         return self
 
     def __mediatimerange__(self) -> "TimeRange":
@@ -147,6 +151,8 @@ class Timestamp(object):
         return cls.from_unix(int(unix_time), int(unix_time*cls.MAX_NANOSEC) - int(unix_time)*cls.MAX_NANOSEC)
 
     @classmethod
+    @deprecated(version="4.0.0",
+                reason="This method is deprecated. TimeOffset has been merged into Timestamp.")
     def from_timeoffset(cls, toff: TimestampConstructionType) -> "Timestamp":
         """Legacy method that converted a TimeOffset to a Timestamp"""
         toff = mediatimestamp(toff)

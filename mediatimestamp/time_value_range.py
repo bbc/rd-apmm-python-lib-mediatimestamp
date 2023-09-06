@@ -8,6 +8,8 @@ from typing import Optional, Union, Any, Tuple, Iterator, Reversible, cast, Iter
 import re
 from fractions import Fraction
 
+from deprecated import deprecated
+
 from .immutable import (
     Timestamp, TimeOffset,
     SupportsMediaTimestamp,
@@ -331,6 +333,9 @@ class TimeValueRange(Reversible[TimeValue]):
         """Returns the range length as a Timestamp or the float value infinity"""
         return self.as_timerange().length
 
+    @deprecated(version="4.0.0",
+                reason="This method is deprecated. TimeOffset has been merged into Timestamp. "
+                       "Use length_as_timestamp() instead")
     def length_as_timeoffset(self) -> Union[TimeOffset, float]:
         """Legacy method that returns the range length as a TimeOffset or the float value infinity"""
         return self.length_as_timestamp()

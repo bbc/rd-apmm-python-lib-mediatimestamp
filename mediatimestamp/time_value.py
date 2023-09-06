@@ -7,6 +7,8 @@
 from typing import Optional, Union, Any
 from fractions import Fraction
 
+from deprecated import deprecated
+
 from .immutable import (
     TimeOffset,
     Timestamp,
@@ -120,8 +122,11 @@ class TimeValue(object):
         """
         return cls(Timestamp.from_float(f), rate=rate)
 
+    @deprecated(version="4.0.0",
+                reason="This method is deprecated. TimeOffset has been merged into Timestamp. "
+                       "Use as_timestamp() instead")
     def as_timeoffset(self) -> TimeOffset:
-        """Legacy method that returns a TimeOffset, aka Timestamp."""
+        """Legacy method that returned a TimeOffset."""
         return self.as_timestamp()
 
     def as_timestamp(self) -> Timestamp:
