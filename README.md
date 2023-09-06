@@ -41,7 +41,6 @@ time:
 
 * `Timestamp` represents an instant in time expressed as a nanosecond
    precision timestamp.
-* `TimeOffset` represents a duration measured in nanoseconds.
 * `TimeRange` represents a time range defined by its start and end
   timestamps, which may be inclusive of neither, one, or both of its
   ends.
