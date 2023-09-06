@@ -9,8 +9,8 @@ import re
 from fractions import Fraction
 
 from .immutable import (
+    Timestamp, TimeOffset,
     SupportsMediaTimestamp,
-    TimeOffset, SupportsMediaTimeOffset,
     TimeRange, SupportsMediaTimeRange, mediatimerange)
 
 from .count_range import CountRange
@@ -29,16 +29,14 @@ class TimeValueRange(Reversible[TimeValue]):
     * TimeRange
     * CountRange
     * TimeValueRange
-    * Anything that implements the __mediatimerange__ magic method, but does not implement the __mediatimestamp__ or
-      __mediatimeoffset__ magic methods.
+    * Anything that implements the __mediatimerange__ magic method, but does not implement the __mediatimestamp__
+      magic methods.
 
     Supports one of the following time value constructor representations if start_or_value is a range start:
-    * TimeOffset
     * Timestamp
     * int (integer media unit count)
     * TimeValue
     * Anything that implements the __mediatimestamp__ magic method
-    * Anything that implements the __mediatimeoffset__ magic method
 
     If state_or_value could be interpreted as a range value without
 
@@ -87,7 +85,7 @@ class TimeValueRange(Reversible[TimeValue]):
         if value is None and (
             isinstance(start_or_value, (TimeValueRange, TimeRange, CountRange)) or
             (
-                not isinstance(start_or_value, (SupportsMediaTimestamp, SupportsMediaTimeOffset)) and
+                not isinstance(start_or_value, SupportsMediaTimestamp) and
                 isinstance(start_or_value, SupportsMediaTimeRange)
             )
         ):
@@ -98,7 +96,7 @@ class TimeValueRange(Reversible[TimeValue]):
             end = value.end
             self_inclusivity = inclusivity if inclusivity is not None else value.inclusivity
         elif (
-            not isinstance(range, (SupportsMediaTimestamp, SupportsMediaTimeOffset)) and
+            not isinstance(range, SupportsMediaTimestamp) and
             isinstance(range, SupportsMediaTimeRange)
         ):
             value = mediatimerange(value)
@@ -107,7 +105,7 @@ class TimeValueRange(Reversible[TimeValue]):
             self_inclusivity = inclusivity if inclusivity is not None else value.inclusivity
         else:
             if start_or_value is not None:
-                if not isinstance(start_or_value, (SupportsMediaTimeOffset, SupportsMediaTimestamp, int, TimeValue)):
+                if not isinstance(start_or_value, (SupportsMediaTimestamp, int, TimeValue)):
                     raise ValueError(f"Unsupported type for start: {start_or_value!r}")
                 if start is not None:
                     raise ValueError("Cannot specify start or value as a positional and a keyword parameter!")
@@ -329,9 +327,13 @@ class TimeValueRange(Reversible[TimeValue]):
     def rate(self) -> Optional[Fraction]:
         return self._rate
 
-    def length_as_timeoffset(self) -> Union[TimeOffset, float]:
-        """Returns the range length as a TimeOffset or the float value infinity"""
+    def length_as_timestamp(self) -> Union[Timestamp, float]:
+        """Returns the range length as a Timestamp or the float value infinity"""
         return self.as_timerange().length
+
+    def length_as_timeoffset(self) -> Union[TimeOffset, float]:
+        """Legacy method that returns the range length as a TimeOffset or the float value infinity"""
+        return self.length_as_timestamp()
 
     def length_as_count(self) -> Union[int, float]:
         """Returns the range length as an media unit count"""
@@ -755,7 +757,7 @@ class TimeValueRange(Reversible[TimeValue]):
         A rate conversion is done if `other` is a TimeValue and the rate
         differs from self._rate.
 
-        :param other: A TimeValue, TimeOffset, TimeStamp or int.
+        :param other: A TimeValue, TimeStamp or int.
         """
         return TimeValue(other, rate=self._rate)
 
