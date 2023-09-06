@@ -392,11 +392,11 @@ class TestTimestamp(unittest.TestCase):
 
     def test_average(self):
         """This tests that timestamps can be averaged."""
-        toff1 = Timestamp(11, 976)
-        toff2 = Timestamp(21, 51)
-        toff_avg = (toff1 * 49 + toff2) // 50
-        avg = int((toff1.to_nanosec() * 49 + toff2.to_nanosec()) // 50)
-        self.assertEqual(avg, toff_avg.to_nanosec())
+        ts1 = Timestamp(11, 976)
+        ts2 = Timestamp(21, 51)
+        ts_avg = (ts1 * 49 + ts2) // 50
+        avg = int((ts1.to_nanosec() * 49 + ts2.to_nanosec()) // 50)
+        self.assertEqual(avg, ts_avg.to_nanosec())
 
     def test_cast(self):
         """This tests that addition and subtraction of Timestamps and integers or floats works as expected."""
@@ -466,25 +466,25 @@ class TestTimestamp(unittest.TestCase):
         ts += Timestamp(0, 1)
         self.assertEqual(ts, Timestamp(281474976710655, 999999999))
 
-        toff = Timestamp(10, 0)
-        toff -= Timestamp(100, 0)
-        self.assertEqual(toff, Timestamp(90, 0, -1))
+        ts = Timestamp(10, 0)
+        ts -= Timestamp(100, 0)
+        self.assertEqual(ts, Timestamp(90, 0, -1))
 
-        toff = Timestamp(10, 0)
-        toff -= Timestamp(0, 1)
-        self.assertEqual(toff, Timestamp(9, 999999999))
+        ts = Timestamp(10, 0)
+        ts -= Timestamp(0, 1)
+        self.assertEqual(ts, Timestamp(9, 999999999))
 
-        toff = Timestamp(10, 500000000)
-        toff += Timestamp(0, 500000000)
-        self.assertEqual(toff, Timestamp(11, 0))
+        ts = Timestamp(10, 500000000)
+        ts += Timestamp(0, 500000000)
+        self.assertEqual(ts, Timestamp(11, 0))
 
-        toff = Timestamp(10, 500000000, -1)
-        toff -= Timestamp(0, 500000000)
-        self.assertEqual(toff, Timestamp(11, 0, -1))
+        ts = Timestamp(10, 500000000, -1)
+        ts -= Timestamp(0, 500000000)
+        self.assertEqual(ts, Timestamp(11, 0, -1))
 
-        toff = Timestamp(10, 0, -1)
-        toff += Timestamp(0, 500000000)
-        self.assertEqual(toff, Timestamp(9, 500000000, -1))
+        ts = Timestamp(10, 0, -1)
+        ts += Timestamp(0, 500000000)
+        self.assertEqual(ts, Timestamp(9, 500000000, -1))
 
     def test_addsub(self):
         """This tests addition and subtraction on timestamps."""

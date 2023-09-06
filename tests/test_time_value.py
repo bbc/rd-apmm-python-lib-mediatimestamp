@@ -8,10 +8,7 @@ import unittest
 from fractions import Fraction
 
 from mediatimestamp import (
-    TimeOffset,
     Timestamp,
-    SupportsMediaTimeOffset,
-    mediatimeoffset,
     SupportsMediaTimestamp,
     mediatimestamp,
     TimeValue)
@@ -22,11 +19,6 @@ class TestTimeValue(unittest.TestCase):
         tv = TimeValue(100, rate=Fraction(25))
         self.assertEqual(tv.value, 100)
         self.assertEqual(tv.rate, Fraction(25))
-
-    def test_from_timeoffset(self):
-        tv = TimeValue(TimeOffset(4), rate=None)
-        self.assertEqual(tv.value, TimeOffset(4))
-        self.assertIsNone(tv.rate)
 
     def test_from_timestamp(self):
         tv = TimeValue(Timestamp(4), rate=None)
@@ -39,8 +31,8 @@ class TestTimeValue(unittest.TestCase):
         self.assertEqual(tv.value, 100)
         self.assertEqual(tv.rate, Fraction(25))
 
-    def test_from_timeoffset_to_count(self):
-        tv = TimeValue(TimeOffset(4), rate=Fraction(25))
+    def test_from_timestamp_to_count(self):
+        tv = TimeValue(Timestamp(4), rate=Fraction(25))
         self.assertIsInstance(tv.value, int)
         self.assertEqual(tv.value, 100)
         self.assertEqual(tv.rate, Fraction(25))
@@ -55,48 +47,8 @@ class TestTimeValue(unittest.TestCase):
         with self.assertRaises(TypeError):
             TimeValue(str(10))
 
-    def test_as_timeoffset(self):
-        tv = TimeValue(TimeOffset(4), rate=Fraction(25))
-        to = tv.as_timeoffset()
-        self.assertIsInstance(to, TimeOffset)
-        self.assertEqual(to, TimeOffset(4))
-
-        tv = TimeValue(Timestamp(4), rate=Fraction(25))
-        to = tv.as_timeoffset()
-        self.assertIsInstance(to, TimeOffset)
-        self.assertEqual(to, TimeOffset(4))
-
-        tv = TimeValue(100, rate=Fraction(25))
-        to = tv.as_timeoffset()
-        self.assertIsInstance(to, TimeOffset)
-        self.assertEqual(to, TimeOffset(4))
-
-    def test_mediatimeoffset(self):
-        tv = TimeValue(TimeOffset(4), rate=Fraction(25))
-        self.assertIsInstance(tv, SupportsMediaTimeOffset)
-        to = mediatimeoffset(tv)
-        self.assertIsInstance(to, TimeOffset)
-        self.assertEqual(to, TimeOffset(4))
-
-        tv = TimeValue(Timestamp(4), rate=Fraction(25))
-        self.assertIsInstance(tv, SupportsMediaTimeOffset)
-        to = mediatimeoffset(tv)
-        self.assertIsInstance(to, TimeOffset)
-        self.assertEqual(to, TimeOffset(4))
-
-        tv = TimeValue(100, rate=Fraction(25))
-        self.assertIsInstance(tv, SupportsMediaTimeOffset)
-        to = mediatimeoffset(tv)
-        self.assertIsInstance(to, TimeOffset)
-        self.assertEqual(to, TimeOffset(4))
-
     def test_as_timestamp(self):
         tv = TimeValue(Timestamp(4), rate=Fraction(25))
-        ts = tv.as_timestamp()
-        self.assertIsInstance(ts, Timestamp)
-        self.assertEqual(ts, Timestamp(4))
-
-        tv = TimeValue(TimeOffset(4), rate=Fraction(25))
         ts = tv.as_timestamp()
         self.assertIsInstance(ts, Timestamp)
         self.assertEqual(ts, Timestamp(4))
@@ -113,12 +65,6 @@ class TestTimeValue(unittest.TestCase):
         self.assertIsInstance(ts, Timestamp)
         self.assertEqual(ts, Timestamp(4))
 
-        tv = TimeValue(TimeOffset(4), rate=Fraction(25))
-        self.assertIsInstance(tv, SupportsMediaTimestamp)
-        ts = mediatimestamp(tv)
-        self.assertIsInstance(ts, Timestamp)
-        self.assertEqual(ts, Timestamp(4))
-
         tv = TimeValue(100, rate=Fraction(25))
         self.assertIsInstance(tv, SupportsMediaTimestamp)
         ts = mediatimestamp(tv)
@@ -130,18 +76,18 @@ class TestTimeValue(unittest.TestCase):
         ct = tv.as_count()
         self.assertEqual(ct, 100)
 
-        tv = TimeValue(TimeOffset(4), rate=Fraction(25))
+        tv = TimeValue(Timestamp(4), rate=Fraction(25))
         ct = tv.as_count()
         self.assertEqual(ct, 100)
 
     def test_as_but_no_rate(self):
-        tv = TimeValue(TimeOffset(4))
+        tv = TimeValue(Timestamp(4))
         with self.assertRaises(ValueError):
             tv.as_count()
 
         tv = TimeValue(100)
         with self.assertRaises(ValueError):
-            tv.as_timeoffset()
+            tv.as_timestamp()
 
     def test_from_str(self):
         cases = [
@@ -152,9 +98,9 @@ class TestTimeValue(unittest.TestCase):
             ("100@25", TimeValue(100, rate=Fraction(25))),
             ("100@30000/1001", TimeValue(100, rate=Fraction(30000, 1001))),
 
-            ("-4:0", TimeValue(TimeOffset(4, sign=-1))),
-            ("0:0", TimeValue(TimeOffset(0))),
-            ("4:0", TimeValue(TimeOffset(4))),
+            ("-4:0", TimeValue(Timestamp(4, sign=-1))),
+            ("0:0", TimeValue(Timestamp(0))),
+            ("4:0", TimeValue(Timestamp(4))),
 
             ("4:0@25", TimeValue(100, rate=Fraction(25))),
             ("4:0@30000/1001", TimeValue(120, rate=Fraction(30000, 1001))),
@@ -189,8 +135,8 @@ class TestTimeValue(unittest.TestCase):
             (float(100), Fraction(25), TimeValue.from_str("2500@25")),
             (float(4), None, TimeValue(100, rate=Fraction(25))),
             (float(2.5), Fraction(50), TimeValue.from_str("125@50")),
-            (float(7.6), None, TimeValue(TimeOffset.from_str("7:600000000"))),
-            (float(3.6), Fraction(100), TimeValue(TimeOffset.from_str("3:600000000"), rate=Fraction(100)))
+            (float(7.6), None, TimeValue(Timestamp.from_str("7:600000000"))),
+            (float(3.6), Fraction(100), TimeValue(Timestamp.from_str("3:600000000"), rate=Fraction(100)))
         ]
 
         for case in cases:
@@ -207,9 +153,9 @@ class TestTimeValue(unittest.TestCase):
             ("100", TimeValue(100, rate=Fraction(25)), False),
             ("100@30000/1001", TimeValue(100, rate=Fraction(30000, 1001)), True),
 
-            ("-4:0", TimeValue(TimeOffset(4, sign=-1)), True),
-            ("0:0", TimeValue(TimeOffset(0)), True),
-            ("4:0", TimeValue(TimeOffset(4)), True),
+            ("-4:0", TimeValue(Timestamp(4, sign=-1)), True),
+            ("0:0", TimeValue(Timestamp(0)), True),
+            ("4:0", TimeValue(Timestamp(4)), True),
         ]
 
         for case in cases:
@@ -225,15 +171,15 @@ class TestTimeValue(unittest.TestCase):
         self.assertGreater(TimeValue(2), TimeValue(1))
         self.assertGreaterEqual(TimeValue(2), TimeValue(2))
         self.assertNotEqual(TimeValue(2), TimeValue(3))
-        self.assertEqual(TimeValue(TimeOffset(4)), TimeValue(TimeOffset(4)))
+        self.assertEqual(TimeValue(Timestamp(4)), TimeValue(Timestamp(4)))
 
     def test_compare_with_convert(self):
-        self.assertEqual(TimeValue(100, rate=Fraction(25)), TimeValue(TimeOffset(4)))
-        self.assertEqual(TimeValue(TimeOffset(4)), TimeValue(100, rate=Fraction(25)))
+        self.assertEqual(TimeValue(100, rate=Fraction(25)), TimeValue(Timestamp(4)))
+        self.assertEqual(TimeValue(Timestamp(4)), TimeValue(100, rate=Fraction(25)))
 
     def test_compare_no_rate(self):
         with self.assertRaises(ValueError):
-            TimeValue(100) == TimeValue(TimeOffset(4))
+            TimeValue(100) == TimeValue(Timestamp(4))
 
     def test_equality_none(self):
         none_value = None
@@ -244,17 +190,17 @@ class TestTimeValue(unittest.TestCase):
         cases = [
             (TimeValue(50), '+', TimeValue(50),
                 TimeValue(100)),
-            (TimeValue(50, rate=Fraction(25)), '+', TimeValue(TimeOffset(2)),
+            (TimeValue(50, rate=Fraction(25)), '+', TimeValue(Timestamp(2)),
                 TimeValue(100, rate=Fraction(25))),
-            (TimeValue(TimeOffset(2)), '+', TimeValue(TimeOffset(2)),
-                TimeValue(TimeOffset(4))),
+            (TimeValue(Timestamp(2)), '+', TimeValue(Timestamp(2)),
+                TimeValue(Timestamp(4))),
 
             (TimeValue(50), '-', TimeValue(50),
                 TimeValue(0)),
-            (TimeValue(50, rate=Fraction(25)), '-', TimeValue(TimeOffset(2)),
+            (TimeValue(50, rate=Fraction(25)), '-', TimeValue(Timestamp(2)),
                 TimeValue(0, rate=Fraction(25))),
-            (TimeValue(TimeOffset(2)), '-', TimeValue(TimeOffset(2)),
-                TimeValue(TimeOffset(0))),
+            (TimeValue(Timestamp(2)), '-', TimeValue(Timestamp(2)),
+                TimeValue(Timestamp(0))),
         ]
 
         for case in cases:
@@ -270,11 +216,11 @@ class TestTimeValue(unittest.TestCase):
 
     def test_addsub_no_rate(self):
         cases = [
-            (TimeValue(50), '+', TimeValue(TimeOffset(2))),
-            (TimeValue(TimeOffset(2)), '+', TimeValue(50)),
+            (TimeValue(50), '+', TimeValue(Timestamp(2))),
+            (TimeValue(Timestamp(2)), '+', TimeValue(50)),
 
-            (TimeValue(50), '-', TimeValue(TimeOffset(2))),
-            (TimeValue(TimeOffset(2)), '-', TimeValue(50)),
+            (TimeValue(50), '-', TimeValue(Timestamp(2))),
+            (TimeValue(Timestamp(2)), '-', TimeValue(50)),
         ]
 
         for case in cases:
@@ -289,18 +235,18 @@ class TestTimeValue(unittest.TestCase):
         cases = [
             (TimeValue(50), '*', 2,
                 TimeValue(100)),
-            (TimeValue(TimeOffset(2)), '*', 2,
-                TimeValue(TimeOffset(4))),
+            (TimeValue(Timestamp(2)), '*', 2,
+                TimeValue(Timestamp(4))),
 
             (2, '*', TimeValue(50),
                 TimeValue(100)),
-            (2, '*', TimeValue(TimeOffset(2)),
-                TimeValue(TimeOffset(4))),
+            (2, '*', TimeValue(Timestamp(2)),
+                TimeValue(Timestamp(4))),
 
             (TimeValue(50), '/', 2,
                 TimeValue(25)),
-            (TimeValue(TimeOffset(2)), '/', 2,
-                TimeValue(TimeOffset(1))),
+            (TimeValue(Timestamp(2)), '/', 2,
+                TimeValue(Timestamp(1))),
 
             (TimeValue(25), '/', 2,
                 TimeValue(12)),
