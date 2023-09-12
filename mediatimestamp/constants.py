@@ -15,7 +15,7 @@
 # THESE CONSTANTS ARE NOT PART OF THIS LIBRARY'S PUBLIC INTERFACE
 # The same values are made available by methods that are, such as
 #
-# TimeOffset.MAX_NANOSEC
+# Timestamp.MAX_NANOSEC
 #
 # So use those instead. At some point these constants could go away without warning
 

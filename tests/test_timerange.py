@@ -18,7 +18,6 @@ from fractions import Fraction
 
 from mediatimestamp.immutable import (
     Timestamp,
-    TimeOffset,
     TsValueError,
     TimeRange,
     SupportsMediaTimeRange,
@@ -359,28 +358,28 @@ class TestTimeRange (unittest.TestCase):
 
     def test_at_rate(self):
         test_data = [
-            (TimeRange.from_str("[10:0_11:0)"), 50, TimeOffset(),
-             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
-            (TimeRange.from_str("[10:0_11:0)"), 50, TimeOffset(0, 100),
-             [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
-            (TimeRange.from_str("[10:0_11:0]"), 50, TimeOffset(),
-             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(0, 51)]),
-            (TimeRange.from_str("[10:0_11:0]"), 50, TimeOffset(0, 100),
-             [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
-            (TimeRange.from_str("(10:0_11:0)"), 50, TimeOffset(),
-             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(1, 50)]),
-            (TimeRange.from_str("(10:0_11:0)"), 50, TimeOffset(0, 100),
-             [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
-            (TimeRange.from_str("(10:0_11:0]"), 50, TimeOffset(),
-             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(1, 51)]),
-            (TimeRange.from_str("(10:0_11:0]"), 50, TimeOffset(0, 100),
-             [Timestamp(10, 100) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
-            (TimeRange.from_str("[10:0_11:0)"), Fraction(50, 1), TimeOffset(),
-             [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]),
-            (TimeRange.from_str("[10:0_11:0)"), Fraction(50, 2), TimeOffset(),
-             [Timestamp(10, 0) + TimeOffset.from_count(n, 25, 1) for n in range(0, 25)]),
-            (TimeRange.from_str("[10:0_11:0)"), Fraction(25, 2), TimeOffset(),
-             [Timestamp(10, 0) + TimeOffset.from_count(n, 25, 2) for n in range(0, 13)]),
+            (TimeRange.from_str("[10:0_11:0)"), 50, Timestamp(),
+             [Timestamp(10, 0) + Timestamp.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0)"), 50, Timestamp(0, 100),
+             [Timestamp(10, 100) + Timestamp.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0]"), 50, Timestamp(),
+             [Timestamp(10, 0) + Timestamp.from_count(n, 50, 1) for n in range(0, 51)]),
+            (TimeRange.from_str("[10:0_11:0]"), 50, Timestamp(0, 100),
+             [Timestamp(10, 100) + Timestamp.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("(10:0_11:0)"), 50, Timestamp(),
+             [Timestamp(10, 0) + Timestamp.from_count(n, 50, 1) for n in range(1, 50)]),
+            (TimeRange.from_str("(10:0_11:0)"), 50, Timestamp(0, 100),
+             [Timestamp(10, 100) + Timestamp.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("(10:0_11:0]"), 50, Timestamp(),
+             [Timestamp(10, 0) + Timestamp.from_count(n, 50, 1) for n in range(1, 51)]),
+            (TimeRange.from_str("(10:0_11:0]"), 50, Timestamp(0, 100),
+             [Timestamp(10, 100) + Timestamp.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0)"), Fraction(50, 1), Timestamp(),
+             [Timestamp(10, 0) + Timestamp.from_count(n, 50, 1) for n in range(0, 50)]),
+            (TimeRange.from_str("[10:0_11:0)"), Fraction(50, 2), Timestamp(),
+             [Timestamp(10, 0) + Timestamp.from_count(n, 25, 1) for n in range(0, 25)]),
+            (TimeRange.from_str("[10:0_11:0)"), Fraction(25, 2), Timestamp(),
+             [Timestamp(10, 0) + Timestamp.from_count(n, 25, 2) for n in range(0, 13)]),
         ]
 
         for (tr, rate, phase_offset, expected) in test_data:
@@ -388,17 +387,17 @@ class TestTimeRange (unittest.TestCase):
             self.assertEqual(list(tr.reversed_at_rate(rate, phase_offset=phase_offset)), list(reversed(expected)))
 
         gen = TimeRange.from_str("[10:0_").at_rate(50)
-        for ts in [Timestamp(10, 0) + TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]:
+        for ts in [Timestamp(10, 0) + Timestamp.from_count(n, 50, 1) for n in range(0, 50)]:
             self.assertEqual(next(gen), ts)
 
         gen = TimeRange.from_str("_10:0]").reversed_at_rate(50)
-        for ts in [Timestamp(10, 0) - TimeOffset.from_count(n, 50, 1) for n in range(0, 50)]:
+        for ts in [Timestamp(10, 0) - Timestamp.from_count(n, 50, 1) for n in range(0, 50)]:
             self.assertEqual(next(gen), ts)
 
         self.assertEqual(list(TimeRange.from_str("[10:0_10:50)")),
-                         [Timestamp(10, 0) + TimeOffset(0, n) for n in range(0, 50)])
+                         [Timestamp(10, 0) + Timestamp(0, n) for n in range(0, 50)])
         self.assertEqual(list(reversed(TimeRange.from_str("[10:0_10:50)"))),
-                         [Timestamp(10, 0) + TimeOffset(0, 49 - n) for n in range(0, 50)])
+                         [Timestamp(10, 0) + Timestamp(0, 49 - n) for n in range(0, 50)])
 
     def test_comparisons(self):
         # Test data format:
@@ -894,7 +893,7 @@ class TestTimeRange (unittest.TestCase):
     def test_into_chunks__shorter_line_up(self):
         """Test into_chunks when the sub-chunks are shorter than the main timerange and line up perfectly."""
         chunking_timerange = TimeRange.from_str("[0:0_20:0]")
-        tc1_chunk = TimeOffset.from_str("5:0")
+        tc1_chunk = Timestamp.from_str("5:0")
         tc1_expected = [
             TimeRange.from_str("[0:0_5:0)"),
             TimeRange.from_str("[5:0_10:0)"),
@@ -910,7 +909,7 @@ class TestTimeRange (unittest.TestCase):
         """Test into_chunks when the sub-chunks are shorter but not an exact division
         (i.e. there will be one short chunk at the end)."""
         chunking_timerange = TimeRange.from_str("[0:0_20:0]")
-        tc2_chunk = TimeOffset.from_str("6:300000000")
+        tc2_chunk = Timestamp.from_str("6:300000000")
         tc2_expected = [
             TimeRange.from_str("[0:0_6:300000000)"),
             TimeRange.from_str("[6:300000000_12:600000000)"),
@@ -925,7 +924,7 @@ class TestTimeRange (unittest.TestCase):
     def test_into_chunks__exact_length(self):
         """Test into_chunks when the sub-chunk is exactly the length of the main timerange."""
         chunking_timerange = TimeRange.from_str("(0:0_20:0]")
-        tc3_chunk = TimeOffset.from_str("20:0")
+        tc3_chunk = Timestamp.from_str("20:0")
         tc3_4_expected = [
             TimeRange.from_str("(0:0_20:0]")
         ]
@@ -936,7 +935,7 @@ class TestTimeRange (unittest.TestCase):
     def test_into_chunks__longer(self):
         """Test into_chunks when the sub-chunk is longer than the timerange."""
         chunking_timerange = TimeRange.from_str("[0:0_20:0]")
-        tc4_chunk = TimeOffset.from_str("30:0")
+        tc4_chunk = Timestamp.from_str("30:0")
         tc3_4_expected = [
             TimeRange.from_str("[0:0_20:0]")
         ]
@@ -947,7 +946,7 @@ class TestTimeRange (unittest.TestCase):
     def test_into_chunks__infinity(self):
         """Test into_chunks when the timerange has no end."""
         chunking_timerange = TimeRange.from_start(Timestamp.from_nanosec(0))
-        tc5_chunk = TimeOffset.from_str("30:0")
+        tc5_chunk = Timestamp.from_str("30:0")
         tc5_expected = [
             TimeRange.from_str("[0:0_30:0)"),
             TimeRange.from_str("[30:0_60:0)"),

@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This library provides a class TimeOffset which stores a signed time difference value with nanosecond precision.
+"""This library provides a class Timestamp which stores a signed time difference value with nanosecond precision.
 
-It also provides a class Timestamp which is a descendent of TimeOffset which represents a positive time offset since
-the epoch (ie. 1970-01-01T00:00:00.000000000Z)
+The Timestamp can represent a time offset since the epoch (ie. 1970-01-01T00:00:00.000000000Z)
 
 These data types are of use in a number of situations, but particularly for code that will handle PTP timestamps, which
 are normally stored in this fashion.

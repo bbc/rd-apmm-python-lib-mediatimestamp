@@ -8,14 +8,14 @@ import unittest
 from fractions import Fraction
 
 from mediatimestamp import (
-    TimeOffset, TimeRange, Timestamp, SupportsMediaTimeRange, mediatimerange,
+    TimeRange, Timestamp, SupportsMediaTimeRange, mediatimerange,
     CountRange, TimeValue, TimeValueRange)
 
 
 class TestTimeValueRange(unittest.TestCase):
     def test_from_timerange(self):
         tvr = TimeValueRange(TimeRange(Timestamp(0), Timestamp(1)))
-        self.assertEqual(tvr, TimeValueRange(TimeValue(TimeOffset(0)), TimeValue(TimeOffset(1))))
+        self.assertEqual(tvr, TimeValueRange(TimeValue(Timestamp(0)), TimeValue(Timestamp(1))))
 
         tvr = TimeValueRange(TimeRange(Timestamp(0), Timestamp(1)), rate=Fraction(25))
         self.assertEqual(tvr, TimeValueRange(TimeValue(0), TimeValue(25), rate=Fraction(25)))
@@ -28,14 +28,14 @@ class TestTimeValueRange(unittest.TestCase):
         tvr = TimeValueRange(0, 25)
         self.assertEqual(tvr, TimeValueRange(TimeValue(0), TimeValue(25)))
 
-    def test_from_timeoffset(self):
-        tvr = TimeValueRange(TimeOffset(0), TimeOffset(1))
-        self.assertEqual(tvr._start, TimeOffset(0))
-        self.assertEqual(tvr._end, TimeOffset(1))
+    def test_from_timestamp(self):
+        tvr = TimeValueRange(Timestamp(0), Timestamp(1))
+        self.assertEqual(tvr._start, Timestamp(0))
+        self.assertEqual(tvr._end, Timestamp(1))
         self.assertEqual(tvr._inclusivity, TimeValueRange.INCLUSIVE)
         self.assertIsNone(tvr._rate)
 
-        tvr = TimeValueRange(TimeOffset(0), TimeOffset(1), rate=Fraction(25))
+        tvr = TimeValueRange(Timestamp(0), Timestamp(1), rate=Fraction(25))
         self.assertEqual(tvr, TimeValueRange(TimeValue(0), TimeValue(25), rate=Fraction(25)))
 
     def test_norm_never(self):
@@ -216,7 +216,7 @@ class TestTimeValueRange(unittest.TestCase):
 
             ("[100_200]@25", TimeValueRange(100, 200, inclusivity=TimeValueRange.INCLUSIVE, rate=Fraction(25))),
             ("[4:0_8:0]@25", TimeValueRange(100, 200, inclusivity=TimeValueRange.INCLUSIVE, rate=Fraction(25))),
-            ("[4:0_8:0]", TimeValueRange(TimeOffset(4), TimeOffset(8), inclusivity=TimeValueRange.INCLUSIVE)),
+            ("[4:0_8:0]", TimeValueRange(Timestamp(4), Timestamp(8), inclusivity=TimeValueRange.INCLUSIVE)),
         ]
 
         for (s, tr) in tests:
@@ -228,7 +228,7 @@ class TestTimeValueRange(unittest.TestCase):
             ("[100_201)@25", TimeValueRange(100, 200, rate=Fraction(25)), True),
             ("[100_201)", TimeValueRange(100, 200, rate=Fraction(25)), False),
 
-            ("[4:0_8:0]", TimeValueRange(TimeOffset(4), TimeOffset(8)), True),
+            ("[4:0_8:0]", TimeValueRange(Timestamp(4), Timestamp(8)), True),
 
             ("[100_201)@25", TimeValueRange(TimeValue(100),
                                             TimeValue(200, rate=Fraction(25))), True),

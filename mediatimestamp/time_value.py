@@ -7,27 +7,25 @@
 from typing import Optional, Union, Any
 from fractions import Fraction
 
+from deprecated import deprecated
+
 from .immutable import (
     TimeOffset,
     Timestamp,
     TimeRange,
-    SupportsMediaTimeOffset,
     SupportsMediaTimestamp,
-    mediatimeoffset,
     mediatimestamp)
 
 
-TimeValueRepTypes = Union[Timestamp, TimeOffset, int]
-TimeValueConstructTypes = Union[SupportsMediaTimeOffset, SupportsMediaTimestamp, int, "TimeValue"]
+TimeValueRepTypes = Union[Timestamp, int]
+TimeValueConstructTypes = Union[SupportsMediaTimestamp, int, "TimeValue"]
 
 
 def _perform_all_conversions(v: TimeValueConstructTypes) -> Union[TimeValueRepTypes, "TimeValue"]:
-    if isinstance(v, (int, TimeOffset, TimeValue)):
+    if isinstance(v, (int, Timestamp, TimeValue)):
         return v
     elif isinstance(v, SupportsMediaTimestamp):
         return mediatimestamp(v)
-    elif isinstance(v, SupportsMediaTimeOffset):
-        return mediatimeoffset(v)
     else:
         raise TypeError("{!r} is not a valid construction type for a TimeValue".format(v))
 
@@ -36,26 +34,23 @@ class TimeValue(object):
     """Represents a media unit time value on a timeline (e.g. Flow).
 
     Supports one of the following input value representations:
-    * TimeOffset
     * Timestamp
     * int (integer media unit count)
     * TimeValue
     * Anything that implements the __mediatimestamp__ magic method
-    * Anything that implements the __mediatimeoffset__ magic method
 
     An optional rate can be set and is required and checked when there is a
     need to convert between representations.
 
-    TimeOffset and Timestamps are converted internally to ints if a rate is
-    provided.
+    Timestamps are converted internally to ints if a rate is provided.
 
-    The time value can be converted to a TimeOffset, Timestamp or int using
+    The time value can be converted to a Timestamp or int using
     the as_*() methods.
     """
 
     def __init__(self, value: TimeValueConstructTypes, rate: Optional[Fraction] = None):
         """
-        :param value: A TimeValue, TimeOffset, TimeStamp or int.
+        :param value: A TimeValue, TimeStamp or int.
         :param rate: The media unit rate.
         """
         self_rate: Optional[Fraction]
@@ -68,7 +63,7 @@ class TimeValue(object):
                 # A rate conversion is required. Convert to a timeoffset here and the
                 # conversion at the end using the new rate
                 try:
-                    self_value = value.as_timeoffset()
+                    self_value = value.as_timestamp()
                 except ValueError:
                     # the representation is a count and so we assume it is as the given rate
                     self_value = value._value
@@ -76,16 +71,16 @@ class TimeValue(object):
             else:
                 self_value = value._value
                 self_rate = value._rate
-        elif isinstance(value, (TimeOffset, int)):
+        elif isinstance(value, (Timestamp, int)):
             self_value = value
             self_rate = rate
         else:
             raise TypeError("Unsupported value type {!r}".format(value))
 
-        # Convert to an int if the value is a TimeOffset and a rate is
+        # Convert to an int if the value is a Timestamp and a rate is
         # provided. This allows for more efficient calculations and no
         # normalisation is required.
-        if isinstance(self_value, TimeOffset) and self_rate:
+        if isinstance(self_value, Timestamp) and self_rate:
             self_value = self_value.to_count(self_rate.numerator, self_rate.denominator)
 
         # set attributes using dict to workaround immutability
@@ -116,8 +111,7 @@ class TimeValue(object):
                 len(s_val) > 0 and s_val[0] in ['+', '-'] and s_val[1:].isdigit()):
             return cls(int(s_val), rate=rate)
         else:
-            # Assuming that it represents a TimeOffset rather than a Timestamp
-            return cls(TimeOffset.from_str(s_val), rate=rate)
+            return cls(Timestamp.from_str(s_val), rate=rate)
 
     @classmethod
     def from_float(cls, f: float, rate: Optional[Fraction] = None) -> "TimeValue":
@@ -126,27 +120,19 @@ class TimeValue(object):
         :param f: The float to convert from.
         :param rate: The default media unit rate.
         """
-        return cls(TimeOffset.from_float(f), rate=rate)
+        return cls(Timestamp.from_float(f), rate=rate)
 
+    @deprecated(version="4.0.0",
+                reason="This method is deprecated. TimeOffset has been merged into Timestamp. "
+                       "Use as_timestamp() instead")
     def as_timeoffset(self) -> TimeOffset:
-        """Returns a TimeOffset representation."""
-        if isinstance(self._value, Timestamp):
-            return TimeOffset.from_timeoffset(self._value)
-        elif isinstance(self._value, TimeOffset):
-            return self._value
-        else:
-            rate = self._require_rate()
-            return TimeOffset.from_count(self._value, rate.numerator, rate.denominator)
-
-    def __mediatimeoffset__(self) -> TimeOffset:
-        return self.as_timeoffset()
+        """Legacy method that returned a TimeOffset."""
+        return self.as_timestamp()
 
     def as_timestamp(self) -> Timestamp:
         """Returns a Timestamp representation."""
         if isinstance(self._value, Timestamp):
             return self._value
-        elif isinstance(self._value, TimeOffset):
-            return Timestamp.from_timeoffset(self._value)
         else:
             rate = self._require_rate()
             return Timestamp.from_count(self._value, rate.numerator, rate.denominator)
@@ -159,7 +145,7 @@ class TimeValue(object):
 
     def as_count(self) -> int:
         """Returns an integer media unit count representation."""
-        if isinstance(self._value, TimeOffset):
+        if isinstance(self._value, Timestamp):
             rate = self._require_rate()
             return self._value.to_count(rate.numerator, rate.denominator)
         else:
@@ -177,10 +163,10 @@ class TimeValue(object):
         """Compare time values and return an integer to indicate the difference"""
         other = _perform_all_conversions(other)
         other_value = self._match_value_type(other)
-        if isinstance(self._value, TimeOffset):
+        if isinstance(self._value, Timestamp):
             return self._value.compare(other_value)
         else:
-            # The logic here follows the TimeOffset implementation
+            # The logic here follows the Timestamp implementation
             this_sign = 1 if self >= 0 else -1
             other_sign = 1 if other >= 0 else -1
             if this_sign != other_sign:
@@ -215,14 +201,14 @@ class TimeValue(object):
 
     def __eq__(self, other: object) -> bool:
         """"Return true if the TimeValues are equal"""
-        if not isinstance(other, (SupportsMediaTimestamp, SupportsMediaTimeOffset, int, TimeValue)):
+        if not isinstance(other, (SupportsMediaTimestamp, int, TimeValue)):
             return False
         other_value = self._match_value_type(other)
         return self._value.__eq__(other_value)
 
     def __ne__(self, other: object) -> bool:
         """"Return true if the TimeValues are not equal"""
-        if not isinstance(other, (SupportsMediaTimestamp, SupportsMediaTimeOffset, int, TimeValue)):
+        if not isinstance(other, (SupportsMediaTimestamp, int, TimeValue)):
             return True
         other_value = self._match_value_type(other)
         return self._value.__ne__(other_value)
@@ -291,13 +277,11 @@ class TimeValue(object):
         A rate conversion is done if `other` is a TimeValue and the rate
         differs from self._rate.
 
-        :param other: A TimeValue, TimeOffset, Timestamp or int.
+        :param other: A TimeValue, Timestamp or int.
         """
         other_tv = TimeValue(other, rate=self._rate)
         if isinstance(self._value, Timestamp):
             return other_tv.as_timestamp()
-        elif isinstance(self._value, TimeOffset):
-            return other_tv.as_timeoffset()
         else:
             return other_tv.as_count()
 

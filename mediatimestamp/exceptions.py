@@ -17,7 +17,7 @@
 
 
 class TsValueError(Exception):
-    """ Raised when the time offset or timestamp input is invalid """
+    """ Raised when the timestamp input is invalid """
     def __init__(self, msg: str):
         super().__init__(msg)
         self.msg = msg
