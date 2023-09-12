@@ -109,6 +109,7 @@ class TestTimeRange (unittest.TestCase):
         self.assertIn(Timestamp(1530711654, 0, -1), rng)
         self.assertIn(Timestamp(1530711653, 999999999, -1), rng)
         self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
         self.assertNotIn(Timestamp(1530711653, 999999998, -1), rng)
         self.assertNotIn(Timestamp(1530711653, 999999997, -1), rng)
 
