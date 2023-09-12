@@ -63,6 +63,8 @@ class TestTimeRange (unittest.TestCase):
         self.assertNotIn(Timestamp(1530711653, 999999998), rng)
         self.assertNotIn(Timestamp(1530711653, 999999999), rng)
         self.assertNotIn(Timestamp(49391596800, 999999), rng)
+        self.assertNotIn(Timestamp(326246400, 0, -1), rng)
+        self.assertNotIn(Timestamp(49391596800, 999999, -1), rng)
 
         self.assertTrue(rng.is_empty())
         self.assertEqual(rng.to_sec_nsec_range(), "()")
@@ -79,6 +81,8 @@ class TestTimeRange (unittest.TestCase):
         self.assertIn(Timestamp(1530711653, 999999998), alltime)
         self.assertIn(Timestamp(1530711653, 999999999), alltime)
         self.assertIn(Timestamp(49391596800, 999999), alltime)
+        self.assertIn(Timestamp(326246400, 0, -1), alltime)
+        self.assertIn(Timestamp(49391596800, 999999, -1), alltime)
 
         self.assertEqual(alltime.to_sec_nsec_range(), "_")
         self.assertEqual(str(alltime), "_")
@@ -99,6 +103,19 @@ class TestTimeRange (unittest.TestCase):
         self.assertEqual(rng.to_sec_nsec_range(), "_1530711653:999999999]")
         self.assertEqual(str(rng), "_1530711653:999999999]")
 
+    def test_bounded_on_right_inclusive__negative(self):
+        rng = TimeRange.from_end(Timestamp(1530711653, 999999999, -1))
+
+        self.assertIn(Timestamp(1530711654, 0, -1), rng)
+        self.assertIn(Timestamp(1530711653, 999999999, -1), rng)
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999998, -1), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999997, -1), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "_-1530711653:999999999]")
+        self.assertEqual(str(rng), "_-1530711653:999999999]")
+
     def test_bounded_on_right_exclusive(self):
         rng = TimeRange.from_end(Timestamp(1530711653, 999999999), TimeRange.EXCLUSIVE)
 
@@ -113,6 +130,18 @@ class TestTimeRange (unittest.TestCase):
         self.assertNotIn(Timestamp(49391596800, 999999), rng)
 
         self.assertEqual(str(rng), "_1530711653:999999999)")
+
+    def test_bounded_on_right_exclusive__negative(self):
+        rng = TimeRange.from_end(Timestamp(1530711653, 999999999, -1), TimeRange.EXCLUSIVE)
+
+        self.assertIn(Timestamp(1530711654, 1, -1), rng)
+        self.assertIn(Timestamp(1530711654, 0, -1), rng)
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(326246400, 0), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999999, -1), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999998, -1), rng)
+
+        self.assertEqual(str(rng), "_-1530711653:999999999)")
 
     def test_bounded_on_left_inclusive(self):
         rng = TimeRange.from_start(Timestamp(417799799, 999999999))
@@ -131,6 +160,17 @@ class TestTimeRange (unittest.TestCase):
         self.assertEqual(rng.to_sec_nsec_range(), "[417799799:999999999_")
         self.assertEqual(str(rng), "[417799799:999999999_")
 
+    def test_bounded_on_left_inclusive__negative(self):
+        rng = TimeRange.from_start(Timestamp(417799799, 999999999, -1))
+
+        self.assertNotIn(Timestamp(417799800, 0, -1), rng)
+        self.assertIn(Timestamp(), rng)
+        self.assertIn(Timestamp(417799799, 999999999, -1), rng)
+        self.assertIn(Timestamp(417799799, 999999998, -1), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "[-417799799:999999999_")
+        self.assertEqual(str(rng), "[-417799799:999999999_")
+
     def test_bounded_on_left_exclusive(self):
         rng = TimeRange.from_start(Timestamp(417799799, 999999999), TimeRange.EXCLUSIVE)
 
@@ -147,6 +187,17 @@ class TestTimeRange (unittest.TestCase):
 
         self.assertEqual(rng.to_sec_nsec_range(), "(417799799:999999999_")
         self.assertEqual(str(rng), "(417799799:999999999_")
+
+    def test_bounded_on_left_exclusive__negative(self):
+        rng = TimeRange.from_start(Timestamp(417799799, 999999999, -1), TimeRange.EXCLUSIVE)
+
+        self.assertNotIn(Timestamp(417799800, 1, -1), rng)
+        self.assertNotIn(Timestamp(417799799, 999999999, -1), rng)
+        self.assertIn(Timestamp(), rng)
+        self.assertIn(Timestamp(417799799, 999999998, -1), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "(-417799799:999999999_")
+        self.assertEqual(str(rng), "(-417799799:999999999_")
 
     def test_bounded_inclusive(self):
         rng = TimeRange(Timestamp(417799799, 999999999), Timestamp(1530711653, 999999999))
@@ -199,6 +250,17 @@ class TestTimeRange (unittest.TestCase):
         self.assertEqual(rng.to_sec_nsec_range(), "[1530711653:999999999]")
         self.assertEqual(str(rng), "[1530711653:999999999]")
 
+    def test_single_ts__negative(self):
+        rng = TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999, -1))
+
+        self.assertNotIn(Timestamp(), rng)
+        self.assertNotIn(Timestamp(1530711654, 0, -1), rng)
+        self.assertNotIn(Timestamp(1530711653, 999999998, -1), rng)
+        self.assertIn(Timestamp(1530711653, 999999999, -1), rng)
+
+        self.assertEqual(rng.to_sec_nsec_range(), "[-1530711653:999999999]")
+        self.assertEqual(str(rng), "[-1530711653:999999999]")
+
     def test_from_str(self):
         tests = [
             ("()", TimeRange.never()),
@@ -226,17 +288,33 @@ class TestTimeRange (unittest.TestCase):
                                                                      Timestamp(1530711653, 999999999),
                                                                      TimeRange.INCLUDE_START)),
             ("1530711653:999999999", TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999))),
+            ("_-1530711653:999999999", TimeRange.from_end(Timestamp(1530711653, 999999999, -1))),
+            ("[_-1530711653:999999999]", TimeRange.from_end(Timestamp(1530711653, 999999999, -1), TimeRange.INCLUSIVE)),
+            ("(_-1530711653:999999999)", TimeRange.from_end(Timestamp(1530711653, 999999999, -1), TimeRange.EXCLUSIVE)),
+            ("-417799799:999999999_", TimeRange.from_start(Timestamp(417799799, 999999999, -1))),
+            ("[-417799799:999999999_]", TimeRange.from_start(Timestamp(417799799, 999999999, -1), TimeRange.INCLUSIVE)),
+            ("(-417799799:999999999_)", TimeRange.from_start(Timestamp(417799799, 999999999, -1), TimeRange.EXCLUSIVE)),
+            ("-1530711653:999999999_-417799799:999999999", TimeRange(Timestamp(1530711653, 999999999, -1),
+                                                                     Timestamp(417799799, 999999999, -1))),
+            ("[-1530711653:999999999_-417799799:999999999]", TimeRange(Timestamp(1530711653, 999999999, -1),
+                                                                       Timestamp(417799799, 999999999, -1),
+                                                                       TimeRange.INCLUSIVE)),
+            ("(-1530711653:999999999_-417799799:999999999)", TimeRange(Timestamp(1530711653, 999999999, -1),
+                                                                       Timestamp(417799799, 999999999, -1),
+                                                                       TimeRange.EXCLUSIVE)),
+            ("(-1530711653:999999999_-417799799:999999999]", TimeRange(Timestamp(1530711653, 999999999, -1),
+                                                                       Timestamp(417799799, 999999999, -1),
+                                                                       TimeRange.INCLUDE_END)),
+            ("[-1530711653:999999999_-417799799:999999999)", TimeRange(Timestamp(1530711653, 999999999, -1),
+                                                                       Timestamp(417799799, 999999999, -1),
+                                                                       TimeRange.INCLUDE_START)),
+            ("-1530711653:999999999", TimeRange.from_single_timestamp(Timestamp(1530711653, 999999999, -1))),
         ]
 
         for (s, tr) in tests:
             self.assertEqual(tr, TimeRange.from_str(s))
 
-    def test_subrange(self):
-        a = Timestamp(326246400, 0)
-        b = Timestamp(417799799, 999999999)
-        c = Timestamp(1530711653, 999999999)
-        d = Timestamp(49391596800, 999999)
-
+    def _check_subrange(self, a, b, c, d):
         self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(b))
 
         self.assertTrue(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(a, b, TimeRange.INCLUSIVE)))
@@ -259,12 +337,23 @@ class TestTimeRange (unittest.TestCase):
         self.assertFalse(TimeRange(a, c, TimeRange.INCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.EXCLUSIVE)))
         self.assertFalse(TimeRange(a, c, TimeRange.EXCLUSIVE).contains_subrange(TimeRange(b, d, TimeRange.EXCLUSIVE)))
 
-    def test_intersection(self):
+    def test_subrange(self):
         a = Timestamp(326246400, 0)
         b = Timestamp(417799799, 999999999)
         c = Timestamp(1530711653, 999999999)
         d = Timestamp(49391596800, 999999)
 
+        self._check_subrange(a, b, c, d)
+
+    def test_subrange__negative(self):
+        a = Timestamp(49391596800, 999999, -1)
+        b = Timestamp(1530711653, 999999999, -1)
+        c = Timestamp(417799799, 999999999, -1)
+        d = Timestamp(326246400, 0, -1)
+
+        self._check_subrange(a, b, c, d)
+
+    def _check_intersection(self, a, b, c, d):
         self.assertEqual(TimeRange(a, c, TimeRange.INCLUDE_START).intersect_with(b), mediatimerange(b))
 
         self.assertEqual(TimeRange(a, b, TimeRange.INCLUSIVE).intersect_with(TimeRange(c, d, TimeRange.INCLUSIVE)),
@@ -315,11 +404,23 @@ class TestTimeRange (unittest.TestCase):
         self.assertEqual(TimeRange.never().intersect_with(TimeRange.eternity()),
                          TimeRange.never())
 
-    def test_length(self):
+    def test_intersection(self):
         a = Timestamp(326246400, 0)
         b = Timestamp(417799799, 999999999)
         c = Timestamp(1530711653, 999999999)
+        d = Timestamp(49391596800, 999999)
 
+        self._check_intersection(a, b, c, d)
+
+    def test_intersection__negative(self):
+        a = Timestamp(49391596800, 999999, -1)
+        b = Timestamp(1530711653, 999999999, -1)
+        c = Timestamp(417799799, 999999999, -1)
+        d = Timestamp(326246400, 0, -1)
+
+        self._check_intersection(a, b, c, d)
+
+    def _check_length(self, a, b, c):
         rng = TimeRange(a, b, TimeRange.INCLUSIVE)
         self.assertEqual(rng.length, b - a)
 
@@ -345,12 +446,28 @@ class TestTimeRange (unittest.TestCase):
         with self.assertRaises(TsValueError):
             rng.length = (a - c)
 
+    def test_length(self):
+        a = Timestamp(326246400, 0)
+        b = Timestamp(417799799, 999999999)
+        c = Timestamp(1530711653, 999999999)
+
+        self._check_length(a, b, c)
+
+    def test_length_negative(self):
+        a = Timestamp(326246400, 0)
+        b = Timestamp(417799799, 999999999)
+        c = Timestamp(1530711653, 999999999)
+
+        self._check_length(a, b, c)
+
     def test_repr(self):
         """This tests that the repr function turns time ranges into `eval`-able strings."""
         test_trs = [
             (TimeRange.from_str("(10:1_10:2)"), "mediatimestamp.immutable.TimeRange.from_str('(10:1_10:2)')"),
             (TimeRange.from_str("[1:0_10:0]"), "mediatimestamp.immutable.TimeRange.from_str('[1:0_10:0]')"),
-            (TimeRange.from_str("[10:0_"), "mediatimestamp.immutable.TimeRange.from_str('[10:0_')")
+            (TimeRange.from_str("[10:0_"), "mediatimestamp.immutable.TimeRange.from_str('[10:0_')"),
+            (TimeRange.from_str("[-10:0_-5:0)"), "mediatimestamp.immutable.TimeRange.from_str('[-10:0_-5:0)')"),
+            (TimeRange.from_str("[-10:0_1:0)"), "mediatimestamp.immutable.TimeRange.from_str('[-10:0_1:0)')")
         ]
 
         for t in test_trs:
@@ -380,6 +497,8 @@ class TestTimeRange (unittest.TestCase):
              [Timestamp(10, 0) + Timestamp.from_count(n, 25, 1) for n in range(0, 25)]),
             (TimeRange.from_str("[10:0_11:0)"), Fraction(25, 2), Timestamp(),
              [Timestamp(10, 0) + Timestamp.from_count(n, 25, 2) for n in range(0, 13)]),
+            (TimeRange.from_str("[-10:0_-9:0)"), Fraction(25, 2), Timestamp(),
+             [Timestamp(10, 0, -1) + Timestamp.from_count(n, 25, 2) for n in range(0, 13)]),
         ]
 
         for (tr, rate, phase_offset, expected) in test_data:
@@ -414,6 +533,8 @@ class TestTimeRange (unittest.TestCase):
              (True, False, False, False, False, False, False, True, True, True)),
             (TimeRange.from_str("_"), TimeRange.from_str("[0:0_10:0)"),
              (False, False, False, False, True, False, False, True, True, True)),
+            (TimeRange.from_str("_"), TimeRange.from_str("[-10:0_0:0)"),
+             (False, False, False, False, True, False, False, True, True, True)),
 
             (TimeRange.from_str("_5:0)"), TimeRange.from_str("_"),
              (True, True, False, False, False, False, True, False, True, True)),
@@ -424,6 +545,8 @@ class TestTimeRange (unittest.TestCase):
             (TimeRange.from_str("_5:0)"), TimeRange.from_str("_10:0]"),
              (True, True, False, False, False, False, True, False, True, True)),
             (TimeRange.from_str("_5:0)"), TimeRange.from_str("[0:0_10:0)"),
+             (False, True, False, False, True, False, True, False, True, True)),
+            (TimeRange.from_str("_-5:0)"), TimeRange.from_str("[-10:0_0:0)"),
              (False, True, False, False, True, False, True, False, True, True)),
 
             (TimeRange.from_str("_0:0)"), TimeRange.from_str("_"),
@@ -442,6 +565,8 @@ class TestTimeRange (unittest.TestCase):
              (False, False, True, False, True, False, True, False, False, False)),
             (TimeRange.from_str("_0:0)"), TimeRange.from_str("[5:0_10:0)"),
              (False, False, True, False, True, False, True, False, False, False)),
+            (TimeRange.from_str("_0:0)"), TimeRange.from_str("[-10:0_-5:0)"),
+             (False, False, False, False, True, False, False, True, True, True)),
 
             (TimeRange.from_str("[0:0_)"), TimeRange.from_str("_"),
              (True, True, False, False, False, True, False, False, True, True)),
@@ -463,6 +588,8 @@ class TestTimeRange (unittest.TestCase):
              (False, False, False, False, True, False, False, True, True, True)),
             (TimeRange.from_str("[0:0_)"), TimeRange.from_str("[5:0_10:0)"),
              (False, False, False, False, True, False, False, True, True, True)),
+            (TimeRange.from_str("[0:0_)"), TimeRange.from_str("[-10:0_-5:0)"),
+             (False, False, False, True, False, True, False, True, False, False)),
 
             (TimeRange.from_str("[5:0_)"), TimeRange.from_str("_"),
              (True, True, False, False, False, True, False, False, True, True)),
@@ -486,6 +613,8 @@ class TestTimeRange (unittest.TestCase):
              (True, False, False, False, False, True, False, True, True, True)),
             (TimeRange.from_str("[5:0_)"), TimeRange.from_str("[5:0_10:0)"),
              (True, False, False, False, False, False, False, True, True, True)),
+            (TimeRange.from_str("[-5:0_)"), TimeRange.from_str("[-10:0_-5:0)"),
+             (False, False, False, True, False, True, False, True, False, True)),
 
             (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("_"),
              (True, True, False, False, False, True, True, False, True, True)),
@@ -511,6 +640,8 @@ class TestTimeRange (unittest.TestCase):
              (False, True, False, False, True, False, False, False, True, True)),
             (TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[5:0_10:0)"),
              (False, True, False, False, True, False, False, False, True, True)),
+            (TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("[-10:0_-5:0)"),
+             (True, False, False, False, False, False, False, True, True, True)),
 
             (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("_"),
              (True, True, False, False, False, True, True, False, True, True)),
@@ -536,6 +667,8 @@ class TestTimeRange (unittest.TestCase):
              (True, True, False, False, False, False, False, False, True, True)),
             (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("[5:0_10:0)"),
              (False, True, False, False, True, False, False, False, True, True)),
+            (TimeRange.from_str("(-10:0_0:0)"), TimeRange.from_str("[-10:0_-5:0)"),
+             (True, False, False, False, False, True, False, True, True, True)),
 
             (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("_"),
              (True, True, False, False, False, True, True, False, True, True)),
@@ -563,6 +696,8 @@ class TestTimeRange (unittest.TestCase):
              (False, False, True, False, True, False, True, False, False, True)),
             (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("(5:0_10:0)"),
              (False, False, True, False, True, False, True, False, False, False)),
+            (TimeRange.from_str("[-5:0_0:0)"), TimeRange.from_str("(-10:0_-5:0)"),
+             (False, False, False, True, False, True, False, True, False, True)),
 
             (TimeRange.never(), TimeRange.from_str("_"),
              (False, False, False, False, False, False, False, False, True, True)),
@@ -589,6 +724,10 @@ class TestTimeRange (unittest.TestCase):
             (TimeRange.never(), TimeRange.from_str("[5:0_10:0)"),
              (False, False, False, False, False, False, False, False, True, True)),
             (TimeRange.never(), TimeRange.from_str("(5:0_10:0)"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("[-1:0_0:0)"),
+             (False, False, False, False, False, False, False, False, True, True)),
+            (TimeRange.never(), TimeRange.from_str("(-1:0_)"),
              (False, False, False, False, False, False, False, False, True, True)),
         ]
         functions = ("starts_inside_timerange",
@@ -634,6 +773,14 @@ class TestTimeRange (unittest.TestCase):
              TimeRange.never(), TimeRange.from_str("[0:0_10:0)")),
             (TimeRange.from_str("[0:0_10:0]"), Timestamp.from_str("10:0"),
              TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[10:0]")),
+            (TimeRange.from_str("_"), Timestamp.from_str("-1:0"),
+             TimeRange.from_str("_-1:0)"), TimeRange.from_str("[-1:0_")),
+            (TimeRange.from_str("_10:0)"), Timestamp.from_str("-5:0"),
+             TimeRange.from_str("_-5:0)"), TimeRange.from_str("[-5:0_10:0)")),
+            (TimeRange.from_str("[-10:0]"), Timestamp.from_str("-10:0"),
+             TimeRange.never(), TimeRange.from_str("[-10:0]")),
+            (TimeRange.from_str("[-10:0_0:0]"), Timestamp.from_str("0:0"),
+             TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("[0:0]")),
         ]
 
         for (tr, ts, left, right) in test_data:
@@ -644,6 +791,8 @@ class TestTimeRange (unittest.TestCase):
             (TimeRange.from_str("[0:0_10:0)"), Timestamp.from_str("11:0")),
             (TimeRange.from_str("[0:0_10:0)"), Timestamp.from_str("10:0")),
             (TimeRange.from_str("[0:0_10:0]"), Timestamp.from_str("10:1")),
+            (TimeRange.from_str("[-10:0_0:0]"), Timestamp.from_str("-10:1")),
+            (TimeRange.from_str("[-20:0_-10:1]"), Timestamp.from_str("-10:0")),
         ]
 
         for (tr, ts) in test_data:
@@ -663,6 +812,12 @@ class TestTimeRange (unittest.TestCase):
                 TimeRange.from_str("[10:0_15:0)")),
             (TimeRange.from_str("[0:0_10:0]"), TimeRange.from_str("(15:0_20:0)"),
                 TimeRange.from_str("(10:0_15:0]")),
+            (TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("[-15:0_-5:0)"),
+                TimeRange.never()),
+            (TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("[-20:0_-15:0)"),
+                TimeRange.from_str("[-15:0_-10:0)")),
+            (TimeRange.from_str("[-10:0_0:0]"), TimeRange.from_str("(5:0_10:0)"),
+                TimeRange.from_str("(0:0_5:0]")),
         ]
 
         for (left, right, expected) in test_data:
@@ -676,6 +831,9 @@ class TestTimeRange (unittest.TestCase):
             (TimeRange.from_str("(0:0_10:0)"), TimeRange.from_str("_0:0]")),
             (TimeRange.from_str("_10:0]"), TimeRange.never()),
             (TimeRange.from_str("_"), TimeRange.never()),
+            (TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("_-10:0)")),
+            (TimeRange.from_str("(-10:0_0:0)"), TimeRange.from_str("_-10:0]")),
+            (TimeRange.from_str("_-10:0]"), TimeRange.never()),
         ]
 
         for (tr, expected) in test_data:
@@ -689,6 +847,8 @@ class TestTimeRange (unittest.TestCase):
             (TimeRange.from_str("[0:0_10:0]"), TimeRange.from_str("(10:0_")),
             (TimeRange.from_str("[0:0_"), TimeRange.never()),
             (TimeRange.from_str("_"), TimeRange.never()),
+            (TimeRange.from_str("[-10:0_-5:0)"), TimeRange.from_str("[-5:0_")),
+            (TimeRange.from_str("[-10:0_-5:0]"), TimeRange.from_str("(-5:0_")),
         ]
 
         for (tr, expected) in test_data:
@@ -740,6 +900,32 @@ class TestTimeRange (unittest.TestCase):
              TimeRange.from_str("[0:40000000_")),
             (TimeRange.from_str("_1:10000000)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
              TimeRange.from_str("_1:0)")),
+            (TimeRange.from_str("[-1:0_0:0)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[-1:0_0:0)")),
+            (TimeRange.from_str("[-1:0_0:0]"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[-1:0_0:40000000)")),
+            (TimeRange.from_str("(-1:0_0:0)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[-0:960000000_0:0)")),
+            (TimeRange.from_str("(-1:0_0:0]"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[-0:960000000_0:40000000)")),
+            (TimeRange.from_str("[-0:999999999_-0:10000000)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("[-1:0_0:0)")),
+            (TimeRange.from_str("[-0:999999999_-0:10000000)"), Fraction(25, 1), TimeRange.ROUND_DOWN,
+             TimeRange.from_str("[-1:0_-0:40000000)")),
+            (TimeRange.from_str("[-0:999999999_-0:10000000)"), Fraction(25, 1), TimeRange.ROUND_UP,
+             TimeRange.from_str("[-0:960000000_0:0)")),
+            (TimeRange.from_str("[-0:999999999_-0:10000000)"), Fraction(25, 1), TimeRange.ROUND_IN,
+             TimeRange.from_str("[-0:960000000_-0:40000000)")),
+            (TimeRange.from_str("[-0:999999999_-0:10000000)"), Fraction(25, 1), TimeRange.ROUND_OUT,
+             TimeRange.from_str("[-1:0_-0:0)")),
+            (TimeRange.from_str("[-0:999999999_-0:10000000)"), Fraction(25, 1), TimeRange.ROUND_START,
+             TimeRange.from_str("[-1:0_-0:40000000)")),
+            (TimeRange.from_str("[-0:999999999_-0:10000000)"), Fraction(25, 1), TimeRange.ROUND_END,
+             TimeRange.from_str("[-0:960000000_0:0)")),
+            (TimeRange.from_str("_-0:39999999]"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("_0:0)")),
+            (TimeRange.from_str("_-1:10000000)"), Fraction(25, 1), TimeRange.ROUND_NEAREST,
+             TimeRange.from_str("_-1:0)")),
         ]
 
         for (tr, rate, rounding, expected) in tests_tr:
@@ -828,6 +1014,26 @@ class TestTimeRange (unittest.TestCase):
              TimeRange.from_str("[5:0_15:0)")),
             (TimeRange.from_str("()"), TimeRange.from_str("_15:0)"),
              TimeRange.from_str("_15:0)")),
+            (TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("[0:0]"),
+             TimeRange.from_str("[-10:0_0:0]")),
+            (TimeRange.from_str("_"), TimeRange.from_str("[-1:0]"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("_-10:0)"), TimeRange.from_str("[-10:0_"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("[-5:0_"),
+             TimeRange.from_str("[-10:0_")),
+            (TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("[-5:0_"),
+             TimeRange.from_str("[-10:0_")),
+            (TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("[-15:0_-5:0)"),
+             TimeRange.from_str("[-15:0_0:0)")),
+            (TimeRange.from_str("[-10:0_0:0)"), TimeRange.from_str("[-15:0_-10:0)"),
+             TimeRange.from_str("[-15:0_0:0)")),
+            (TimeRange.from_str("()"), TimeRange.from_str("[-5:0_"),
+             TimeRange.from_str("[-5:0_")),
+            (TimeRange.from_str("()"), TimeRange.from_str("[-15:0_-5:0)"),
+             TimeRange.from_str("[-15:0_-5:0)")),
+            (TimeRange.from_str("()"), TimeRange.from_str("_-15:0)"),
+             TimeRange.from_str("_-15:0)")),
 
             # discontiguous
             (TimeRange.from_str("_0:0)"), TimeRange.from_str("(0:0_"),
@@ -842,6 +1048,18 @@ class TestTimeRange (unittest.TestCase):
              TimeRange.from_str("[0:0_15:0)")),
             (TimeRange.from_str("[10:0_15:0)"), TimeRange.from_str("[0:0_5:0)"),
              TimeRange.from_str("[0:0_15:0)")),
+            (TimeRange.from_str("_-1:0)"), TimeRange.from_str("(-1:0_"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("(-1:0_"), TimeRange.from_str("_-1:0)"),
+             TimeRange.from_str("_")),
+            (TimeRange.from_str("[-5:0_0:0)"), TimeRange.from_str("(-15:0_-5:0)"),
+             TimeRange.from_str("(-15:0_0:0)")),
+            (TimeRange.from_str("(-15:0_-5:0)"), TimeRange.from_str("[-5:0_0:0)"),
+             TimeRange.from_str("(-15:0_0:0)")),
+            (TimeRange.from_str("[-5:0_0:0)"), TimeRange.from_str("[-15:0_-10:0)"),
+             TimeRange.from_str("[-15_0:0)")),
+            (TimeRange.from_str("[-15:0_-10:0)"), TimeRange.from_str("[-5:0_0:0)"),
+             TimeRange.from_str("[-15:0_0:0)")),
         ]
 
         for (first, second, expected) in test_data:
@@ -857,6 +1075,10 @@ class TestTimeRange (unittest.TestCase):
             (TimeRange.from_str("(5:0_15:0)"), TimeRange.from_str("[0:0_5:0)")),
             (TimeRange.from_str("[0:0_5:0)"), TimeRange.from_str("[10:0_15:0)")),
             (TimeRange.from_str("[10:0_15:0)"), TimeRange.from_str("[0:0_5:0)")),
+            (TimeRange.from_str("[-15:0_-5:0)"), TimeRange.from_str("(-5:0_0:0)")),
+            (TimeRange.from_str("(-5:0_0:0)"), TimeRange.from_str("[-15:0_-5:0)")),
+            (TimeRange.from_str("[-15:0_-10:0)"), TimeRange.from_str("[-5:0_0:0)")),
+            (TimeRange.from_str("[-5:0_0:0)"), TimeRange.from_str("[-15:0_-10:0)")),
         ]
 
         for (first, second) in test_data:
@@ -870,6 +1092,9 @@ class TestTimeRange (unittest.TestCase):
             TimeRange.from_str("[100:0_0:0]"),
             TimeRange.from_str("[10:0_10:0)"),
             TimeRange.from_str("(10:0_10:0]"),
+            TimeRange.from_str("[0:0_-100:0]"),
+            TimeRange.from_str("[-10:0_-10:0)"),
+            TimeRange.from_str("(-10:0_-10:0]"),
         ]
 
         for tr in test_data:
@@ -892,9 +1117,10 @@ class TestTimeRange (unittest.TestCase):
     # All of which will need to follow the inclusivity rules.
     def test_into_chunks__shorter_line_up(self):
         """Test into_chunks when the sub-chunks are shorter than the main timerange and line up perfectly."""
-        chunking_timerange = TimeRange.from_str("[0:0_20:0]")
+        chunking_timerange = TimeRange.from_str("[-5:0_20:0]")
         tc1_chunk = Timestamp.from_str("5:0")
         tc1_expected = [
+            TimeRange.from_str("[-5:0_0:0)"),
             TimeRange.from_str("[0:0_5:0)"),
             TimeRange.from_str("[5:0_10:0)"),
             TimeRange.from_str("[10:0_15:0)"),
@@ -908,9 +1134,10 @@ class TestTimeRange (unittest.TestCase):
     def test_into_chunks__shorter_no_line_up(self):
         """Test into_chunks when the sub-chunks are shorter but not an exact division
         (i.e. there will be one short chunk at the end)."""
-        chunking_timerange = TimeRange.from_str("[0:0_20:0]")
+        chunking_timerange = TimeRange.from_str("[-6:300000000_20:0]")
         tc2_chunk = Timestamp.from_str("6:300000000")
         tc2_expected = [
+            TimeRange.from_str("[-6:300000000_0:0)"),
             TimeRange.from_str("[0:0_6:300000000)"),
             TimeRange.from_str("[6:300000000_12:600000000)"),
             TimeRange.from_str("[12:600000000_18:900000000)"),
@@ -932,11 +1159,23 @@ class TestTimeRange (unittest.TestCase):
         tc3_results = [time_range for time_range in tc3]
         self.assertEqual(tc3_4_expected, tc3_results)
 
+    def test_into_chunks__exact_length_negative(self):
+        """Test into_chunks when the sub-chunk is exactly the length of the main negative timerange."""
+        chunking_timerange = TimeRange.from_str("(-20:0_0:0]")
+        tc3_chunk = Timestamp.from_str("20:0")
+        tc3_4_expected = [
+            TimeRange.from_str("(-20:0_0:0]")
+        ]
+        tc3 = chunking_timerange.into_chunks(tc3_chunk)
+        tc3_results = [time_range for time_range in tc3]
+        self.assertEqual(tc3_4_expected, tc3_results)
+
     def test_into_chunks__longer(self):
         """Test into_chunks when the sub-chunk is longer than the timerange."""
-        chunking_timerange = TimeRange.from_str("[0:0_20:0]")
+        chunking_timerange = TimeRange.from_str("[-30:0_20:0]")
         tc4_chunk = Timestamp.from_str("30:0")
         tc3_4_expected = [
+            TimeRange.from_str("[-30:0_0:0)"),
             TimeRange.from_str("[0:0_20:0]")
         ]
         tc4 = chunking_timerange.into_chunks(tc4_chunk)
@@ -945,9 +1184,13 @@ class TestTimeRange (unittest.TestCase):
 
     def test_into_chunks__infinity(self):
         """Test into_chunks when the timerange has no end."""
-        chunking_timerange = TimeRange.from_start(Timestamp.from_nanosec(0))
+        chunking_timerange = TimeRange.from_start(Timestamp(-120))
         tc5_chunk = Timestamp.from_str("30:0")
         tc5_expected = [
+            TimeRange.from_str("[-120:0_-90:0)"),
+            TimeRange.from_str("[-90:0_-60:0)"),
+            TimeRange.from_str("[-60:0_-30:0)"),
+            TimeRange.from_str("[-30:0_0:0)"),
             TimeRange.from_str("[0:0_30:0)"),
             TimeRange.from_str("[30:0_60:0)"),
             TimeRange.from_str("[60:0_90:0)"),
@@ -955,6 +1198,6 @@ class TestTimeRange (unittest.TestCase):
         ]
         tc5 = chunking_timerange.into_chunks(tc5_chunk)
         tc5_results = []
-        for i in range(4):
+        for i in range(8):
             tc5_results.append(next(tc5))
         self.assertEqual(tc5_expected, tc5_results)
