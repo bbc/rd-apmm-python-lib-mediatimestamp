@@ -64,6 +64,8 @@ make docs
 ```
 This command will render documentation as HTML in the `/docs` directory.
 
+A rendered version of this documentation is available [here](https://bbc.github.io/rd-apmm-python-lib-mediatimestamp/mediatimestamp/mediatimestamp.html).
+
 ## Development
 ### Commontooling
 
@@ -85,10 +87,8 @@ $ make test
 
 ### Continuous Integration
 
-This repository includes a Jenkinsfile which makes use of custom steps defined in a BBC internal
-library for use on our own Jenkins instances. As such it will not be immediately useable outside
-of a BBC environment, but may still serve as inspiration and an example of how to implement CI
-for this package.
+This repository includes [GitHub Actions workflows](./.github/workflows/) for CI.
+The shared workflows are centrally managed and should not be modified.
 
 ## Versioning
 
