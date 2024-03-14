@@ -26,7 +26,7 @@ if __name__ == '__main__':  # pragma: no cover
         print("ips-tai-nsec     {}".format(ts.to_tai_sec_nsec()))
         print("ips-tai-frac     {}".format(ts.to_tai_sec_frac()))
         print("utc              {}".format(ts.to_iso8601_utc()))
-        print("utc-secs         {}".format(ts.to_utc()[0]))
+        print("utc-secs         {}".format(ts.to_unix()[0]))
         print("smpte time label {}".format(ts.to_smpte_timelabel(50, 1)))
         sys.exit(0)
 

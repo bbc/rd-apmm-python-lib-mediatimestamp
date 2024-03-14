@@ -746,6 +746,12 @@ class TestTimestamp(unittest.TestCase):
         """This tests that conversion to and from ISO date format UTC time works as expected."""
 
         tests = [
+            (Timestamp(62135596800, 0, -1), "0001-01-01T00:00:00.000000000Z"),
+            (Timestamp(1, 0, -1), "1969-12-31T23:59:59.000000000Z"),
+            (Timestamp(0, 999999999, -1), "1969-12-31T23:59:59.000000001Z"),
+            (Timestamp(0, 1, -1), "1969-12-31T23:59:59.999999999Z"),
+            (Timestamp(0, 0, 1), "1970-01-01T00:00:00.000000000Z"),
+
             (Timestamp(1424177663, 102003), "2015-02-17T12:53:48.000102003Z"),
 
             # the leap second is 23:59:60
@@ -767,7 +773,8 @@ class TestTimestamp(unittest.TestCase):
             (Timestamp(1341100835, 100000000), "2012-07-01T00:00:00.100000000Z"),
             (Timestamp(1341100835, 999999999), "2012-07-01T00:00:00.999999999Z"),
 
-            (Timestamp(283996818, 0), "1979-01-01T00:00:00.000000000Z")  # 1979
+            (Timestamp(283996818, 0), "1979-01-01T00:00:00.000000000Z"),  # 1979
+            (Timestamp(253402300836, 999999999), "9999-12-31T23:59:59.999999999Z")
         ]
 
         for t in tests:
@@ -843,9 +850,16 @@ class TestTimestamp(unittest.TestCase):
         """Conversion from python's datetime object."""
 
         tests = [
+            (datetime(1, 1, 1, 0, 0, 0, 0, tz.gettz('UTC')), Timestamp(62135596800, 0, -1)),
+            (datetime(1969, 12, 31, 23, 59, 59, 0, tz.gettz('UTC')), Timestamp(1, 0, -1)),
+            (datetime(1969, 12, 31, 23, 59, 59, 1, tz.gettz('UTC')), Timestamp(0, 999999000, -1)),
+            (datetime(1969, 12, 31, 23, 59, 59, 999999, tz.gettz('UTC')), Timestamp(0, 1000, -1)),
             (datetime(1970, 1, 1, 0, 0, 0, 0, tz.gettz('UTC')), Timestamp(0, 0)),
             (datetime(1983, 3, 29, 15, 45, 0, 0, tz.gettz('UTC')), Timestamp(417800721, 0)),
             (datetime(2017, 12, 5, 16, 33, 12, 196, tz.gettz('UTC')), Timestamp(1512491629, 196000)),
+            (datetime(2514, 1, 1, 0, 0, 0, 0, tz.gettz('UTC')), Timestamp(17166988837, 0, 1)),
+            # Stopping around here because high datetime values have a floating point error.
+            # See https://stackoverflow.com/a/75582241.
         ]
 
         for t in tests:
@@ -855,10 +869,18 @@ class TestTimestamp(unittest.TestCase):
         """Conversion to python's datetime object."""
 
         tests = [
+            (datetime(1, 1, 1, 0, 0, 0, 0, tz.gettz('UTC')), Timestamp(62135596800, 0, -1)),
+            (datetime(1969, 12, 31, 23, 59, 59, 0, tz.gettz('UTC')), Timestamp(1, 0, -1)),
+            (datetime(1969, 12, 31, 23, 59, 59, 1, tz.gettz('UTC')), Timestamp(0, 999999000, -1)),
+            (datetime(1969, 12, 31, 23, 59, 59, 999999, tz.gettz('UTC')), Timestamp(0, 1000, -1)),
             (datetime(1970, 1, 1, 0, 0, 0, 0, tz.gettz('UTC')), Timestamp(0, 0)),
+            (datetime(1970, 1, 1, 0, 0, 0, 1, tz.gettz('UTC')), Timestamp(0, 1000)),
             (datetime(1983, 3, 29, 15, 45, 0, 0, tz.gettz('UTC')), Timestamp(417800721, 0)),
             (datetime(2017, 12, 5, 16, 33, 12, 196, tz.gettz('UTC')), Timestamp(1512491629, 196000)),
             (datetime(2017, 12, 5, 16, 33, 13, 0, tz.gettz('UTC')), Timestamp(1512491629, 999999999)),
+            (datetime(2514, 1, 1, 0, 0, 0, 0, tz.gettz('UTC')), Timestamp(17166988837, 0, 1)),
+            # Stopping around here because high datetime values have a floating point error.
+            # See https://stackoverflow.com/a/75582241
         ]
 
         for t in tests:
@@ -896,11 +918,34 @@ class TestTimestamp(unittest.TestCase):
         for t in tests:
             self.assertEqual(t[0].get_leap_seconds(), t[1])
 
+    def test_from_unix(self):
+        tests = [
+            ((Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1, -1, False),  # 0 leap seconds
+                Timestamp(Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1, -1)),  # 0 leap seconds
+            ((1000, 0, -1, False), Timestamp(1000, 0, -1)),    # 0 leap seconds
+            ((63071999, 999999999, 1, False), Timestamp(63071999, 999999999)),  # 0 leap seconds
+            ((63071999, 0, 1, True), Timestamp(63072009, 0)),  # 10 leap seconds at leap
+            ((63072000, 0, 1, False), Timestamp(63072010, 0)),  # 10 leap seconds
+            ((63072008, 999999999, 1, False), Timestamp(63072018, 999999999)),  # 10 leap seconds
+            ((1512491592, 0, 1, False), Timestamp(1512491629, 0)),  # 37 leap seconds
+            ((Timestamp.MAX_SECONDS - 1 - 37, Timestamp.MAX_NANOSEC - 1, 1, False),
+                Timestamp(Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1)),  # 37 leap seconds
+        ]
+
+        for t in tests:
+            self.assertEqual(Timestamp.from_unix(*t[0]), t[1])
+
     def test_to_unix(self):
         tests = [
-            (Timestamp(63072008, 999999999), (63072008, 999999999, False)),  # 0 leap seconds
-            (Timestamp(63072009, 0), (63071999, 0, True)),  # 10 leap seconds at leap
-            (Timestamp(1512491629, 0), (1512491592, 0, False)),  # 37 leap seconds
+            (Timestamp(Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1, -1),  # 0 leap seconds
+                (Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1, -1, False)),  # 0 leap seconds
+            (Timestamp(1000, 0, -1), (1000, 0, -1, False)),  # 0 leap seconds
+            (Timestamp(63072008, 999999999), (63072008, 999999999, 1, False)),  # 0 leap seconds
+            (Timestamp(63072009, 0), (63071999, 0, 1, True)),  # 10 leap seconds at leap
+            (Timestamp(63072010, 0), (63072000, 0, 1, False)),  # 10 leap seconds
+            (Timestamp(1512491629, 0), (1512491592, 0, 1, False)),  # 37 leap seconds
+            (Timestamp(Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1),
+                (Timestamp.MAX_SECONDS - 1 - 37, Timestamp.MAX_NANOSEC - 1, 1, False)),  # 37 leap seconds
         ]
 
         for t in tests:
