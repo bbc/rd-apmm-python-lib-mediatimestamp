@@ -405,6 +405,11 @@ class Timestamp(object):
     def to_tai_sec_frac(self, fixed_size: bool = False) -> str:
         return self.to_sec_frac(fixed_size=fixed_size)
 
+    def to_float(self) -> float:
+        """ Convert to a floating point number of seconds
+        """
+        return self._value / Timestamp.MAX_NANOSEC
+
     def to_datetime(self) -> datetime:
         sec, nsec, leap = self.to_unix()
         microsecond = int(round(nsec/1000))
@@ -436,6 +441,15 @@ class Timestamp(object):
         """ Wrapper of to_unix for back-compatibility.
         """
         return self.to_unix()
+
+    def to_unix_float(self) -> float:
+        """ Convert to unix seconds since the epoch as a floating point number
+        """
+        if self._value < 0:
+            return self.to_float()
+        else:
+            (sec, ns, _) = self.to_unix()
+            return sec + ns / Timestamp.MAX_NANOSEC
 
     def to_iso8601_utc(self) -> str:
         """ Get printed representation in ISO8601 format (UTC)

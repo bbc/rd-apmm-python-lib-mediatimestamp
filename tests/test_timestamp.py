@@ -277,6 +277,22 @@ class TestTimestamp(unittest.TestCase):
                 self.assertEqual(r, case[1],
                                  msg="Timestamp.from_float{!r} == {!r}, expected {!r}".format(case[0], r, case[1]))
 
+    def test_to_float(self):
+        """This tests that timestamps can be created from a float."""
+        cases = [
+            ((float(1.0)), Timestamp(1, 0)),
+            ((float(1_000_000_000)), Timestamp(1_000_000_000, 0)),
+            ((float(2.76)), Timestamp(2, 760_000_000)),
+            ((float(-3.14)), Timestamp(3, 140_000_000, -1)),
+            ((float(0.02)), Timestamp(0, 20_000_000))
+        ]
+
+        for case in cases:
+            with self.subTest(case=case):
+                r = case[1].to_float()
+                self.assertEqual(r, case[1],
+                                 msg="{!r},to_float() == {!r}, expected {!r}".format(case[1], r, case[0]))
+
     def test_set_value(self):
         """This tests that timestamps cannot have their value set."""
         tests_ts = [
@@ -879,3 +895,23 @@ class TestTimestamp(unittest.TestCase):
 
         for t in tests:
             self.assertEqual(t[0].get_leap_seconds(), t[1])
+
+    def test_to_unix(self):
+        tests = [
+            (Timestamp(63072008, 999999999), (63072008, 999999999, False)),  # 0 leap seconds
+            (Timestamp(63072009, 0), (63071999, 0, True)),  # 10 leap seconds at leap
+            (Timestamp(1512491629, 0), (1512491592, 0, False)),  # 37 leap seconds
+        ]
+
+        for t in tests:
+            self.assertEqual(t[0].to_unix(), t[1])
+
+    def test_to_unix_float(self):
+        tests = [
+            (Timestamp(63072008, 999999999), 63072008 + 999999999 / 1000000000),
+            (Timestamp(63072009, 0), 63071999),
+            (Timestamp(1000, 0, -1), -1000)
+        ]
+
+        for t in tests:
+            self.assertEqual(t[0].to_unix_float(), t[1])
