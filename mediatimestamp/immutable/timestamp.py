@@ -148,7 +148,12 @@ class Timestamp(object):
     @classmethod
     def get_time(cls) -> "Timestamp":
         unix_time = time.time()
-        return cls.from_unix(int(unix_time), int(unix_time*cls.MAX_NANOSEC) - int(unix_time)*cls.MAX_NANOSEC)
+        abs_unix_time = abs(unix_time)
+        unix_sec = int(abs_unix_time)
+        unix_ns = int(abs_unix_time*cls.MAX_NANOSEC) - int(abs_unix_time)*cls.MAX_NANOSEC
+        unix_sign = 1 if unix_time >= 0 else -1
+
+        return cls.from_unix(unix_sec, unix_ns, unix_sign=unix_sign)
 
     @classmethod
     @deprecated(version="4.0.0",
@@ -238,10 +243,18 @@ class Timestamp(object):
     def from_datetime(cls, dt: datetime) -> "Timestamp":
         minTs = datetime.fromtimestamp(0, tz.gettz('UTC'))
         utcdt = dt.astimezone(tz.gettz('UTC'))
-        seconds = int((utcdt - minTs).total_seconds())
+        seconds = abs(int((utcdt - minTs).total_seconds()))
         nanoseconds = utcdt.microsecond * 1000
+        if utcdt < minTs:
+            sign = -1
+            if nanoseconds > 0:
+                # The microseconds was for a positive date-time. In a negative
+                # unix time it needs to be flipped.
+                nanoseconds = cls.MAX_NANOSEC - nanoseconds
+        else:
+            sign = 1
 
-        return cls.from_unix(seconds, nanoseconds, False)
+        return cls.from_unix(unix_sec=seconds, unix_ns=nanoseconds, unix_sign=sign, is_leap=False)
 
     @classmethod
     def from_iso8601_utc(cls, iso8601utc: str) -> "Timestamp":
@@ -250,7 +263,18 @@ class Timestamp(object):
         year, month, day, hour, minute, second, ns = _parse_iso8601(iso8601utc[:-1])
         gmtuple = (year, month, day, hour, minute, second - (second == 60))
         secs_since_epoch = calendar.timegm(gmtuple)
-        return cls.from_unix(secs_since_epoch, ns, (second == 60))
+        if secs_since_epoch < 0:
+            sign = -1
+            secs_since_epoch = abs(secs_since_epoch)
+            if ns > 0:
+                # The ns parsed from the timestamp was for a positive ISO 8601 date-time. In a negative
+                # unix time it needs to be flipped.
+                ns = cls.MAX_NANOSEC - ns
+                secs_since_epoch -= 1
+        else:
+            sign = 1
+
+        return cls.from_unix(unix_sec=secs_since_epoch, unix_ns=ns, unix_sign=sign, is_leap=(second == 60))
 
     @classmethod
     def from_smpte_timelabel(cls, timelabel: str) -> "Timestamp":
@@ -319,19 +343,16 @@ class Timestamp(object):
         return cls(ns=ns, sign=sign)
 
     @classmethod
-    def from_unix(cls, unix_sec: int, unix_ns: int, is_leap: bool = False) -> "Timestamp":
+    def from_unix(cls, unix_sec: int, unix_ns: int, unix_sign: int = 1, is_leap: bool = False) -> "Timestamp":
         leap_sec = 0
-        for tbl_sec, tbl_tai_sec_minus_1 in UTC_LEAP:
-            if unix_sec >= tbl_sec:
-                leap_sec = (tbl_tai_sec_minus_1 + 1) - tbl_sec
-                break
-        return cls(sec=unix_sec+leap_sec+is_leap, ns=unix_ns)
-
-    @classmethod
-    def from_utc(cls, utc_sec: int, utc_ns: int, is_leap: bool = False) -> "Timestamp":
-        """ Wrapper of from_unix for back-compatibility.
-        """
-        return cls.from_unix(utc_sec, utc_ns, is_leap)
+        if unix_sign >= 0:
+            for tbl_sec, tbl_tai_sec_minus_1 in UTC_LEAP:
+                if unix_sec + is_leap >= tbl_sec:
+                    leap_sec = (tbl_tai_sec_minus_1 + 1) - tbl_sec
+                    break
+        else:
+            is_leap = False
+        return cls(sec=unix_sec+leap_sec, ns=unix_ns, sign=unix_sign)
 
     def is_null(self) -> bool:
         return self._value == 0
@@ -405,47 +426,67 @@ class Timestamp(object):
     def to_tai_sec_frac(self, fixed_size: bool = False) -> str:
         return self.to_sec_frac(fixed_size=fixed_size)
 
+    def to_float(self) -> float:
+        """ Convert to a floating point number of seconds
+        """
+        return self._value / Timestamp.MAX_NANOSEC
+
     def to_datetime(self) -> datetime:
-        sec, nsec, leap = self.to_unix()
+        sec, nsec, sign, leap = self.to_unix()
         microsecond = int(round(nsec/1000))
         if microsecond > 999999:
             sec += 1
             microsecond = 0
-        dt = datetime.fromtimestamp(sec, tz.gettz('UTC'))
+        if sign < 0 and microsecond > 0:
+            # The microseconds is for a negative unix time. In a positive date-time
+            # it needs to be flipped.
+            microsecond = 1000000 - microsecond
+            sec += 1
+        dt = datetime.fromtimestamp(sign * sec, tz.gettz('UTC'))
         dt = dt.replace(microsecond=microsecond)
 
         return dt
 
-    def to_unix(self) -> Tuple[int, int, bool]:
+    def to_unix(self) -> Tuple[int, int, int, bool]:
         """ Convert to unix seconds.
         Returns a tuple of (seconds, nanoseconds, is_leap), where `is_leap` is
         `True` when the input time corresponds exactly to a UTC leap second.
         Note that this deliberately returns a tuple, to try and avoid confusion.
         """
-        leap_sec = 0
-        is_leap = False
-        for unix_sec, tai_sec_minus_1 in UTC_LEAP:
-            if self.sec >= tai_sec_minus_1:
-                leap_sec = (tai_sec_minus_1 + 1) - unix_sec
-                is_leap = self.sec == tai_sec_minus_1
-                break
+        if self._value < 0:
+            return (self.sec, self.ns, self.sign, False)
+        else:
+            leap_sec = 0
+            is_leap = False
+            for unix_sec, tai_sec_minus_1 in UTC_LEAP:
+                if self.sec >= tai_sec_minus_1:
+                    leap_sec = (tai_sec_minus_1 + 1) - unix_sec
+                    is_leap = self.sec == tai_sec_minus_1
+                    break
 
-        return (self.sec - leap_sec, self.ns, is_leap)
+            return (self.sec - leap_sec, self.ns, self.sign, is_leap)
 
-    def to_utc(self) -> Tuple[int, int, bool]:
-        """ Wrapper of to_unix for back-compatibility.
+    def to_unix_float(self) -> float:
+        """ Convert to unix seconds since the epoch as a floating point number
         """
-        return self.to_unix()
+        (sec, ns, sign, _) = self.to_unix()
+        return sign * (sec + ns / Timestamp.MAX_NANOSEC)
 
     def to_iso8601_utc(self) -> str:
         """ Get printed representation in ISO8601 format (UTC)
         YYYY-MM-DDThh:mm:ss.s
         where `s` is fractional seconds at nanosecond precision (always 9-chars wide)
         """
-        unix_s, unix_ns, is_leap = self.to_unix()
-        utc_bd = time.gmtime(unix_s)
-        frac_sec = self._get_fractional_seconds(fixed_size=True)
+        unix_s, unix_ns, unix_sign, is_leap = self.to_unix()
+        if unix_sign < 0 and unix_ns > 0:
+            # The nanoseconds is for a negative unix time. In a positive ISO 8601 date-time
+            # it needs to be flipped.
+            unix_ns = Timestamp.MAX_NANOSEC - unix_ns
+            unix_s += 1
+        utc_bd = time.gmtime(unix_sign * unix_s)
+        frac_sec = Timestamp(ns=unix_ns)._get_fractional_seconds(fixed_size=True)
         leap_sec = int(is_leap)
+
         return '%04d-%02d-%02dT%02d:%02d:%02d.%sZ' % (utc_bd.tm_year,
                                                       utc_bd.tm_mon,
                                                       utc_bd.tm_mday,
@@ -467,7 +508,7 @@ class Timestamp(object):
         count_on_or_after_second = Timestamp(tai_seconds, 0).to_count(rate, rounding=self.ROUND_UP)
         count_within_second = count - count_on_or_after_second
 
-        unix_sec, unix_ns, is_leap = normalised_ts.to_unix()
+        unix_sec, unix_ns, unix_sign, is_leap = normalised_ts.to_unix()
         leap_sec = int(is_leap)
 
         if utc_offset is None:
