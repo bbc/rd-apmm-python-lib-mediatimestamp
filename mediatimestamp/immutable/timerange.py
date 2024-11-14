@@ -563,8 +563,7 @@ class TimeRange (object):
 
     def overlaps_with_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if this timerange and the other overlap."""
-        other = mediatimerange(other)
-        return (not self.is_earlier_than_timerange(other) and not self.is_later_than_timerange(other))
+        return not self.intersect_with(other).is_empty()
 
     def is_contiguous_with_timerange(self, other: SupportsMediaTimeRange) -> bool:
         """Returns true if the union of this timerange and the other would be a valid timerange"""
