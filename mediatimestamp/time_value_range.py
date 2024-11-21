@@ -559,7 +559,7 @@ class TimeValueRange(Reversible[TimeValue]):
         """Returns true if this range and the other overlap."""
         other = self._as_time_value_range(other)
 
-        return (not self.is_earlier_than_range(other) and not self.is_later_than_range(other))
+        return not self.intersect_with(other).is_empty()
 
     def is_contiguous_with_range(self, other: RangeConstructionTypes) -> bool:
         """Returns true if the union of this range and the other would be a valid range"""
