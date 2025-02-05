@@ -369,9 +369,17 @@ class TestTimeRange (unittest.TestCase):
         self.assertNotIn(None, TimeRange.from_str("[0:0]"))
         self.assertNotIn(None, TimeRange.never())
         self.assertNotIn(None, TimeRange.eternity())
+
         self.assertNotIn(1.0, TimeRange.from_str("[0:0]"))
         self.assertIn(1.0, TimeRange.from_str("[1:0]"))
         self.assertIn(1.0, TimeRange.from_str("[0:0_10:0)"))
+
+        self.assertNotIn(Timestamp.from_str("0:0"), TimeRange.from_str("[1:0_10:0)"))
+        self.assertIn(Timestamp.from_str("1:0"), TimeRange.from_str("[1:0_10:0)"))
+
+        self.assertNotIn(TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[0:0_5:0)"))
+        self.assertIn(TimeRange.from_str("0:0_5:0"), TimeRange.from_str("[0:0_10:0)"))
+
         # The subrange tests will cover the rest
 
     def _check_intersection(self, a, b, c, d):

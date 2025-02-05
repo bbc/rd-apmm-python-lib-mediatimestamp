@@ -371,9 +371,13 @@ class TimeRange (object):
         return (self.start is not None and self.end is not None)
 
     def __contains__(self, ts: object) -> bool:
-        """Returns true if the timestamp is within this range."""
-        return (isinstance(ts, (Timestamp, SupportsMediaTimestamp, int, float)) and
-                self.contains_subrange(mediatimestamp(ts)))
+        """Returns true if the timestamp or timerange is wholly within this range."""
+        return ((
+                    isinstance(ts, (Timestamp, SupportsMediaTimestamp, int, float)) and
+                    self.contains_subrange(mediatimestamp(ts))
+                ) or (
+                    isinstance(ts, (TimeRange, SupportsMediaTimeRange)) and
+                    self.contains_subrange(ts)))
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SupportsMediaTimeRange):
