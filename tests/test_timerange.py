@@ -489,6 +489,11 @@ class TestTimeRange (unittest.TestCase):
 
         self._check_length(a, b, c)
 
+    def test_length_float(self):
+        self.assertEqual(TimeRange.eternity().length, float("inf"))
+        self.assertEqual(float(TimeRange.eternity().length), float("inf"))
+        self.assertEqual(float(TimeRange.from_str("[0:0_1:0)").length), 1.0)
+
     def test_repr(self):
         """This tests that the repr function turns time ranges into `eval`-able strings."""
         test_trs = [

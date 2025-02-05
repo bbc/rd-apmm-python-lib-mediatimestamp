@@ -429,7 +429,7 @@ class Timestamp(object):
     def to_float(self) -> float:
         """ Convert to a floating point number of seconds
         """
-        return self._value / Timestamp.MAX_NANOSEC
+        return self.__float__()
 
     def to_datetime(self) -> datetime:
         sec, nsec, sign, leap = self.to_unix()
@@ -664,6 +664,9 @@ class Timestamp(object):
     def __floordiv__(self, anint: int) -> "Timestamp":
         ns = self._value // anint
         return Timestamp(ns=ns)
+
+    def __float__(self):
+        return self._value / Timestamp.MAX_NANOSEC
 
     def _get_fractional_seconds(self, fixed_size: bool = False) -> str:
         div = self.MAX_NANOSEC // 10
