@@ -353,6 +353,27 @@ class TestTimeRange (unittest.TestCase):
 
         self._check_subrange(a, b, c, d)
 
+    def test_subrange__eternity_never(self):
+        self.assertTrue(TimeRange.eternity().contains_subrange(TimeRange.eternity()))
+        self.assertTrue(TimeRange.eternity().contains_subrange(TimeRange.from_str("[0:0]")))
+        self.assertTrue(TimeRange.eternity().contains_subrange(TimeRange.from_str("[0:0_1:0)")))
+
+        self.assertTrue(TimeRange.eternity().contains_subrange(TimeRange.never()))
+
+        self.assertFalse(TimeRange.never().contains_subrange(TimeRange.eternity()))
+        self.assertFalse(TimeRange.never().contains_subrange(TimeRange.never()))
+        self.assertFalse(TimeRange.never().contains_subrange(TimeRange.from_str("[0:0]")))
+        self.assertFalse(TimeRange.never().contains_subrange(TimeRange.from_str("[0:0_1:0)")))
+
+    def test_contains(self):
+        self.assertNotIn(None, TimeRange.from_str("[0:0]"))
+        self.assertNotIn(None, TimeRange.never())
+        self.assertNotIn(None, TimeRange.eternity())
+        self.assertNotIn(1.0, TimeRange.from_str("[0:0]"))
+        self.assertIn(1.0, TimeRange.from_str("[1:0]"))
+        self.assertIn(1.0, TimeRange.from_str("[0:0_10:0)"))
+        # The subrange tests will cover the rest
+
     def _check_intersection(self, a, b, c, d):
         self.assertEqual(TimeRange(a, c, TimeRange.INCLUDE_START).intersect_with(b), mediatimerange(b))
 
