@@ -353,6 +353,35 @@ class TestTimeRange (unittest.TestCase):
 
         self._check_subrange(a, b, c, d)
 
+    def test_subrange__eternity_never(self):
+        self.assertTrue(TimeRange.eternity().contains_subrange(TimeRange.eternity()))
+        self.assertTrue(TimeRange.eternity().contains_subrange(TimeRange.from_str("[0:0]")))
+        self.assertTrue(TimeRange.eternity().contains_subrange(TimeRange.from_str("[0:0_1:0)")))
+
+        self.assertTrue(TimeRange.eternity().contains_subrange(TimeRange.never()))
+
+        self.assertFalse(TimeRange.never().contains_subrange(TimeRange.eternity()))
+        self.assertFalse(TimeRange.never().contains_subrange(TimeRange.never()))
+        self.assertFalse(TimeRange.never().contains_subrange(TimeRange.from_str("[0:0]")))
+        self.assertFalse(TimeRange.never().contains_subrange(TimeRange.from_str("[0:0_1:0)")))
+
+    def test_contains(self):
+        self.assertNotIn(None, TimeRange.from_str("[0:0]"))
+        self.assertNotIn(None, TimeRange.never())
+        self.assertNotIn(None, TimeRange.eternity())
+
+        self.assertNotIn(1.0, TimeRange.from_str("[0:0]"))
+        self.assertIn(1.0, TimeRange.from_str("[1:0]"))
+        self.assertIn(1.0, TimeRange.from_str("[0:0_10:0)"))
+
+        self.assertNotIn(Timestamp.from_str("0:0"), TimeRange.from_str("[1:0_10:0)"))
+        self.assertIn(Timestamp.from_str("1:0"), TimeRange.from_str("[1:0_10:0)"))
+
+        self.assertNotIn(TimeRange.from_str("[0:0_10:0)"), TimeRange.from_str("[0:0_5:0)"))
+        self.assertIn(TimeRange.from_str("0:0_5:0"), TimeRange.from_str("[0:0_10:0)"))
+
+        # The subrange tests will cover the rest
+
     def _check_intersection(self, a, b, c, d):
         self.assertEqual(TimeRange(a, c, TimeRange.INCLUDE_START).intersect_with(b), mediatimerange(b))
 
@@ -459,6 +488,11 @@ class TestTimeRange (unittest.TestCase):
         c = Timestamp(1530711653, 999999999)
 
         self._check_length(a, b, c)
+
+    def test_length_float(self):
+        self.assertEqual(TimeRange.eternity().length, float("inf"))
+        self.assertEqual(float(TimeRange.eternity().length), float("inf"))
+        self.assertEqual(float(TimeRange.from_str("[0:0_1:0)").length), 1.0)
 
     def test_repr(self):
         """This tests that the repr function turns time ranges into `eval`-able strings."""
