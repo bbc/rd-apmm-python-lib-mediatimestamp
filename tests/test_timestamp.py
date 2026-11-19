@@ -23,7 +23,8 @@ from mediatimestamp.immutable import (
     Timestamp,
     TsValueError,
     mediatimestamp,
-    SupportsMediaTimestamp)
+    SupportsMediaTimestamp,
+    TimeStandard)
 
 
 class TestTimestamp(unittest.TestCase):
@@ -935,6 +936,19 @@ class TestTimestamp(unittest.TestCase):
         for t in tests:
             self.assertEqual(Timestamp.from_unix(*t[0]), t[1])
 
+    def test_from_unix_skip_tai(self):
+        tests = [
+            ((1000, 0, -1), Timestamp(1000, 0, -1)),
+            ((63071999, 999999999, 1), Timestamp(63071999, 999999999)),
+            ((63072000, 0, 1), Timestamp(63072000, 0)),  # 10 leap seconds
+            ((1512491592, 0, 1), Timestamp(1512491592, 0)),  # 37 leap seconds
+            ((Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1, 1),
+                Timestamp(Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1)),  # 37 leap seconds
+        ]
+
+        for t in tests:
+            self.assertEqual(Timestamp.from_unix(*t[0], convert_tai=False), t[1])
+
     def test_to_unix(self):
         tests = [
             (Timestamp(Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1, -1),  # 0 leap seconds
@@ -945,7 +959,17 @@ class TestTimestamp(unittest.TestCase):
             (Timestamp(63072010, 0), (63072000, 0, 1, False)),  # 10 leap seconds
             (Timestamp(1512491629, 0), (1512491592, 0, 1, False)),  # 37 leap seconds
             (Timestamp(Timestamp.MAX_SECONDS - 1, Timestamp.MAX_NANOSEC - 1),
-                (Timestamp.MAX_SECONDS - 1 - 37, Timestamp.MAX_NANOSEC - 1, 1, False)),  # 37 leap seconds
+                (Timestamp.MAX_SECONDS - 1 - 37, Timestamp.MAX_NANOSEC - 1, 1, False)),  # 37 leap seconds,
+            # Test a couple of cases with explicit TAI time standard
+            (Timestamp(63072008, 999999999, standard=TimeStandard.TAI), (63072008, 999999999, 1, False)),  # 0 leap sec
+            (Timestamp(63072009, 0, standard=TimeStandard.TAI), (63071999, 0, 1, True)),  # 10 leap seconds at leap
+            (Timestamp(63072010, 0, standard=TimeStandard.TAI), (63072000, 0, 1, False)),  # 10 leap seconds
+            (Timestamp(1512491629, 0, standard=TimeStandard.TAI), (1512491592, 0, 1, False)),  # 37 leap seconds
+            # Test explicit UTC time standard
+            (Timestamp(63072008, 999999999, standard=TimeStandard.UTC), (63072008, 999999999, 1, False)),  # 0 leap sec
+            (Timestamp(63072009, 0, standard=TimeStandard.UTC), (63072009, 0, 1, False)),  # 10 leap seconds at leap
+            (Timestamp(63072010, 0, standard=TimeStandard.UTC), (63072010, 0, 1, False)),  # 10 leap seconds
+            (Timestamp(1512491629, 0, standard=TimeStandard.UTC), (1512491629, 0, 1, False)),  # 37 leap seconds
         ]
 
         for t in tests:
