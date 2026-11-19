@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import enum
 from typing import Tuple, Optional, Type, TYPE_CHECKING, Protocol, runtime_checkable, Union
 from abc import ABCMeta, abstractmethod
 import calendar
@@ -79,12 +80,21 @@ def mediatimestamp(v: TimestampConstructionType) -> "Timestamp":
         raise ValueError("{!r} cannot be converted to a mediatimestamp.Timestamp".format(v))
 
 
+class TimeStandard(enum.Enum):
+    UTC = "UTC"
+    TAI = "TAI"
+    UNKNOWN = "UNKNOWN"
+
+
 class Timestamp(object):
     """A nanosecond precision immutable timestamp.
 
     Note that the canonical representation of a Timestamp is seconds:nanoseconds, e.g. "4:500000000".
     Timestamp in seconds.fractions format (e.g. "4.5") can be parsed, but should not be used for serialization or
     storage due to difficulty disambiguating them from floats.
+
+    Where a TimeStandard is given (one of TAI or UTC), conversion to Unix timestamps/ISO 8601 strings/datetimes will
+    respect it. If unknown, TAI will be assumed in conversion to ensure backwards compatibility.
     """
     class Rounding (int):
         pass
@@ -96,7 +106,14 @@ class Timestamp(object):
     MAX_NANOSEC = MAX_NANOSEC
     MAX_SECONDS = MAX_SECONDS
 
-    def __init__(self, sec: int = 0, ns: int = 0, sign: int = 1):
+    def __init__(self, sec: int = 0, ns: int = 0, sign: int = 1, standard: TimeStandard = TimeStandard.UNKNOWN):
+        """Construct a Timestamp object
+
+        :param sec: seconds
+        :param ns: nanoseconds
+        :param sign: sign of the timestamp
+        :param standard: Whether the Timestamp is known to be TAI/UTC (or unknown)
+        """
         if sign < 0:
             sign = -1
         else:
@@ -109,6 +126,7 @@ class Timestamp(object):
         self._value: int
 
         self.__dict__['_value'] = value
+        self.__dict__['standard'] = standard
 
     @property
     def sec(self) -> int:
@@ -146,14 +164,14 @@ class Timestamp(object):
         return TimeRange.from_single_timestamp(self)
 
     @classmethod
-    def get_time(cls) -> "Timestamp":
+    def get_time(cls, convert_tai: bool = True) -> "Timestamp":
         unix_time = time.time()
         abs_unix_time = abs(unix_time)
         unix_sec = int(abs_unix_time)
         unix_ns = int(abs_unix_time*cls.MAX_NANOSEC) - int(abs_unix_time)*cls.MAX_NANOSEC
         unix_sign = 1 if unix_time >= 0 else -1
 
-        return cls.from_unix(unix_sec, unix_ns, unix_sign=unix_sign)
+        return cls.from_unix(unix_sec, unix_ns, unix_sign=unix_sign, convert_tai=convert_tai)
 
     @classmethod
     @deprecated(version="4.0.0",
@@ -240,7 +258,11 @@ class Timestamp(object):
         return cls(ns=ns, sign=sign)
 
     @classmethod
-    def from_datetime(cls, dt: datetime) -> "Timestamp":
+    def from_datetime(cls, dt: datetime, convert_tai: bool = True) -> "Timestamp":
+        """Create Timestamp from datetime
+
+        :param convert_tai: Whether resulting Timestamp should use TAI time standard (default True)
+        """
         minTs = datetime.fromtimestamp(0, tz.gettz('UTC'))
         utcdt = dt.astimezone(tz.gettz('UTC'))
         seconds = abs(int((utcdt - minTs).total_seconds()))
@@ -254,10 +276,15 @@ class Timestamp(object):
         else:
             sign = 1
 
-        return cls.from_unix(unix_sec=seconds, unix_ns=nanoseconds, unix_sign=sign, is_leap=False)
+        return cls.from_unix(unix_sec=seconds, unix_ns=nanoseconds, unix_sign=sign, is_leap=False,
+                             convert_tai=convert_tai)
 
     @classmethod
-    def from_iso8601_utc(cls, iso8601utc: str) -> "Timestamp":
+    def from_iso8601_utc(cls, iso8601utc: str, convert_tai: bool = True) -> "Timestamp":
+        """Create Timestamp from ISO 8601 UTC string
+
+        :param convert_tai: Whether resulting Timestamp should use TAI time standard (default True)
+        """
         if not iso8601utc.endswith('Z'):
             raise TsValueError("missing 'Z' at end of ISO 8601 UTC format")
         year, month, day, hour, minute, second, ns = _parse_iso8601(iso8601utc[:-1])
@@ -274,7 +301,8 @@ class Timestamp(object):
         else:
             sign = 1
 
-        return cls.from_unix(unix_sec=secs_since_epoch, unix_ns=ns, unix_sign=sign, is_leap=(second == 60))
+        return cls.from_unix(unix_sec=secs_since_epoch, unix_ns=ns, unix_sign=sign, is_leap=(second == 60),
+                             convert_tai=convert_tai)
 
     @classmethod
     def from_smpte_timelabel(cls, timelabel: str) -> "Timestamp":
@@ -304,7 +332,7 @@ class Timestamp(object):
         return cls.from_count(count, rate_num, rate_den)
 
     @classmethod
-    def from_str(cls, ts_str: str,) -> "Timestamp":
+    def from_str(cls, ts_str: str) -> "Timestamp":
         """Parse a string as a TimeStamp
 
         Accepts:
@@ -343,16 +371,21 @@ class Timestamp(object):
         return cls(ns=ns, sign=sign)
 
     @classmethod
-    def from_unix(cls, unix_sec: int, unix_ns: int, unix_sign: int = 1, is_leap: bool = False) -> "Timestamp":
-        leap_sec = 0
-        if unix_sign >= 0:
-            for tbl_sec, tbl_tai_sec_minus_1 in UTC_LEAP:
-                if unix_sec + is_leap >= tbl_sec:
-                    leap_sec = (tbl_tai_sec_minus_1 + 1) - tbl_sec
-                    break
+    def from_unix(cls, unix_sec: int, unix_ns: int, unix_sign: int = 1, is_leap: bool = False, convert_tai: bool = True) -> "Timestamp":
+        standard = TimeStandard.TAI
+        if convert_tai:
+            leap_sec = 0
+            if unix_sign >= 0:
+                for tbl_sec, tbl_tai_sec_minus_1 in UTC_LEAP:
+                    if unix_sec + is_leap >= tbl_sec:
+                        leap_sec = (tbl_tai_sec_minus_1 + 1) - tbl_sec
+                        break
+            else:
+                is_leap = False
         else:
-            is_leap = False
-        return cls(sec=unix_sec+leap_sec, ns=unix_ns, sign=unix_sign)
+            standard = TimeStandard.UTC
+            leap_sec = 0
+        return cls(sec=unix_sec+leap_sec, ns=unix_ns, sign=unix_sign, standard=standard)
 
     def is_null(self) -> bool:
         return self._value == 0
@@ -453,7 +486,7 @@ class Timestamp(object):
         `True` when the input time corresponds exactly to a UTC leap second.
         Note that this deliberately returns a tuple, to try and avoid confusion.
         """
-        if self._value < 0:
+        if self._value < 0 or self.standard == TimeStandard.UTC:
             return (self.sec, self.ns, self.sign, False)
         else:
             leap_sec = 0

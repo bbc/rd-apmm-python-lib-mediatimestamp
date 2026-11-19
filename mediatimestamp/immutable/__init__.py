@@ -24,13 +24,13 @@ are normally stored in this fashion.
 """
 
 from .timeoffset import TimeOffset, SupportsMediaTimeOffset, mediatimeoffset
-from .timestamp import Timestamp, SupportsMediaTimestamp, mediatimestamp
+from .timestamp import Timestamp, SupportsMediaTimestamp, TimeStandard, mediatimestamp
 from .timerange import TimeRange, SupportsMediaTimeRange, mediatimerange
 from ..exceptions import TsValueError
 
 
 __all__ = [
     "TimeOffset", "SupportsMediaTimeOffset", "mediatimeoffset",
-    "Timestamp", "SupportsMediaTimestamp", "mediatimestamp",
+    "Timestamp", "SupportsMediaTimestamp", "TimeStandard", "mediatimestamp",
     "TimeRange", "SupportsMediaTimeRange", "mediatimerange",
     "TsValueError"]
